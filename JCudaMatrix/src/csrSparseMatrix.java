@@ -3,6 +3,12 @@ import jcuda.runtime.JCuda;
 import static jcuda.runtime.JCuda.*;
 import static jcuda.runtime.cudaMemcpyKind.*;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import jcuda.jcusparse.*;
 import static jcuda.jcusparse.JCusparse.*;
 import static jcuda.jcusparse.cusparseStatus.*;
@@ -45,7 +51,71 @@ public class csrSparseMatrix {
 
 	// cusparse variables
 	cusparseHandle handle;
+	
+	//@SuppressWarnings("unchecked")
+	public csrSparseMatrix(cusparseHandle handle, float[][] e, int m) {
+		//input is in COO format
+		this.m = m;
+		this.n = this.m;
+		nnz=e.length;
 
+
+		this.handle = handle;
+
+		// according to JCusparseSample
+		JCusparse.setExceptionsEnabled(true);
+		JCuda.setExceptionsEnabled(true);
+
+
+
+		// create matrix in coo format on host
+		AcooRowIndex_host = new int[nnz];
+		AcooColIndex_host = new int[nnz];
+		AcooVal_host = new float[nnz];
+		{
+			int count=0;
+			for(float[] row: e) {
+
+			AcooRowIndex_host[count] = (int) row[0];
+			AcooColIndex_host[count] = (int) row[1];
+			AcooVal_host[count++] = row[2];
+			//System.out.println("COO " + row[0]+ " "+row[1]+" "+row[2]);
+		}
+		}
+//		List<Integer> list = new ArrayList<>(AcooRowIndex_host.length);
+//		for (int n : AcooRowIndex_host)
+//		  list.add(n);	
+//			this.m = (int) Collections.max(list)+1; //add one as number of elements is index plus one
+//			this.n = this.m;
+			
+
+		// Allocate GPU memory and copy the matrix and vectors into it
+		cudaMalloc(AcooRowIndex_gpuPtr, nnz * Sizeof.INT);
+		cudaMalloc(AcooColIndex_gpuPtr, nnz * Sizeof.INT);
+		cudaMalloc(AcooVal_gpuPtr, nnz * Sizeof.FLOAT);
+
+		cudaMemcpy(AcooRowIndex_gpuPtr, Pointer.to(AcooRowIndex_host), nnz
+				* Sizeof.INT, cudaMemcpyHostToDevice);
+		cudaMemcpy(AcooColIndex_gpuPtr, Pointer.to(AcooColIndex_host), nnz
+				* Sizeof.INT, cudaMemcpyHostToDevice);
+		cudaMemcpy(AcooVal_gpuPtr, Pointer.to(AcooVal_host),
+				nnz * Sizeof.FLOAT, cudaMemcpyHostToDevice);
+
+		// Create and set up matrix descriptor
+		cusparseCreateMatDescr(descrA);
+		cusparseSetMatType(descrA, CUSPARSE_MATRIX_TYPE_GENERAL);
+		cusparseSetMatIndexBase(descrA, CUSPARSE_INDEX_BASE_ZERO);
+
+		// Exercise conversion routines (convert matrix from COO 2 CSR format)
+		cudaMalloc(AcsrRowIndex_gpuPtr, (m + 1) * Sizeof.INT);
+		cusparseXcoo2csr(handle, AcooRowIndex_gpuPtr, nnz, m,
+				AcsrRowIndex_gpuPtr, CUSPARSE_INDEX_BASE_ZERO);
+
+	}
+	
+	
+	
+	
 	public csrSparseMatrix(cusparseHandle handle, float[][] e, int m, int n) {
 		// m: rows, n: columns, nnz: number of non zero elements
 		// create sparse matrix in csr format
@@ -150,7 +220,7 @@ public class csrSparseMatrix {
 		int policy_iLU = CUSPARSE_SOLVE_POLICY_NO_LEVEL;
 
 		cusparseMatDescr descr_L = new cusparseMatDescr();
-		;
+		
 		cusparseCreateMatDescr(descr_L);
 		cusparseSetMatIndexBase(descr_L, CUSPARSE_INDEX_BASE_ZERO);
 		cusparseSetMatType(descr_L, CUSPARSE_MATRIX_TYPE_GENERAL);
@@ -160,7 +230,7 @@ public class csrSparseMatrix {
 		int trans_L = CUSPARSE_OPERATION_NON_TRANSPOSE;
 
 		cusparseMatDescr descr_U = new cusparseMatDescr();
-		;
+		
 		cusparseCreateMatDescr(descr_U);
 		cusparseSetMatIndexBase(descr_U, CUSPARSE_INDEX_BASE_ZERO);
 		cusparseSetMatType(descr_U, CUSPARSE_MATRIX_TYPE_GENERAL);

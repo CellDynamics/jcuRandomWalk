@@ -1,12 +1,12 @@
 clear all; close all;
 
-
+SPYES=true;
 %incidence matrix A of size edges*vertices
 
 %consider image with R rows, C columns
-R=12; %rows
-C=12; %columns;
-Z=12; %z-slices, layers
+R=25; %rows
+C=25; %columns;
+Z=25; %z-slices, layers
 V=R*C*Z; % number of vertices
 
 %it will have R*(C-1)+C*(R-1) edges in each layer
@@ -18,7 +18,7 @@ E=Z*EdgesInLayer +(Z-1)*R*C; %number of edges in layers plus edges connecting la
 %ExV sized adjacency matrix
 % note that we consider no flux boundary conditions here!!!
 
-A=zeros(E,V);
+A=sparse(E,V);
 
 %start filling A with horizontal edges
 count=1;
@@ -54,15 +54,25 @@ end
 end
 
 end
-          
+ 
+
+if SPYES
+    w= ones(1,E); % all equal weights
+W = spdiags(w', 0, E, E);     
+%graph Laplacian   
+
+L=sparse(V-4,V-4);
+else
 %weight (similarity) matrix with equal weights of each edge        
 w= ones(E,1); % all equal weights
 
 % w( floor((C-1)/2)+(C-1)*[0:R-1])=0.1; % block horizontal diffusion across the vertical midline
 
 W = diag(w);
-        
-%graph Laplacian   
+   
+% 
+end
+
 L=A'*W*A;
 
 
@@ -79,7 +89,7 @@ phi_sink=0; %% bottom right corner of image
 %L will become our reduced Laplacian
 
 
-Centre= C*(R/2)+(C/2) + (Z/2-1)*R*C;
+Centre= round(C*(R/2)+(C/2) + (Z/2-1)*R*C);
 Source =[Centre,Centre+1]; %centre pixel and neighbour
 Sink=[V,V-1]; %bottom right vertex and left neighbour
 
@@ -98,6 +108,9 @@ L(seeds,:)=[];
 b = zeros(V-length(seeds),1)  - sum(L(:,Source),2)*phi_source - sum(L(:,Sink),2)*phi_sink;
 L(:,[seeds])=[];
 
+
+
+if false
 % solve linear system L*phi_inside=b;
 phi_inside=L\b;
 
@@ -119,22 +132,63 @@ slice(X,Y,Z,stack,xslice,yslice,zslice)
 
 daspect([1 1 1])
 
+end
 
-fid = fopen('L_3D.txt','wt');
+
+if SPYES
+% pw=java.io.PrintWriter(java.io.FileWriter('../data/L_3D.txt'));
+% line=num2str(0:size(L,2)-1);
+% %disp(line);
+% %pw.println(line);
+% for index=1:length(L)
+%     %disp(index);
+%     line=num2str(full(L(index,:)));
+%     pw.println(line);
+% end
+% pw.flush();
+% pw.close();
+
+[i,j,val] = find(L);
+data_dump = [j,i,val];
+fid = fopen('../data/L_3D.txt','wt');
+fprintf( fid,'%d %d %f\n', transpose(data_dump) );
+fclose(fid);
+
+
+% fid = fopen('../data/L_3D.txt','wt');
+% for i = 1:size(L,1)
+%     line=full(L(i, :));
+%     if(mod(i,5)==0)
+%         i
+%     end
+%     for j= 1:size(L,2)
+%     fprintf(fid,'%g\t',line(j));
+%     
+%     end
+%     fprintf(fid,'\n');
+% end
+% fclose(fid)
+else
+fid = fopen('../data/L_3D.txt','wt');
 for i = 1:size(L,1)
     fprintf(fid,'%g\t',L(i,:));
     fprintf(fid,'\n');
 end
 fclose(fid)
 
-fid = fopen('X_3D.txt','wt');
+end
+
+
+if SPYES==false
+fid = fopen('../data/X_3D.txt','wt');
 for i = 1:size(phi,1)
     fprintf(fid,'%g\t',phi(i,:));
     fprintf(fid,'\n');
 end
 fclose(fid)
+end
 
-fid = fopen('B_3D.txt','wt');
+fid = fopen('../data/B_3D.txt','wt');
 b(b==-0)=0;
 for i = 1:size(b,1)
     
@@ -143,7 +197,7 @@ for i = 1:size(b,1)
 end
 fclose(fid)
 
-fid = fopen('Seeds_3D.txt','wt');
+fid = fopen('../data/Seeds_3D.txt','wt');
 for i = 1:size(Source,2)
      fprintf(fid,'%g\t%g',Source(i), phi_source);
     fprintf(fid,'\n');

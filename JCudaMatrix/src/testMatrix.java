@@ -86,9 +86,16 @@ public class testMatrix {
 
 		// 3D input
 		int rows=12; int columns=12; int height=12; //dimension of original image/3D stack
-		float[][] A = readSquareMatrixFromFile(directory+"L_3D.txt", m );
+		//float[][] A = readSquareMatrixFromFile(directory+"L_3D.txt", m );
+		float[][] A = readSparseCooMatrixFromFile(directory+"L_3D.txt");
 		float[] b = readVectorFromFile(directory+"B_3D.txt");
 		float[][] Seeds = readSeedsFromFile(directory+"Seeds_3D.txt");	
+		
+//		m[0]=b.length;
+//		A = SparseToDense(A,b.length,b.length);
+//		printMatrix(A);
+		
+		
 
 		//set up cusparse handle, TODO: learn how to address one specific GPU, can use multiple GPUs using different handles
 		cusparseHandle handle = new cusparseHandle();
@@ -97,9 +104,9 @@ public class testMatrix {
 		// Initialise JCublas library (does not seem to be needed)
 		//JCublas.cublasInit();
 
-
-		csrSparseMatrix  cu_A = new  csrSparseMatrix(handle, A, m[0], m[0]);
-		System.out.print("sparse matrix cu_A created\n");
+		csrSparseMatrix  cu_A = new  csrSparseMatrix(handle, A,b.length); //A in COO format
+		 //csrSparseMatrix  cu_A = new  csrSparseMatrix(handle, A, m[0], m[0]);
+		//System.out.print("sparse matrix cu_A created\n");
 
 		denseVector  cu_b = new  denseVector(b);
 		System.out.print("dense rhs vector cu_b created\n");
@@ -172,6 +179,20 @@ public class testMatrix {
 		return M;
 	}
 
+	static private float[][] SparseToDense(float[][] A, int rows, int columns){
+		//System.out.println("TTT1 "+A.length);
+		
+		float[][]	B=new float[rows][columns];
+		
+		for (float[] row: A)
+		B[(int) row[0]][(int) row[1]] = row[2];
+	
+		return B;
+	}
+	
+	
+	
+	
 
 	static private void writeMatrixToFile(String filename, float [][] A){
 
@@ -266,9 +287,52 @@ public class testMatrix {
 
 	}
 
+	
+	static private float[][] readSparseCooMatrixFromFile(String filename) throws IOException, ParseException {
+	
+		float [][] A = null;
+		int numOfVertices;
 
+		File file = new File(filename);
+		BufferedReader reader = null;
+
+		System.out.println("reading in sparse Matrix COO file: "+file.toPath());
+
+		try (Stream<String> lines = Files.lines(file.toPath(), Charset.defaultCharset())) {
+			numOfVertices = (int) lines.count();
+		}
+
+		A = new float[numOfVertices][3];
+		//System.out.println("number of Seeds "+numOfSeeds);
+
+		try {
+			reader = Files.newBufferedReader(file.toPath());
+			String line = null;
+			String delims = "\\s";
+			int l=0;
+			while ((line = reader.readLine()) != null) {
+
+				
+				String[] tokens = line.split(delims);
+				
+				
+				//System.out.println("read i "+tokens[1]);
+				A[l][0] = Integer.parseInt(tokens[0]) - 1;//correct for Matlab indexing
+				A[l][1] = Integer.parseInt(tokens[1])- 1;//correct for Matlab indexing
+				A[l][2] = Float.parseFloat(tokens[2]);
+				++l;
+			}
+		} catch (IOException x) {
+			System.err.format("IOException: %s%n", x);
+		} finally {
+			if (reader != null)
+				reader.close();
+		}
+		return A;
+
+	}
+	
 	static private float[][] readSeedsFromFile( String filename)throws IOException, ParseException {
-
 		float [][] A = null;
 		int numOfSeeds;
 
