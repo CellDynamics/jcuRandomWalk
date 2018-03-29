@@ -78,13 +78,17 @@ public class testMatrix {
 
 
 		//+ example of a reduced Laplacian as input
-		int rows=30; int columns=100; int height=1; //dimension of original image/3D stack
-		float[][] A = readSquareMatrixFromFile(directory+"L_reduced.txt", m );
-		float[] b = readVectorFromFile(directory+"B_reduced.txt");
-		float[][] Seeds = readSeedsFromFile(directory+"Seeds_reduced.txt");		
+		//		int rows=30; int columns=100; int height=1; //dimension of original image/3D stack
+		//		float[][] A = readSquareMatrixFromFile(directory+"L_reduced.txt", m );
+		//		float[] b = readVectorFromFile(directory+"B_reduced.txt");
+		//		float[][] Seeds = readSeedsFromFile(directory+"Seeds_reduced.txt");		
 		//printMatrix(Seeds);
 
-
+		// 3D input
+		int rows=12; int columns=12; int height=12; //dimension of original image/3D stack
+		float[][] A = readSquareMatrixFromFile(directory+"L_3D.txt", m );
+		float[] b = readVectorFromFile(directory+"B_3D.txt");
+		float[][] Seeds = readSeedsFromFile(directory+"Seeds_3D.txt");	
 
 		//set up cusparse handle, TODO: learn how to address one specific GPU, can use multiple GPUs using different handles
 		cusparseHandle handle = new cusparseHandle();
@@ -114,10 +118,19 @@ public class testMatrix {
 		//printVector(x);
 
 		// for c)
-		float[][] x2D = vector2matrix(x, rows,columns); //format x as 2D matrix (solution image)
-		writeMatrixToFile(directory+ "Result.txt", x2D);
+		//float[][] x2D = vector2matrix(x, rows,columns); //format x as 2D matrix (solution image)
+		//writeMatrixToFile(directory+ "Result.txt", x2D);
+
+		writeVectorToFile(directory+ "Result.txt", x);
+
 		// output file can be plotted with
 		// gnuplot:  plot "Result.txt" matrix with image
+		// Matlab: load('Result.txt','ascii')
+		// [X,Y,Z] = meshgrid([1:R],[1:C],[1:Z]);
+		// xslice = [1,6,12];   
+		// yslice = [];
+		// zslice = 6;
+		// slice(X,Y,Z,stack,xslice,yslice,zslice)
 
 		// clear up
 		cu_A.free();
@@ -187,6 +200,32 @@ public class testMatrix {
 
 
 	}
+
+
+	static private void writeVectorToFile(String filename, float [] V){
+
+		try (BufferedWriter bw = new BufferedWriter(new FileWriter(filename))) {
+
+			for(float f: V){		
+				bw.write(Float.toString(f));
+				bw.write("\n");	
+			}
+
+
+
+
+			bw.close();
+
+			System.out.println("Done writing results file");
+
+		} catch (IOException e) {
+
+			e.printStackTrace();
+
+		}	
+
+
+	}	
 
 
 	static private float[][] readSquareMatrixFromFile(String filename, int[] m) throws IOException, ParseException {
