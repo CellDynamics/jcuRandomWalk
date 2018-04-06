@@ -1,10 +1,13 @@
-		stack =  load('../data/Result.txt','ascii')
-         R=25;
-         C=25;
-         Z=25;
+		stack =  load('../data/Result.txt','ascii');
+         R=143;
+         C=116;
+         Z=93;
+                  R=12;
+         C=12;
+         Z=12;
          stack=reshape(stack,R,C,Z);
 		 [X,Y,Z] = meshgrid([1:R],[1:C],[1:Z]);
-		 xslice = [1,R/2,R];   
+		 xslice = [1,round(R/2),R];   
 		 yslice = [];
-		 zslice = R/2;
-		 slice(X,Y,Z,stack,xslice,yslice,zslice)
+		 zslice = round(R/2);
+		 slice(X,Y,Z,stack,xslice,yslice,zslice);

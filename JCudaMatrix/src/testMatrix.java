@@ -86,6 +86,8 @@ public class testMatrix {
 
 		// 3D input
 		int rows=12; int columns=12; int height=12; //dimension of original image/3D stack
+		//int rows=40; int columns=40; int height=40; //dimension of original image/3D stack
+		
 		//float[][] A = readSquareMatrixFromFile(directory+"L_3D.txt", m );
 		float[][] A = readSparseCooMatrixFromFile(directory+"L_3D.txt");
 		float[] b = readVectorFromFile(directory+"B_3D.txt");

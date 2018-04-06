@@ -1,12 +1,22 @@
 clear all; close all;
 
+
+stack =  load('../data/LifeActGFP_3D.mat');
+
+stack=stack.LifeActGFP_3D;
+%normalise intensities
+stack=(stack-min(stack(:)));
+stack=stack./max(stack(:));
+
+sprintf("stack read in and normalised")
+
 SPYES=true;
 %incidence matrix A of size edges*vertices
 
 %consider image with R rows, C columns
-R=12; %rows
-C=12; %columns;
-Z=12; %z-slices, layers
+R=143; %rows
+C=116; %columns;
+Z=93; %z-slices, layers
 V=R*C*Z; % number of vertices
 
 %it will have R*(C-1)+C*(R-1) edges in each layer
@@ -19,26 +29,44 @@ E=Z*EdgesInLayer +(Z-1)*R*C; %number of edges in layers plus edges connecting la
 % note that we consider no flux boundary conditions here!!!
 
 A=sparse(E,V);
+sprintf("created A")
+w= sparse(1,E); %
 
+sprintf("created w")
+sigma=0.3;
+drawnow('update')
 %start filling A with horizontal edges
 count=1;
-for k=1:Z
+for k=1:Z-1
 for i=1:R
+    
 for j=1:C-1
-    A(count, (i-1)*C+j  + (k-1)*VerticesInLayer)=1; % right edges
-    A(count, (i-1)*C+j+1 + (k-1)*VerticesInLayer)=-1; % left edges
+    
+    V1=(i-1)*C+j  + (k-1)*VerticesInLayer;
+    V2=(i-1)*C+j+1 + (k-1)*VerticesInLayer;
+    A(count,V1 )=1; % right edges
+    A(count,V2 )=-1; % left edges
+    w(count)= exp(-0.5*( (stack(V1)-stack(V2)).^2 / sigma^2 ));
+   
     count=count+1;
 end
-end
-    
+i
+end 
+k
+sprintf("horizontal edges, layer %d",k) 
+
 for j=1:C
     for i=1:R-1
-    A(count, (i-1)*C+j + (k-1)*VerticesInLayer )=1; % down edges
-    A(count, i*C+j  + (k-1)*VerticesInLayer)=-1; % up edges
+        V1=(i-1)*C+j + (k-1)*VerticesInLayer;
+        V2=i*C+j  + (k-1)*VerticesInLayer;
+    A(count,V1  )=1; % down edges
+    A(count, V2)=-1; % up edges
+    w(count)= exp(-0.5*( (stack(V1)-stack(V2)).^2 / sigma^2 ));
     count=count+1;
 end
 end
 
+sprintf("vertical edges, layer %d",k) 
 end
 
 
@@ -47,34 +75,34 @@ for k=1:Z-1
     
     for i=1:R
 for j=1:C
-    A(count, (i-1)*C+j  + (k-1)*VerticesInLayer)=1; % to layer above edges
-    A(count, (i-1)*C+j + k*VerticesInLayer)=-1; % to layer down edges
+    V1=(i-1)*C+j  + (k-1)*VerticesInLayer;
+    V2=(i-1)*C+j + k*VerticesInLayer;
+    A(count, V1)=1; % to layer above edges
+    A(count, V2)=-1; % to layer down edges
+    w(count)= exp(-0.5*( (stack(V1)-stack(V2)).^2 / sigma^2 ));
     count=count+1;
 end
 end
 
-end
- 
+sprintf("up/down edges, layer %d",k) 
 
-if SPYES
-    w= ones(1,E); % all equal weights
+end
+ drawnow('update')
+
+sprintf(" edges done") 
+
+    "TTT"
 W = spdiags(w', 0, E, E);     
 %graph Laplacian   
 
+sprintf("W matrix done") 
 L=sparse(V-4,V-4);
-else
-%weight (similarity) matrix with equal weights of each edge        
-w= ones(E,1); % all equal weights
 
-% w( floor((C-1)/2)+(C-1)*[0:R-1])=0.1; % block horizontal diffusion across the vertical midline
-
-W = diag(w);
-   
-% 
-end
 
 L=A'*W*A;
 
+
+sprintf("L computed") 
 
 %we are looking for the solution phi which solves Lap*phi = 0,
 %employing the boundary conditions phi(1)=1, phi(V)=0;
