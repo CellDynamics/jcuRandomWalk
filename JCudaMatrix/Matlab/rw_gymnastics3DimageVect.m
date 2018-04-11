@@ -84,19 +84,19 @@ for k=1:Z
 
 
     
-    V1=VH  + (k-1)*VerticesInLayer
-    V2=V1+1
+    V1=VH  + (k-1)*VerticesInLayer;
+    V2=V1+1;
     %COUNT=1:length(V1);
-    COUNT=COUNTH+(k-1)*CC
+    COUNT=COUNTH+(k-1)*CC;
     
-    ind= sub2ind(Asize,COUNT,V1)
+    ind= sub2ind(Asize,COUNT,V1);
     A(ind )=1; % right edges
-        ind= sub2ind(Asize,COUNT,V2)
+        ind= sub2ind(Asize,COUNT,V2);
     A(ind )=-1; % left edges
     w(COUNT)= exp(-0.5*( (stack(V1)-stack(V2)).^2 / sigma^2 ));
 
 sprintf("horizontal edges, layer %d",k) 
-
+k
 end
    % count=count+1;
 %   size(A)
@@ -110,15 +110,16 @@ for k=1:Z
 
         V1=VV + (k-1)*VerticesInLayer;
         V2=V1+C;
-        COUNT=k*COUNTV+CC;  
-         ind= sub2ind(Asize,COUNT,V1)
+        COUNT=COUNTV+CC +(k-1)*length(COUNTV);
+         ind= sub2ind(Asize,COUNT,V1);
     A(ind  )=1; % down edges
-     ind= sub2ind(Asize,COUNT,V2)
+     ind= sub2ind(Asize,COUNT,V2);
     A(ind)=-1; % up edges
     w(COUNT)= exp(-0.5*( (stack(V1)-stack(V2)).^2 / sigma^2 ));
     
 
 sprintf("vertical edges, layer %d",k)
+k
 end
 
 CC=Z*R*(C-1) + Z*(R-1)*C;
@@ -128,15 +129,16 @@ for k=1:Z-1
 
     V1=VZ + (k-1)*VerticesInLayer;
     V2=VZ + VerticesInLayer;
-      COUNT=k*COUNTZ+CC;
-     ind= sub2ind(Asize,COUNT,V1)
+      COUNT=COUNTZ+CC +(k-1)*length(COUNTZ);
+     ind= sub2ind(Asize,COUNT,V1);
     A(ind)=1; % to layer above edges
-     ind= sub2ind(Asize,COUNT,V2)
+     ind= sub2ind(Asize,COUNT,V2);
     A(ind)=-1; % to layer down edges
     w(COUNT)= exp(-0.5*( (stack(V1)-stack(V2)).^2 / sigma^2 ));
     
 
 sprintf("up/down edges, layer %d",k) 
+k
 
 end
 
@@ -163,8 +165,8 @@ end %if false
 % end
 % end 
 % 
-
-
+% 
+% 
 % 
 % 
 % for j=1:C
@@ -256,7 +258,7 @@ L(:,[seeds])=[];
 
 
 
-if false
+if true
 % solve linear system L*phi_inside=b;
 phi_inside=L\b;
 

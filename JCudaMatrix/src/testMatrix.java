@@ -1,5 +1,8 @@
 import jcuda.jcusparse.cusparseHandle;
 import static jcuda.jcusparse.JCusparse.*;
+
+import static jcuda.runtime.JCuda.*;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -19,7 +22,15 @@ public class testMatrix {
 
 	public static void main(String[] args) throws IOException, ParseException{
 
-
+		int device=0;
+		int[] devicecount = new int[1];
+		cudaGetDeviceCount(devicecount);
+		System.out.println("CUDA devicecount = "+devicecount[0]);
+		cudaSetDevice(device);
+		System.out.println("CUDA using device = "+device);
+		//cudaDeviceReset();
+		//System.out.println("CUDA reset device = "+device);
+		
 		// What follows are three examples:
 		// a) solving a triangular system A*x=b,
 		// b) solving a symmetric system using LU decomposition, and
@@ -85,7 +96,7 @@ public class testMatrix {
 		//printMatrix(Seeds);
 
 		// 3D input
-		int rows=12; int columns=12; int height=12; //dimension of original image/3D stack
+		int rows=143; int columns=116; int height=93; //dimension of original image/3D stack
 		//int rows=40; int columns=40; int height=40; //dimension of original image/3D stack
 		
 		//float[][] A = readSquareMatrixFromFile(directory+"L_3D.txt", m );
@@ -97,7 +108,7 @@ public class testMatrix {
 //		A = SparseToDense(A,b.length,b.length);
 //		printMatrix(A);
 		
-		
+
 
 		//set up cusparse handle, TODO: learn how to address one specific GPU, can use multiple GPUs using different handles
 		cusparseHandle handle = new cusparseHandle();
@@ -379,32 +390,72 @@ public class testMatrix {
 	static private float[] incorporateSeeds(float[] x,float[][] Seeds ){
 
 		// method seems to do the job, but might require some more testinga
-
+		
 		float[] x_withSeeds = new float[x.length+Seeds.length];
 
+		System.out.println("x.length: "+x.length);
+		System.out.println("x_withSeeds: "+x_withSeeds.length);
+		
 		// need to sort lines of Seeds array first, according to entries in first column
-		java.util.Arrays.sort(Seeds, new Comparator<float[]>() {
+		java.util.Arrays.sort(Seeds, new java.util.Comparator<float[]>() {
 			@Override
 			public int compare(float[] o1, float[] o2) {
+				//if(Float.compare(o1[0], o2[0])==0)
+				//System.out.println("Bugger "+o1[0]);
+				
 				return Float.compare(o1[0], o2[0]);
 			}
 		});
+		
+		
 
 
+		System.out.println("Seeds.length: "+Seeds.length);
 		//printMatrix(Seeds);
+		for (int i=0;i<Seeds.length;i++) 
+			System.out.println("Seeds "+Seeds[i][0]);
 
+		
 		int countwith=0,count=0;
-		int S=0,nonseeds;
+		int S=0,nonseeds,ns = 0;
+		
 		for (int s=0;s<Seeds.length;s++){
-			nonseeds=(int) ((Seeds[s][0])-S-1); 
-			for (int i=0;i<nonseeds;i++) 
-				x_withSeeds[countwith++]=x[count++];
-
-
+			nonseeds=(int) (Seeds[s][0])-S-1; 
+			if(nonseeds<0) nonseeds=0;
+			
+			for (int i=0;i<nonseeds;i++) {
+//				
+//				//if (count<x.length) //TODO: there is a glitch here...
+				x_withSeeds[countwith++]= x[count++];
+				//countwith++;
+//				//count++;
+			}
+			//if(nonseeds==0)
+			//countwith++;
 			x_withSeeds[countwith++]=Seeds[s][1];
 
 			S=(int) Seeds[s][0];
+			ns=ns+nonseeds;
 		}
+		
+		for (int i=0;i<x_withSeeds.length-countwith-1;i++){
+			x_withSeeds[countwith+i]=x[count+i];
+			ns++;
+		}
+		System.out.println("count: "+count);
+		System.out.println("countwith: "+countwith);
+		System.out.println("nonseeds: "+ns);
+		
+//		for (int s=0;s<Seeds.length;s++){
+//			nonseeds=(int) ((Seeds[s][0])-S-1); 
+//			for (int i=0;i<nonseeds;i++)		
+//				x_withSeeds[countwith++]=x[count++];
+//
+//		
+//			x_withSeeds[countwith++]=Seeds[s][1];
+//
+//			S=(int) Seeds[s][0];
+//		}
 
 		return x_withSeeds;
 	}

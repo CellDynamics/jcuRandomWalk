@@ -592,6 +592,8 @@ public class csrSparseMatrix {
 			// /needs changing
 		float result_host[] = new float[m]; // array to hold results
 
+		//JCuda.cudaDeviceSynchronize();
+		
 		cudaMemcpy(Pointer.to(result_host), x_gpuPtr, m * Sizeof.FLOAT,
 				cudaMemcpyDeviceToHost); // copy results back
 

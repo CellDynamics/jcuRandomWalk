@@ -110,7 +110,7 @@ L(:,[seeds])=[];
 
 
 
-if false
+if true
 % solve linear system L*phi_inside=b;
 phi_inside=L\b;
 
