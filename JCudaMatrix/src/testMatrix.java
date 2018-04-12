@@ -130,8 +130,13 @@ public class testMatrix {
 
 		// if using a reduced Laplacian
 		x = incorporateSeeds(x,Seeds );
-
-
+		
+//		Seeds = swapSeeds(Seeds); //change, no return of swapSeeds needed
+//		float[] x2 = cu_A.LuSolve(cu_b, true); //use for example c), second argument switches iLuBiCGStabSolve mode on
+//
+//		// if using a reduced Laplacian
+//		x1 = incorporateSeeds(x1,Seeds );
+		
 
 		// for a), b)
 		//System.out.println("A\\b =");
@@ -386,6 +391,15 @@ public class testMatrix {
 
 	}
 
+	
+	
+	static private float[][] swapSeeds(float[][] Seeds ){
+		
+		for (int i = 0; i < Seeds.length; i++)
+		Seeds[i][1]= 1 - Seeds[i][1];
+
+		return Seeds;
+	}
 
 	static private float[] incorporateSeeds(float[] x,float[][] Seeds ){
 
