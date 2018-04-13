@@ -9,10 +9,16 @@ Z=93;
 %          Z=41;
 
 stack=reshape(stack,R,C,Z);
-Stack(stack>0.75)
+stackSink=stack;
+stackSink(stackSink==0)=1;
+stackSink(stackSink<=0)=0;
+
+stack(stack>0.75)=1;
+stack(stack<=0.75)=0;
+
 % mystery why R and C needs to be swapped
 stack=permute(stack, [2 1 3]);
-
+save 'RWsegmentedPgt075.mat'  stack;
 size(stack)
 
 [Xmesh,Ymesh,Zmesh] = meshgrid([1:R],[1:C],[1:Z]);
@@ -52,7 +58,7 @@ colormap(gray(100))
 box on
 
 camlight(40,40)                                % create two lights
-camlight(-20,-10)
+%camlight(-20,-10)
 camlight(0,-90)
 lighting gouraud
 

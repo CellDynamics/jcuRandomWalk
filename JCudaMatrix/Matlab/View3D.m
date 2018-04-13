@@ -9,6 +9,11 @@ Z=93;
 %          Z=41;
 
 stack=reshape(stack,R,C,Z);
+stackSink=stack;
+stackSink(stackSink==0)=1;
+stackSink(stackSink>=0)=0;
+ save '../data/stackSink.mat' stackSink;
+ 
 stack(stack>0.75)=1;
 stack(stack<=0.75)=0;
 
