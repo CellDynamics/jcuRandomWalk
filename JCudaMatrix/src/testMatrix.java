@@ -100,9 +100,9 @@ public class testMatrix {
 		//int rows=40; int columns=40; int height=40; //dimension of original image/3D stack
 		
 		//float[][] A = readSquareMatrixFromFile(directory+"L_3D.txt", m );
-		float[][] A = readSparseCooMatrixFromFile(directory+"L_3D.txt");
-		float[] b = readVectorFromFile(directory+"B_3D.txt");
-		float[][] Seeds = readSeedsFromFile(directory+"Seeds_3D.txt");	
+		float[][] A = readSparseCooMatrixFromFile(directory+"L_3D_FW.txt");
+		float[] b = readVectorFromFile(directory+"B_3D_FW.txt");
+		float[][] Seeds = readSeedsFromFile(directory+"Seeds_3D_FW.txt");	
 		
 //		m[0]=b.length;
 //		A = SparseToDense(A,b.length,b.length);
@@ -131,11 +131,29 @@ public class testMatrix {
 		// if using a reduced Laplacian
 		x = incorporateSeeds(x,Seeds );
 		
-//		Seeds = swapSeeds(Seeds); //change, no return of swapSeeds needed
-//		float[] x2 = cu_A.LuSolve(cu_b, true); //use for example c), second argument switches iLuBiCGStabSolve mode on
-//
-//		// if using a reduced Laplacian
-//		x1 = incorporateSeeds(x1,Seeds );
+///////////
+		///////// backward
+		System.out.print("Solving backward problem\n");
+		 A = readSparseCooMatrixFromFile(directory+"L_3D_BW.txt");
+		 b = readVectorFromFile(directory+"B_3D_BW.txt");
+		 Seeds = readSeedsFromFile(directory+"Seeds_3D_BW.txt");	
+
+
+	cu_A = new  csrSparseMatrix(handle, A,b.length); //A in COO format
+
+	cu_b = new  denseVector(b);
+
+	float[] x_BW = cu_A.LuSolve(cu_b, true); //use for example c), second argument switches iLuBiCGStabSolve mode on
+
+		// if using a reduced Laplacian
+		x_BW = incorporateSeeds(x_BW,Seeds );		
+		
+		for(int i=0;i<x.length;i++)
+		x[i] = x[i]>x_BW[i]?x[i]:0;
+		
+		
+		///////////////////
+		////////////////////////
 		
 
 		// for a), b)
@@ -393,13 +411,13 @@ public class testMatrix {
 
 	
 	
-	static private float[][] swapSeeds(float[][] Seeds ){
-		
-		for (int i = 0; i < Seeds.length; i++)
-		Seeds[i][1]= 1 - Seeds[i][1];
-
-		return Seeds;
-	}
+//	static private float[][] swapSeeds(float[][] Seeds ){
+//		
+//		for (int i = 0; i < Seeds.length; i++)
+//		Seeds[i][1]= 1 - Seeds[i][1];
+//
+//		return Seeds;
+//	}
 
 	static private float[] incorporateSeeds(float[] x,float[][] Seeds ){
 
@@ -407,8 +425,8 @@ public class testMatrix {
 		
 		float[] x_withSeeds = new float[x.length+Seeds.length];
 
-		System.out.println("x.length: "+x.length);
-		System.out.println("x_withSeeds: "+x_withSeeds.length);
+		//System.out.println("x.length: "+x.length);
+		//System.out.println("x_withSeeds: "+x_withSeeds.length);
 		
 		// need to sort lines of Seeds array first, according to entries in first column
 		java.util.Arrays.sort(Seeds, new java.util.Comparator<float[]>() {
@@ -424,52 +442,37 @@ public class testMatrix {
 		
 
 
-		System.out.println("Seeds.length: "+Seeds.length);
-		//printMatrix(Seeds);
-		for (int i=0;i<Seeds.length;i++) 
-			System.out.println("Seeds "+Seeds[i][0]);
+//		System.out.println("Seeds.length: "+Seeds.length);
+//		//printMatrix(Seeds);
+//		for (int i=0;i<Seeds.length;i++) 
+//			System.out.println("Seeds "+Seeds[i][0]);
 
 		
 		int countwith=0,count=0;
-		int S=0,nonseeds,ns = 0;
+		int S=0,nonseeds;//,ns = 0;
 		
 		for (int s=0;s<Seeds.length;s++){
 			nonseeds=(int) (Seeds[s][0])-S-1; 
 			if(nonseeds<0) nonseeds=0;
 			
-			for (int i=0;i<nonseeds;i++) {
-//				
-//				//if (count<x.length) //TODO: there is a glitch here...
+			for (int i=0;i<nonseeds;i++) 
 				x_withSeeds[countwith++]= x[count++];
-				//countwith++;
-//				//count++;
-			}
-			//if(nonseeds==0)
-			//countwith++;
+
 			x_withSeeds[countwith++]=Seeds[s][1];
 
 			S=(int) Seeds[s][0];
-			ns=ns+nonseeds;
+			//ns=ns+nonseeds;
 		}
 		
-		for (int i=0;i<x_withSeeds.length-countwith-1;i++){
+		for (int i=0;i<x_withSeeds.length-countwith-1;i++)
 			x_withSeeds[countwith+i]=x[count+i];
-			ns++;
-		}
-		System.out.println("count: "+count);
-		System.out.println("countwith: "+countwith);
-		System.out.println("nonseeds: "+ns);
+			//ns++;
 		
-//		for (int s=0;s<Seeds.length;s++){
-//			nonseeds=(int) ((Seeds[s][0])-S-1); 
-//			for (int i=0;i<nonseeds;i++)		
-//				x_withSeeds[countwith++]=x[count++];
-//
-//		
-//			x_withSeeds[countwith++]=Seeds[s][1];
-//
-//			S=(int) Seeds[s][0];
-//		}
+//		System.out.println("count: "+count);
+//		System.out.println("countwith: "+countwith);
+//		System.out.println("nonseeds: "+ns);
+		
+
 
 		return x_withSeeds;
 	}
