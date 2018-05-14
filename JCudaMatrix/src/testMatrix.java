@@ -28,6 +28,12 @@ public class testMatrix {
 		System.out.println("CUDA devicecount = "+devicecount[0]);
 		cudaSetDevice(device);
 		System.out.println("CUDA using device = "+device);
+		
+		IJtiff tiff = new IJtiff("/home/smsgai/git/JCudaMatrix/JCudaMatrix/Matlab/img_original.tif");
+		
+		if (false) 
+		return;
+		
 		//cudaDeviceReset();
 		//System.out.println("CUDA reset device = "+device);
 		
@@ -179,6 +185,7 @@ public class testMatrix {
 		cu_A.free();
 		cu_b.free();
 		cusparseDestroy(handle);
+		cudaDeviceReset();
 
 	}
 
@@ -421,7 +428,7 @@ public class testMatrix {
 
 	static private float[] incorporateSeeds(float[] x,float[][] Seeds ){
 
-		// method seems to do the job, but might require some more testinga
+		// method seems to do the job, but might require some more testing
 		
 		float[] x_withSeeds = new float[x.length+Seeds.length];
 

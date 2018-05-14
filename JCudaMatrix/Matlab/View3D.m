@@ -10,17 +10,23 @@ Z=93;
 
 stack=reshape(stack,R,C,Z);
 stackSink=stack;
-stackSink(stackSink==0)=1;
-stackSink(stackSink>=0)=0;
+stackSink(stackSink==0)=-1;
+stackSink(stackSink~=-1)=0;
+stackSink(stackSink==-1)=1;
  save '../data/stackSink.mat' stackSink;
- 
-stack(stack>0.75)=1;
-stack(stack<=0.75)=0;
+%  
+% stack(stack>0.75)=1;
+% stack(stack<=0.75)=0;
 
 % mystery why R and C needs to be swapped
 stack=permute(stack, [2 1 3]);
-save 'RWsegmentedPgt075.mat'  stack;
-size(stack)
+% save 'RWsegmentedPgt075.mat'  stack;
+% size(stack)
+
+outputFileName = 'img_segmented.tif'
+for K=1:length(stack(1, 1, :))
+   imwrite(stack(:, :, K), outputFileName, 'WriteMode', 'append',  'Compression','none');
+end
 
 [Xmesh,Ymesh,Zmesh] = meshgrid([1:R],[1:C],[1:Z]);
 
@@ -68,8 +74,15 @@ lighting gouraud
 stack =  load('../data/LifeActGFP_3D.mat');
 
 stack=stack.LifeActGFP_3D;
+stack=(stack-min(stack(:)));
+stack=255.*stack./max(stack(:));
 
 stack=permute(stack, [2 1 3]);
+
+% outputFileName = 'img_original.tif'
+% for K=1:length(stack(1, 1, :))
+%    imwrite(stack(:, :, K), outputFileName, 'WriteMode', 'append',  'Compression','none');
+% end
 
 size(stack)
 
@@ -82,6 +95,6 @@ end
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%
-
-hlink = linkprop([h1(1),h1(2),p1,p2,h(1),h(2)],{'CameraPosition','CameraUpVector'}); 
-rotate3d on
+% 
+% hlink = linkprop([h1(1),h1(2),p1,p2,h(1),h(2)],{'CameraPosition','CameraUpVector'}); 
+% rotate3d on

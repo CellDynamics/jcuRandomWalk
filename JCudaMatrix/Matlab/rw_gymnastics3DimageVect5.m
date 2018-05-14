@@ -4,15 +4,25 @@ clear all; close all;
 %solving the random walk problem Lx=b
 %We consider no flux boundary conditions here.
 %Sink is defined as all faces of the bounding box.
-
-FORWARD=false
+tic
+FORWARD=true
+SecondPass=false
 SolveInMATLAB=false;
+
+if SecondPass
+stack=  load ('../data/stackSink.mat');
+stackSink=stack.stackSink;
+% imagesc(squeeze(stackSink(73,:,:)))
+% return
+end
 
 stack =  load('../data/LifeActGFP_3D.mat');
 
 stack=stack.LifeActGFP_3D;
 %normalise intensities
+stack=medfilt3(stack);
 stack=(stack-min(stack(:)));
+stack=stack.^0.5; %%TTTTT
 stack=stack./max(stack(:));
 sprintf("stack read in and normalised")
 
@@ -42,13 +52,15 @@ E=Z*EdgesInLayer +(Z-1)*R*C; %number of edges in layers plus edges connecting la
 
 w= zeros(1,E); %weight matrix
 
-sigma_grad=0.05;%0.3; %standard deviation for the intensity gradient weight
+sigma_grad=0.1;%0.3; %standard deviation for the intensity gradient weight
 sigma_mean=1e6 ; %standard deviation for the difference from mean weight
+%%sigma_grad: 5: 0.05
+SOURCEMIN=0.7;
 
 if FORWARD
-mean_source = 0.4; %TODO: change to reflect actual values of source pixels
+mean_source = 0.6; %TODO: change to reflect actual values of source pixels
 else
-    mean_source = 0.4;
+    mean_source = 0.6;
 end
 
 %assemble incidence matrix A of size edges*vertices
@@ -186,13 +198,14 @@ sprintf(" assembled adjacency matrix")
 %create sparse weight matrix
 W = spdiags(w', 0, E, E);
 sprintf("W matrix set up")
+toc
 
 %compute graph Laplacian
 L=sparse(V,V);
 L=A'*W*A;
 
 sprintf("L computed")
-
+toc
 %we are looking for the solution phi which solves Lap*phi = 0,
 %employing the boundary conditions phi(Source)=1, phi(Sink)=0;
 %yields a reduced linear system L*phi_inside = b
@@ -210,7 +223,12 @@ end
 
 %for now, we use the centre of the image volume as source
 % Centre= ( round (Z/2)-1)*VerticesInLayer+R*(round(C/2)-1) +round(R/2) ; %round( (Z/2-1)*VerticesInLayer+R*(C/2-1) +R/2 );
-Source =find(stack>0.5)'; %find(stack>0.5)'; 
+Source =find(stack>SOURCEMIN)'; %find(stack>0.5)'; 
+
+if SecondPass
+ Sink=find(stackSink==1)';   
+    
+else
 Sink=[]; %we will use the faces of the bounding box as sink
 
 
@@ -232,6 +250,7 @@ for k=2:Z-1
     
 end
 
+
 for k=[1,Z] %all vertices in bottom and top layer of image volume
     
     for i=1:R
@@ -242,8 +261,13 @@ for k=[1,Z] %all vertices in bottom and top layer of image volume
     
 end
 
+
+end
 %%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%5
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+"Sourcebox defined"
+toc
+
 
 seeds=[Source,Sink];
 
@@ -251,12 +275,16 @@ Index_inside=[1:V];
 Index_inside(seeds)=[];
 
 %remove rows with seeds from Laplacian
-% % [LI,LJ,LV] = find(L);
-% % LI(seeds)=[];
-% % A=sparse(AI,AJ,AV,E,V,2*E);
+% [LI,LJ,LV] = find(L);
+% LI(seeds)=[];
+% LJ(seeds)=[];
+% LV(seeds)=[];
+% L=sparse(AI,AJ,AV,E,V,2*E);
 
 
-L(seeds,:)=[];
+ L(seeds,:)=[];
+ "L rows removed"
+ toc
 
 %incorporate boundary conditions (seeds) into b
 
@@ -265,6 +293,8 @@ b = zeros(V-length(seeds),1)  - sum(L(:,Source),2)*phi_source - sum(L(:,Sink),2)
 
 L(:,[seeds])=[];
 
+ "L columns removed"
+ toc
 
 
 if SolveInMATLAB %false: do not solve system in Matlab
