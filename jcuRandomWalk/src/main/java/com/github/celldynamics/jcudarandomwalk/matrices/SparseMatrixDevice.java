@@ -29,7 +29,7 @@ import jcuda.runtime.JCuda;
  * @author p.baniukiewicz
  *
  */
-public class SparseMatrixDevice extends SparseMatrix implements ISparseMatrixGpu {
+public class SparseMatrixDevice extends SparseMatrix implements IStoredOnGpu {
 
   /**
    * Handle to cusparse driver.
@@ -277,8 +277,12 @@ public class SparseMatrixDevice extends SparseMatrix implements ISparseMatrixGpu
     }
     SparseMatrixDevice m2;
     // if not instance og GPU try to convert it to GPU
-    if (!(in instanceof ISparseMatrixGpu)) {
-      m2 = (SparseMatrixDevice) ((ISparseMatrixCpu) in).toGpu();
+    if (!(in instanceof IStoredOnGpu)) {
+      if (in instanceof IStoredOnCpu) {
+        m2 = (SparseMatrixDevice) ((IStoredOnCpu) in).toGpu();
+      } else {
+        throw new IllegalArgumentException("Input matrix do not implement either IStoredOnCpu");
+      }
     } else {
       m2 = (SparseMatrixDevice) in;
     }
@@ -325,7 +329,7 @@ public class SparseMatrixDevice extends SparseMatrix implements ISparseMatrixGpu
    * @see #retrieveFromDevice()
    */
   @Override
-  public ISparseMatrixCpu toCpu() {
+  public ISparseMatrix toCpu() {
     if (colInd == null || rowInd == null || val == null) {
       retrieveFromDevice();
     }

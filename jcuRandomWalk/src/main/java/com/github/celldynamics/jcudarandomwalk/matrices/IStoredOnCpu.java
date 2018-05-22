@@ -1,12 +1,13 @@
 package com.github.celldynamics.jcudarandomwalk.matrices;
 
 /**
- * This interface should be implemented in all classes that are not in GPU.
+ * Represent matrix stored on CPU. This interface should be implemented by all classes representing
+ * matrices except CUDA based.
  * 
- * @author p.baniukiewicz
+ * @author baniu
  *
  */
-public interface ISparseMatrixCpu extends ISparseMatrix {
+public interface IStoredOnCpu {
 
   /**
    * Send to GPU.
@@ -15,5 +16,5 @@ public interface ISparseMatrixCpu extends ISparseMatrix {
    * 
    * @return GPU version.
    */
-  public ISparseMatrixGpu toGpu();
+  public ISparseMatrix toGpu();
 }
