@@ -1,7 +1,9 @@
-package com.github.celldynamics.jcudarandomwalk.matrices;
+package com.github.celldynamics.jcurandomwalk;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.github.celldynamics.jcudarandomwalk.matrices.SparseMatrixHost;
 
 import ij.ImageStack;
 
@@ -27,8 +29,8 @@ public class IncidenceMatrixGenerator {
   private int nrows; // number of rows of stack
   private int ncols; // number of columns of stack
   private int nz; // number of slices of the stack
-  private SparseMatrix incidence; // incidence matrix coords
-  private SparseMatrix weights; // weights coords
+  private SparseMatrixHost incidence; // incidence matrix coords
+  private SparseMatrixHost weights; // weights coords
 
   /**
    * Computes incidence matrix for given stack.
@@ -49,7 +51,7 @@ public class IncidenceMatrixGenerator {
    * 
    * @see #getIncidence()
    * @see #getWeights()
-   * @see SparseMatrix
+   * @see SparseMatrixHost
    */
   void computeIncidence() {
     final double sigmaGrad = 0.1; // TODO expose
@@ -62,8 +64,8 @@ public class IncidenceMatrixGenerator {
     int edges = getEdgesNumber(nrows, ncols, nz); // number of edges
     int verts = getNodesNumber(nrows, ncols, nz);
     LOGGER.debug("Number of edges: " + edges + " number of verts: " + verts);
-    weights = new SparseMatrix(edges);
-    incidence = new SparseMatrix(edges * 2); // each edge has at leas 2 points
+    weights = new SparseMatrixHost(edges);
+    incidence = new SparseMatrixHost(edges * 2); // each edge has at leas 2 points
     // counter for aggregating opposite pairs of neighbouring pixel in one row of
     // incidence matrix. It is incidence matrix row index (edges)
     int in = 0;
@@ -208,18 +210,19 @@ public class IncidenceMatrixGenerator {
    * 
    * @return the incidence
    */
-  public SparseMatrix getIncidence() {
+  public SparseMatrixHost getIncidence() {
     return incidence;
   }
 
   /**
    * Retrieve weights coordinates from the object.
    * 
-   * <p>Weight matrix is square of size IncidenceMatrixGenerator.getEdgesNumber(height, width, nz)</tt>
+   * <p>Weight matrix is square of size IncidenceMatrixGenerator.getEdgesNumber(height, width,
+   * nz)</tt>
    * 
    * @return the weights
    */
-  public SparseMatrix getWeights() {
+  public SparseMatrixHost getWeights() {
     return weights;
   }
 

@@ -1,4 +1,4 @@
-package com.github.celldynamics.jcudarandomwalk.matrices;
+package com.github.celldynamics.jcurandomwalk;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -10,8 +10,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.github.celldynamics.jcurandomwalk.ArrayTools;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.LoggerContext;
@@ -31,7 +29,7 @@ public class IncidenceMatrixGeneratorTest {
   static {
     LoggerContext loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
     Logger rootLogger = loggerContext.getLogger(IncidenceMatrixGeneratorTest.class.getName());
-    ((ch.qos.logback.classic.Logger) rootLogger).setLevel(Level.DEBUG);
+    ((ch.qos.logback.classic.Logger) rootLogger).setLevel(Level.TRACE);
   }
   /**
    * The Constant LOGGER.
@@ -107,7 +105,7 @@ public class IncidenceMatrixGeneratorTest {
 
   /**
    * Test method for
-   * {@link com.github.celldynamics.jcudarandomwalk.matrices.IncidenceMatrixGenerator#IncidenceMatrix(ij.ImageStack)}.
+   * {@link com.github.celldynamics.jcurandomwalk.IncidenceMatrixGenerator#IncidenceMatrixGenerator(ImageStack)}.
    * 
    * @throws Exception on error
    */
@@ -138,7 +136,7 @@ public class IncidenceMatrixGeneratorTest {
 
   /**
    * Test of
-   * {@link com.github.celldynamics.jcudarandomwalk.matrices.IncidenceMatrixGenerator#lin20ind(int, int, int, int, int[])}.
+   * {@link com.github.celldynamics.jcurandomwalk.IncidenceMatrixGenerator#lin20ind(int, int, int, int, int[])}.
    * 
    * <p>Address stack by linear index and get pixel value from obtained x,y,z coords which should be
    * the same as index.
@@ -156,7 +154,7 @@ public class IncidenceMatrixGeneratorTest {
 
   /**
    * Test of
-   * {@link com.github.celldynamics.jcudarandomwalk.matrices.IncidenceMatrixGenerator#ind20lin(int[], int, int, int)}.
+   * {@link com.github.celldynamics.jcurandomwalk.IncidenceMatrixGenerator#ind20lin(int[], int, int, int)}.
    * 
    * <p>Check if Lin20ind==Ind20lin
    * 
