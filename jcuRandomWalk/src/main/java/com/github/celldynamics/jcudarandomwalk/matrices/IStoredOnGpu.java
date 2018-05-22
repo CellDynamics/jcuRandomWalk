@@ -1,22 +1,19 @@
-/**
- * 
- */
 package com.github.celldynamics.jcudarandomwalk.matrices;
 
 /**
- * Operations specific to Gpu.
+ * Represent matrix stored on GPU.
  * 
- * @author p.baniukiewicz
+ * @author baniu
  *
  */
-public interface ISparseMatrixGpu extends ISparseMatrix {
+public interface IStoredOnGpu {
 
   /**
    * Retrieve from GPU.
    * 
    * @return CPU version.
    */
-  public ISparseMatrixCpu toCpu();
+  public ISparseMatrix toCpu();
 
   /**
    * Release resources.

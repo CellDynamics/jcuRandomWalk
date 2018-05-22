@@ -208,7 +208,7 @@ public class SparseMatrixDeviceTest {
    */
   @Test
   public void testToSparseMatrixHost() throws Exception {
-    ISparseMatrixCpu sph = obj.toCpu();
+    ISparseMatrix sph = obj.toCpu();
     assertThat(Arrays.asList(sph.getVal()), contains(val));
     assertThat(Arrays.asList(sph.getColInd()), contains(colInd));
     assertThat(Arrays.asList(sph.getRowInd()), contains(rowInd));

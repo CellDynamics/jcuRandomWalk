@@ -1,6 +1,11 @@
 package com.github.celldynamics.jcudarandomwalk.matrices;
 
 /**
+ * Base Interface representing general matrix.
+ * 
+ * <p>Depending on device, class implementing this interface should implement also either
+ * {@link IStoredOnCpu} or {@link IStoredOnGpu}.
+ * 
  * @author p.baniukiewicz
  *
  */

@@ -11,7 +11,7 @@ import org.apache.commons.lang3.NotImplementedException;
  * @author baniu
  *
  */
-public class SparseMatrixHost extends SparseMatrix implements ISparseMatrixCpu {
+public class SparseMatrixHost extends SparseMatrix implements IStoredOnCpu {
   private int i = 0; // counter
 
   /**
@@ -87,7 +87,7 @@ public class SparseMatrixHost extends SparseMatrix implements ISparseMatrixCpu {
    * @see com.github.celldynamics.jcudarandomwalk.matrices.ISparseMatrixCpu#toGpu()
    */
   @Override
-  public ISparseMatrixGpu toGpu() {
+  public ISparseMatrix toGpu() {
     return new SparseMatrixDevice(getRowInd(), getColInd(), getVal(), matrixFormat);
   }
 
