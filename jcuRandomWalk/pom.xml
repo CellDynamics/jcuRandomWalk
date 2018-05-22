@@ -142,6 +142,21 @@
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-lang3</artifactId>
     </dependency>
+    <dependency>
+      <groupId>org.jcuda</groupId>
+      <artifactId>jcuda</artifactId>
+      <version>0.9.0d</version>
+    </dependency>
+    <dependency>
+      <groupId>org.jcuda</groupId>
+      <artifactId>jcusparse</artifactId>
+      <version>0.9.0d</version>
+    </dependency>
+    <dependency>
+      <groupId>org.jcuda</groupId>
+      <artifactId>jcusolver</artifactId>
+      <version>0.9.0d</version>
+    </dependency>
   </dependencies>
   <build>
     <plugins>
@@ -253,7 +268,6 @@
       </build>
     </profile>
   </profiles>
-
   <reporting>
     <plugins>
       <plugin>

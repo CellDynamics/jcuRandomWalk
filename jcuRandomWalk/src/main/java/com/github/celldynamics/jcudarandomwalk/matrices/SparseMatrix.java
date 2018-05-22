@@ -2,95 +2,142 @@ package com.github.celldynamics.jcudarandomwalk.matrices;
 
 import java.util.stream.IntStream;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
- * Structure for holding coordinates for sparse matrices.
+ * Common base for CPU (base type) and GPU.
  * 
- * <p>The coordinates are stored in three separate vectors for x, y and value. Coordinates are
- * 0-based.
- * 
- * @author baniu
+ * @author p.baniukiewicz
  *
  */
-class SparseMatrix {
-  private int size; // number of coordinates
-  private int i = 0; // counter
-
+public abstract class SparseMatrix implements ISparseMatrix {
   /**
-   * Get i-coordinates vector. Rows.
-   * 
-   * @return the vi
+   * The Constant LOGGER.
    */
-  public int[] getCrows() {
-    return vr;
+  static final Logger LOGGER = LoggerFactory.getLogger(SparseMatrix.class.getName());
+
+  protected SparseMatrixType matrixFormat = SparseMatrixType.MATRIX_FORMAT_COO;
+  protected int nnz; // number of nonzero elements
+
+  protected int[] rowInd; // rows
+  protected int[] colInd; // cols
+  protected double[] val; // value
+  protected int rowNumber; // number of rows
+  protected int colNumber; // number of cols
+
+  /*
+   * (non-Javadoc)
+   * 
+   * @see com.github.celldynamics.jcudarandomwalk.matrices.ISparseMatrix#getRowInd()
+   */
+  @Override
+  public int[] getRowInd() {
+    if (rowInd == null && this instanceof SparseMatrixDevice) {
+      ((SparseMatrixDevice) this).retrieveFromDevice();
+    }
+    return rowInd;
   }
 
-  /**
-   * Get j-coordinates vector. Columns.
+  /*
+   * (non-Javadoc)
    * 
-   * @return the vj
+   * @see com.github.celldynamics.jcudarandomwalk.matrices.ISparseMatrix#getColInd()
    */
-  public int[] getCcols() {
-    return vc;
+  @Override
+  public int[] getColInd() {
+    if (colInd == null && this instanceof SparseMatrixDevice) {
+      ((SparseMatrixDevice) this).retrieveFromDevice();
+    }
+    return colInd;
   }
 
-  /**
-   * Get values vector.
+  /*
+   * (non-Javadoc)
    * 
-   * @return the val
+   * @see com.github.celldynamics.jcudarandomwalk.matrices.IMatrix#getVal()
    */
-  public double[] getCval() {
+  @Override
+  public double[] getVal() {
+    if (val == null && this instanceof SparseMatrixDevice) {
+      ((SparseMatrixDevice) this).retrieveFromDevice();
+    }
     return val;
   }
 
-  private int[] vr; // rows
-  private int[] vc; // cols
-  private double[] val; // value
-
-  /**
-   * Create storage for specified number of sparse elements.
+  /*
+   * (non-Javadoc)
    * 
-   * @param size size of the storage
+   * @see com.github.celldynamics.jcudarandomwalk.matrices.IMatrix#getElementNumber()
    */
-  public SparseMatrix(int size) {
-    this.size = size;
-    vr = new int[size];
-    vc = new int[size];
-    val = new double[size];
+  @Override
+  public int getElementNumber() {
+    return nnz;
+  }
+
+  /*
+   * (non-Javadoc)
+   * 
+   * @see com.github.celldynamics.jcudarandomwalk.matrices.ISparseMatrix#getSparseMatrixType()
+   */
+  @Override
+  public SparseMatrixType getSparseMatrixType() {
+    return matrixFormat;
+  }
+
+  /*
+   * (non-Javadoc)
+   * 
+   * @see com.github.celldynamics.jcudarandomwalk.matrices.IMatrix#getRowNumber()
+   */
+  @Override
+  public int getRowNumber() {
+    return rowNumber;
+  }
+
+  /*
+   * (non-Javadoc)
+   * 
+   * @see com.github.celldynamics.jcudarandomwalk.matrices.IMatrix#getColNumber()
+   */
+  @Override
+  public int getColNumber() {
+    return colNumber;
   }
 
   /**
-   * Add entry (coordinates and value) to store.
+   * Find maximum row nad column number and set number of rows and columns respectively.
    * 
-   * @param r row coordinate
-   * @param c column coordinate
-   * @param v value stored under [r,c]
+   * <p>This method can be used for updating number of rows and columns if they changed but its
+   * execution is expensive.
    */
-  public void add(int r, int c, double v) {
-    vr[i] = r;
-    vc[i] = c;
-    val[i] = v;
-    i++;
+  public void updateDimension() {
+    // TODO see 9.3. cusparse<t>csrgemm() to get nnz and rows number?
+    colNumber = IntStream.of(getColInd()).max().getAsInt() + 1; // assuming 0 based
+    rowNumber = IntStream.of(getRowInd()).max().getAsInt() + 1;
   }
 
   /**
    * Convert sparse coordinates to full matrix.
    * 
-   * <p>Only small matrixes. Column ordered.
+   * <p>Only small matrixes. Column ordered. [col][row] like x,y
    * 
    * @return full 2D matrix [cols][rows]
    */
   public double[][] full() {
-    int ncols = IntStream.of(getCcols()).max().getAsInt() + 1; // assuming 0 based
-    int nrows = IntStream.of(getCrows()).max().getAsInt() + 1;
+    updateDimension();
+    int ncols = getColNumber();
+    int nrows = getRowNumber();
+    if (nrows * ncols > 1e5) {
+      LOGGER.warn("Sparse matrix is large (" + nrows + "," + ncols + ")");
+    }
     double[][] ret = new double[ncols][];
     for (int c = 0; c < ncols; c++) {
       ret[c] = new double[nrows];
     }
-    for (int l = 0; l < size; l++) {
-      ret[getCcols()[l]][getCrows()[l]] = getCval()[l];
+    for (int l = 0; l < getElementNumber(); l++) {
+      ret[getColInd()[l]][getRowInd()[l]] = getVal()[l];
     }
     return ret;
-
   }
-
 }
