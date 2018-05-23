@@ -13,6 +13,10 @@ import org.apache.commons.lang3.NotImplementedException;
  */
 public class SparseMatrixHost extends SparseMatrix implements IStoredOnCpu {
 
+  /**
+   * UID
+   */
+  private static final long serialVersionUID = -2934384684498319094L;
   private int i = 0; // counter
 
   /**

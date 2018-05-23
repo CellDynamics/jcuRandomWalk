@@ -10,10 +10,17 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.celldynamics.jcudarandomwalk.matrices.ISparseMatrix;
+import com.github.celldynamics.jcudarandomwalk.matrices.SparseMatrixHost;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.LoggerContext;
@@ -25,8 +32,17 @@ import ij.ImageStack;
  */
 public class RandomWalkAlgorithmTest {
 
+  static final Logger LOGGER = LoggerFactory.getLogger(RandomWalkAlgorithmTest.class.getName());
+
   @Rule
   public TemporaryFolder folder = new TemporaryFolder();
+  @Rule
+  public MockitoRule mockitoRule = MockitoJUnit.rule();
+
+  @Mock
+  IncidenceMatrixGenerator img;
+  @InjectMocks
+  private RandomWalkAlgorithm objMocked;
 
   static {
     LoggerContext loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
@@ -45,7 +61,8 @@ public class RandomWalkAlgorithmTest {
    */
   @Before
   public void setUp() throws Exception {
-    stack = IncidenceMatrixGeneratorTest.getTestStack(width, height, nz, "double");
+    MockitoAnnotations.initMocks(this);
+    stack = TestDataGenerators.getTestStack(width, height, nz, "double");
   }
 
   /**
@@ -98,6 +115,17 @@ public class RandomWalkAlgorithmTest {
     RandomWalkAlgorithm obj = new RandomWalkAlgorithm(stack, options);
     obj.computeIncidence(true);
     ISparseMatrix lap = obj.computeLaplacean();
+  }
+
+  @Test
+  public void testComputeLaplacean_1() throws Exception {
+    RandomWalkOptions options = new RandomWalkOptions();
+    options.configFolder = folder.newFolder().toPath();
+    // RandomWalkAlgorithm obj = new RandomWalkAlgorithm(stack, options);
+    // obj.img = Mockito.spy(new IncidenceMatrixGenerator(stack));
+    // Mockito.doReturn(new double[] { 1.0, 2.0 }).when(objMocked.img).getIncidence();
+    Mockito.when(img.getIncidence()).thenReturn(new SparseMatrixHost(2));
+    LOGGER.debug("" + objMocked.img.getIncidence());
   }
 
 }
