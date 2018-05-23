@@ -236,6 +236,10 @@ public class SparseMatrixDeviceTest {
     assertThat(Arrays.asList(v), contains(
             new double[] { 17.0, 8.0, 5.0, 8.0, 13.0, 27.0, 5.0, 138.0, 48.0, 27.0, 48.0, 117.0 }));
     assertThat(ret.getElementNumber(), is(12));
+    // ((SparseMatrixDevice) objcsr).free(); // already freed
+    // ((SparseMatrixDevice) obj1csr).free();
+    ((SparseMatrixDevice) ret).free();
+    // ((SparseMatrixDevice) retcoo).free();
   }
 
   /**
@@ -281,6 +285,37 @@ public class SparseMatrixDeviceTest {
     assertThat(Arrays.asList(retret.getVal()), contains(obj.getVal()));
     assertThat(Arrays.asList(retret.getRowInd()), contains(obj.getRowInd()));
     assertThat(Arrays.asList(retret.getColInd()), contains(obj.getColInd()));
+    // ((SparseMatrixDevice) ret).free();
+    // ((SparseMatrixDevice) retret).free();
+  }
+
+  /**
+   * Test method for
+   * {@link com.github.celldynamics.jcudarandomwalk.matrices.SparseMatrixDevice#transpose()}.
+   * 
+   * @throws Exception
+   */
+  @Test
+  public void testTranspose() throws Exception {
+    ISparseMatrix tobj = obj.transpose().convert2coo();
+    assertThat(tobj.getRowNumber(), is(obj1.getRowNumber()));
+    assertThat(tobj.getColNumber(), is(obj1.getColNumber()));
+    // resutls from manual transposition -> ob1
+    assertThat(Arrays.asList(tobj.getColInd()), contains(colInd1));
+    assertThat(Arrays.asList(tobj.getRowInd()), contains(rowInd1));
+    assertThat(Arrays.asList(tobj.getVal()), contains(val1));
+    ((SparseMatrixDevice) tobj).free();
+
+    // and from obj1 to obj
+    tobj = obj1.transpose().convert2coo();
+    assertThat(tobj.getRowNumber(), is(obj.getRowNumber()));
+    assertThat(tobj.getColNumber(), is(obj.getColNumber()));
+    // resutls from manual transposition -> ob1
+    assertThat(Arrays.asList(tobj.getColInd()), contains(colInd));
+    assertThat(Arrays.asList(tobj.getRowInd()), contains(rowInd));
+    assertThat(Arrays.asList(tobj.getVal()), contains(val));
+    ((SparseMatrixDevice) tobj).free();
+
   }
 
 }

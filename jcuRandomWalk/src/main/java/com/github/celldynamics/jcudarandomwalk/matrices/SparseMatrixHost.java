@@ -12,6 +12,7 @@ import org.apache.commons.lang3.NotImplementedException;
  *
  */
 public class SparseMatrixHost extends SparseMatrix implements IStoredOnCpu {
+
   private int i = 0; // counter
 
   /**
@@ -93,6 +94,11 @@ public class SparseMatrixHost extends SparseMatrix implements IStoredOnCpu {
 
   @Override
   public ISparseMatrix multiply(ISparseMatrix in) {
+    throw new NotImplementedException("this is not supported");
+  }
+
+  @Override
+  public ISparseMatrix transpose() {
     throw new NotImplementedException("this is not supported");
   }
 

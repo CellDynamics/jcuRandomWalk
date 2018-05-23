@@ -1,5 +1,6 @@
 package com.github.celldynamics.jcudarandomwalk.matrices;
 
+import java.io.Serializable;
 import java.util.stream.IntStream;
 
 import org.slf4j.Logger;
@@ -11,7 +12,12 @@ import org.slf4j.LoggerFactory;
  * @author p.baniukiewicz
  *
  */
-public abstract class SparseMatrix implements ISparseMatrix {
+public abstract class SparseMatrix implements ISparseMatrix, Serializable {
+  /**
+   * UID
+   */
+  private static final long serialVersionUID = 6351642336769639014L;
+
   /**
    * The Constant LOGGER.
    */
@@ -117,12 +123,10 @@ public abstract class SparseMatrix implements ISparseMatrix {
     rowNumber = IntStream.of(getRowInd()).max().getAsInt() + 1;
   }
 
-  /**
-   * Convert sparse coordinates to full matrix.
+  /*
+   * (non-Javadoc)
    * 
-   * <p>Only small matrixes. Column ordered. [col][row] like x,y
-   * 
-   * @return full 2D matrix [cols][rows]
+   * @see com.github.celldynamics.jcudarandomwalk.matrices.ISparseMatrix#full()
    */
   public double[][] full() {
     updateDimension();
