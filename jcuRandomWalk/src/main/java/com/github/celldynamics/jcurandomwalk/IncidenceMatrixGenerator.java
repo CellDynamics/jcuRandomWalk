@@ -45,6 +45,10 @@ public class IncidenceMatrixGenerator implements Serializable {
   private SparseMatrixHost incidence; // incidence matrix coords
   private SparseMatrixHost weights; // weights coords
 
+  IncidenceMatrixGenerator() {
+
+  }
+
   /**
    * Computes incidence matrix for given stack.
    * 

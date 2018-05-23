@@ -26,11 +26,11 @@ public class ArrayToolsTest {
    */
   @Test
   public void testArray2Object() throws Exception {
-    ImageStack stack = IncidenceMatrixGeneratorTest.getTestStack(4, 3, 2, "int");
+    ImageStack stack = TestDataGenerators.getTestStack(4, 3, 2, "int");
     Number[][] ret = ArrayTools.array2Object(stack.getProcessor(1).getIntArray());
     LOGGER.debug(ArrayTools.printArray(ret));
 
-    stack = IncidenceMatrixGeneratorTest.getTestStack(4, 3, 2, "double");
+    stack = TestDataGenerators.getTestStack(4, 3, 2, "double");
     ret = ArrayTools.array2Object(stack.getProcessor(1).getFloatArray());
     LOGGER.debug(ArrayTools.printArray(ret));
   }

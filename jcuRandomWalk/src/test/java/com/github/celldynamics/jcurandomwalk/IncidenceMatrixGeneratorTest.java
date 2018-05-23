@@ -18,9 +18,6 @@ import org.slf4j.LoggerFactory;
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.LoggerContext;
 import ij.ImageStack;
-import ij.process.FloatProcessor;
-import ij.process.ImageProcessor;
-import ij.process.ShortProcessor;
 
 /**
  * Class test.
@@ -51,59 +48,13 @@ public class IncidenceMatrixGeneratorTest {
   public TemporaryFolder folder = new TemporaryFolder();
 
   /**
-   * Prepare test stack.
-   * 
-   * <p>Pixels are consecutive numbers from 0 column ordered. Column order is because of IP that
-   * stores column in first dimension of 2D array.
-   * 0 3 6 9
-   * 1 4 7 10
-   * 2 5 8 11
-   * 2nd slice
-   * 12 15 18 21
-   * 13 16 19 22
-   * 14 17 20 23
-   * 
-   * @param width number of columns
-   * @param height number of rows
-   * @param nz number of slices
-   * @param type can be 'int' or 'double'
-   * @return Stack of images.
-   */
-  public static ImageStack getTestStack(int width, int height, int nz, String type) {
-    double l = 0;
-    // IP is column ordered, array[0][] i column in 2D
-    ImageStack stack = new ImageStack(width, height);
-    ImageProcessor ip;
-    for (int z = 0; z < nz; z++) {
-      switch (type) {
-        case "int":
-          ip = new ShortProcessor(width, height);
-          break;
-        case "double":
-          ip = new FloatProcessor(width, height);
-          break;
-        default:
-          throw new IllegalArgumentException("Wrong type");
-      }
-      for (int c = 0; c < width; c++) {
-        for (int r = 0; r < height; r++) {
-          ip.putPixelValue(c, r, l);
-          l++;
-        }
-      }
-      stack.addSlice(ip);
-    }
-    return stack;
-  }
-
-  /**
    * Setup test 3d stack.
    * 
    * @throws java.lang.Exception on error
    */
   @Before
   public void setUp() throws Exception {
-    stack = getTestStack(width, height, nz, "double");
+    stack = TestDataGenerators.getTestStack(width, height, nz, "double");
     LOGGER.trace(stack.toString());
     LOGGER.trace(Arrays.deepToString(stack.getProcessor(1).getFloatArray()));
     LOGGER.trace(Arrays.deepToString(stack.getProcessor(2).getFloatArray()));

@@ -15,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.celldynamics.jcurandomwalk.ArrayTools;
+import com.github.celldynamics.jcurandomwalk.TestDataGenerators;
 
 import jcuda.jcusparse.JCusparse;
 import jcuda.runtime.JCuda;
@@ -66,15 +67,11 @@ public class SparseMatrixDeviceTest {
    */
   @Before
   public void setUp() throws Exception {
-    rowInd = new int[] { 0, 0, 1, 1, 2, 2, 2, 3, 3 };
-    colInd = new int[] { 0, 1, 1, 2, 0, 3, 4, 2, 4 };
-    val = new double[] { 1, 4, 2, 3, 5, 7, 8, 9, 6 };
-    obj = new SparseMatrixDevice(rowInd, colInd, val, SparseMatrixType.MATRIX_FORMAT_COO);
-
-    rowInd1 = new int[] { 0, 0, 1, 1, 2, 2, 3, 4, 4 };
-    colInd1 = new int[] { 0, 2, 0, 1, 1, 3, 2, 2, 3 };
-    val1 = new double[] { 1, 5, 4, 2, 3, 9, 7, 8, 6 };
-    obj1 = new SparseMatrixDevice(rowInd1, colInd1, val1, SparseMatrixType.MATRIX_FORMAT_COO);
+    TestDataGenerators gen = new TestDataGenerators();
+    obj = new SparseMatrixDevice(gen.rowInd, gen.colInd, gen.val,
+            SparseMatrixType.MATRIX_FORMAT_COO);
+    obj1 = new SparseMatrixDevice(gen.rowInd1, gen.colInd1, gen.val1,
+            SparseMatrixType.MATRIX_FORMAT_COO);
   }
 
   /**

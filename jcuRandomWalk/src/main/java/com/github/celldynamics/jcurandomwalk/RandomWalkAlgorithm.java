@@ -49,7 +49,7 @@ public class RandomWalkAlgorithm {
       Path fullToFilename = options.configFolder.resolve(filename);
       if (fullToFilename.toFile().exists()) { // try to load if exists
         try {
-          img = IncidenceMatrixGenerator.restoreObject(fullToFilename.toString()); // loaf
+          img = IncidenceMatrixGenerator.restoreObject(fullToFilename.toString()); // load
         } catch (Exception e) {
           LOGGER.error(
                   "Incidence file could not be restored (" + filename + "): " + e.getMessage());
