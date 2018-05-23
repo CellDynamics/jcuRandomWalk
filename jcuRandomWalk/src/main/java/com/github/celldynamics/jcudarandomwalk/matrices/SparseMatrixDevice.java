@@ -1,6 +1,7 @@
 package com.github.celldynamics.jcudarandomwalk.matrices;
 
 import static jcuda.jcusparse.JCusparse.cusparseCreateMatDescr;
+import static jcuda.jcusparse.JCusparse.cusparseDcsr2csc;
 import static jcuda.jcusparse.JCusparse.cusparseDcsrgemm;
 import static jcuda.jcusparse.JCusparse.cusparseDestroyMatDescr;
 import static jcuda.jcusparse.JCusparse.cusparseSetMatIndexBase;
@@ -8,6 +9,7 @@ import static jcuda.jcusparse.JCusparse.cusparseSetMatType;
 import static jcuda.jcusparse.JCusparse.cusparseXcoo2csr;
 import static jcuda.jcusparse.JCusparse.cusparseXcsr2coo;
 import static jcuda.jcusparse.JCusparse.cusparseXcsrgemmNnz;
+import static jcuda.jcusparse.cusparseAction.CUSPARSE_ACTION_NUMERIC;
 import static jcuda.jcusparse.cusparseIndexBase.CUSPARSE_INDEX_BASE_ZERO;
 import static jcuda.jcusparse.cusparseMatrixType.CUSPARSE_MATRIX_TYPE_GENERAL;
 import static jcuda.jcusparse.cusparseOperation.CUSPARSE_OPERATION_NON_TRANSPOSE;
@@ -180,6 +182,7 @@ public class SparseMatrixDevice extends SparseMatrix implements IStoredOnGpu {
    */
   @Override
   public void free() {
+    // TODO protect against freeing already fried
     cudaFree(rowIndPtr);
     cudaFree(colIndPtr);
     cudaFree(valPtr);
@@ -275,6 +278,9 @@ public class SparseMatrixDevice extends SparseMatrix implements IStoredOnGpu {
     if (this.getColNumber() != in.getRowNumber()) {
       throw new IllegalArgumentException("Incompatibile sizes");
     }
+    if (in.getSparseMatrixType() != SparseMatrixType.MATRIX_FORMAT_CSR) {
+      throw new IllegalArgumentException("multiply requires CSR input format.");
+    }
     SparseMatrixDevice m2;
     // if not instance og GPU try to convert it to GPU
     if (!(in instanceof IStoredOnGpu)) {
@@ -334,5 +340,34 @@ public class SparseMatrixDevice extends SparseMatrix implements IStoredOnGpu {
       retrieveFromDevice();
     }
     return new SparseMatrixHost(getRowInd(), getColInd(), getVal(), matrixFormat);
+  }
+
+  /*
+   * (non-Javadoc)
+   * 
+   * @see com.github.celldynamics.jcudarandomwalk.matrices.ISparseMatrix#transpose()
+   */
+  @Override
+  public ISparseMatrix transpose() {
+    SparseMatrixDevice csrm = (SparseMatrixDevice) this.convert2csr();
+
+    Pointer colIndPtr = new Pointer();
+    cudaMalloc(colIndPtr, (csrm.getColNumber() + 1) * Sizeof.INT);
+    Pointer rowIndPtr = new Pointer();
+    cudaMalloc(rowIndPtr, csrm.getElementNumber() * Sizeof.INT);
+    Pointer valPtr = new Pointer();
+    cudaMalloc(valPtr, csrm.getElementNumber() * Sizeof.DOUBLE);
+
+    cusparseDcsr2csc(handle, csrm.getRowNumber(), csrm.getColNumber(), csrm.getElementNumber(),
+            csrm.getValPtr(), csrm.getRowIndPtr(), csrm.getColIndPtr(), valPtr, rowIndPtr,
+            colIndPtr, CUSPARSE_ACTION_NUMERIC, CUSPARSE_INDEX_BASE_ZERO);
+
+    // cusparseXcoo2csr(handle, getRowIndPtr(), getElementNumber(), getRowNumber(), rowIndPtr,
+    // CUSPARSE_INDEX_BASE_ZERO);
+    // return new SparseMatrixDevice(rowIndPtr, getColIndPtr(), getValPtr(), getRowNumber(),
+    // getColNumber(), getElementNumber(), SparseMatrixType.MATRIX_FORMAT_CSR);
+    return new SparseMatrixDevice(colIndPtr, rowIndPtr, valPtr, csrm.getColNumber(),
+            csrm.getRowNumber(), getElementNumber(), SparseMatrixType.MATRIX_FORMAT_CSR);
+
   }
 }

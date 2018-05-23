@@ -1,8 +1,16 @@
 package com.github.celldynamics.jcurandomwalk;
 
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.github.celldynamics.jcudarandomwalk.matrices.ISparseMatrix;
 import com.github.celldynamics.jcudarandomwalk.matrices.SparseMatrixHost;
 
 import ij.ImageStack;
@@ -16,7 +24,12 @@ import ij.ImageStack;
  * @author baniu
  *
  */
-public class IncidenceMatrixGenerator {
+public class IncidenceMatrixGenerator implements Serializable {
+  /**
+   * UUID.
+   */
+  private static final long serialVersionUID = 5111593778800000238L;
+
   static final Logger LOGGER = LoggerFactory.getLogger(IncidenceMatrixGenerator.class.getName());
 
   /*
@@ -25,7 +38,7 @@ public class IncidenceMatrixGenerator {
    * Internally IP keeps image in 1D array, see
    * com.github.celldynamics.quimp.utils.QuimPArrayUtils.castToNumber(ImageProcessor)
    */
-  private ImageStack stack; // original image for segmentation
+  transient private ImageStack stack; // original image for segmentation
   private int nrows; // number of rows of stack
   private int ncols; // number of columns of stack
   private int nz; // number of slices of the stack
@@ -44,6 +57,7 @@ public class IncidenceMatrixGenerator {
     ncols = stack.getWidth();
     nz = stack.getSize();
     computeIncidence();
+    LOGGER.info("Incidence matrix computed");
   }
 
   /**
@@ -63,7 +77,7 @@ public class IncidenceMatrixGenerator {
     final boolean bc = false; // false = do not use BC
     int edges = getEdgesNumber(nrows, ncols, nz); // number of edges
     int verts = getNodesNumber(nrows, ncols, nz);
-    LOGGER.debug("Number of edges: " + edges + " number of verts: " + verts);
+    LOGGER.info("Number of edges: " + edges + ", number of verts: " + verts);
     weights = new SparseMatrixHost(edges);
     incidence = new SparseMatrixHost(edges * 2); // each edge has at leas 2 points
     // counter for aggregating opposite pairs of neighbouring pixel in one row of
@@ -210,7 +224,7 @@ public class IncidenceMatrixGenerator {
    * 
    * @return the incidence
    */
-  public SparseMatrixHost getIncidence() {
+  public ISparseMatrix getIncidence() {
     return incidence;
   }
 
@@ -222,7 +236,7 @@ public class IncidenceMatrixGenerator {
    * 
    * @return the weights
    */
-  public SparseMatrixHost getWeights() {
+  public ISparseMatrix getWeights() {
     return weights;
   }
 
@@ -262,5 +276,45 @@ public class IncidenceMatrixGenerator {
    */
   public static int ind20lin(int[] ind, int nrows, int ncols, int nz) {
     return nrows * ind[1] + ind[0] + ind[2] * (nrows * ncols);
+  }
+
+  /**
+   * Serialize this object
+   * 
+   * @param filename name of the file
+   * @throws IOException
+   */
+  public void saveObject(String filename) throws IOException {
+    FileOutputStream file = new FileOutputStream(filename);
+    ObjectOutputStream out = new ObjectOutputStream(file);
+    out.writeObject(this);
+    out.close();
+    file.close();
+    LOGGER.info("Incidence matrix saved under " + filename);
+  }
+
+  /**
+   * Load serialized object.
+   * 
+   * <p>stack is not serialised.
+   * 
+   * @param filename name of the file
+   * @return Instance of loaded object
+   * @throws Exception
+   */
+  public static IncidenceMatrixGenerator restoreObject(String filename) throws Exception {
+    FileInputStream file = new FileInputStream(filename);
+    ObjectInputStream in = new ObjectInputStream(file);
+    try {
+      IncidenceMatrixGenerator ret = (IncidenceMatrixGenerator) in.readObject();
+      LOGGER.info("Incidence matrix restored from " + filename);
+      return ret;
+    } catch (Exception e) {
+      throw e;
+    } finally {
+      in.close();
+      file.close();
+    }
+
   }
 }

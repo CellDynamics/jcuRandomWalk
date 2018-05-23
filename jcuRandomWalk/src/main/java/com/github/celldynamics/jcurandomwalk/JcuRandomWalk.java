@@ -26,6 +26,11 @@ public class JcuRandomWalk {
     CommandLineParser parser = new DefaultParser();
     options = new Options();
     options.addOption(new Option("help", "print this message"));
+    options.addOption(
+            new Option("saveincidence", "Save incdence matrix for this size of the stack"));
+    options.addOption(new Option("loadincidence",
+            "Load incidence matrix for this size of stack or compute new one and save it"
+                    + " if relevant file has not been found."));
     try {
       CommandLine cmd = parser.parse(options, args);
       if (cmd.hasOption("help")) { // show help and finish

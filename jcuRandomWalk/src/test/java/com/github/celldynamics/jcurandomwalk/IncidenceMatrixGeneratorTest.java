@@ -3,11 +3,15 @@ package com.github.celldynamics.jcurandomwalk;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.closeTo;
+import static org.hamcrest.Matchers.contains;
 
+import java.io.File;
 import java.util.Arrays;
 
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,6 +46,9 @@ public class IncidenceMatrixGeneratorTest {
   private int height = 4;
   private int nz = 2;
   private ImageStack stack;
+
+  @Rule
+  public TemporaryFolder folder = new TemporaryFolder();
 
   /**
    * Prepare test stack.
@@ -166,6 +173,26 @@ public class IncidenceMatrixGeneratorTest {
     for (int lin = 0; lin < width * height * nz; lin++) {
       IncidenceMatrixGenerator.lin20ind(lin, height, width, nz, ind);
       assertThat(IncidenceMatrixGenerator.ind20lin(ind, height, width, nz), is(lin));
+    }
+  }
+
+  /**
+   * Test method for
+   * {@link com.github.celldynamics.jcurandomwalk.IncidenceMatrixGenerator#saveObject(java.lang.String)}.
+   * 
+   * @throws Exception
+   */
+  @Test
+  public void testSaveObject() throws Exception {
+    IncidenceMatrixGenerator obj = new IncidenceMatrixGenerator(stack);
+    double[][] objFull = obj.getIncidence().full();
+    File filename = folder.newFile();
+    obj.saveObject(filename.toString());
+    // restore
+    IncidenceMatrixGenerator restored = IncidenceMatrixGenerator.restoreObject(filename.toString());
+    double[][] resFull = restored.getIncidence().full();
+    for (int c = 0; c < resFull.length; c++) {
+      assertThat(Arrays.asList(resFull[c]), contains(objFull[c]));
     }
   }
 }
