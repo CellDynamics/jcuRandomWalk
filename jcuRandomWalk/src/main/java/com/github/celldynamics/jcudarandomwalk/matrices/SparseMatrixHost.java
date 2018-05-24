@@ -23,6 +23,8 @@ public class SparseMatrixHost extends SparseMatrix implements IStoredOnCpu {
    * Create empty storage for specified number of sparse elements. Format COO
    * 
    * @param size size of the storage
+   * @see #add(int, int, double)
+   * @see #updateDimension()
    */
   public SparseMatrixHost(int size) {
     this.nnz = size;
@@ -30,7 +32,6 @@ public class SparseMatrixHost extends SparseMatrix implements IStoredOnCpu {
     colInd = new int[size];
     val = new double[size];
     matrixFormat = SparseMatrixType.MATRIX_FORMAT_COO;
-    updateDimension();
   }
 
   /**
