@@ -4,8 +4,6 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.closeTo;
 import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.nullValue;
 
 import java.io.File;
 import java.util.Arrays;
@@ -171,13 +169,18 @@ public class IncidenceMatrixGeneratorTest {
     File filename = folder.newFile();
     obj.saveObject(filename.toString());
     // restore
-    IncidenceMatrixGenerator restored = IncidenceMatrixGenerator.restoreObject(filename.toString());
+    IncidenceMatrixGenerator restored =
+            IncidenceMatrixGenerator.restoreObject(filename.toString(), stack);
     double[][] resFull = restored.getIncidence().full();
     for (int c = 0; c < resFull.length; c++) {
       assertThat(Arrays.asList(resFull[c]), contains(objFull[c]));
     }
-    assertThat(restored.getWeights(), is(not(nullValue())));
-    assertThat(restored.getSinkBox(), is(not(nullValue())));
+    assertThat(Arrays.asList(restored.getWeights().getColInd()),
+            contains(obj.getWeights().getColInd()));
+    assertThat(Arrays.asList(restored.getWeights().getRowInd()),
+            contains(obj.getWeights().getRowInd()));
+    assertThat(Arrays.asList(restored.getWeights().getVal()), contains(obj.getWeights().getVal()));
+    assertThat(Arrays.asList(restored.getSinkBox()), contains(obj.getSinkBox()));
   }
 
   /**
@@ -256,5 +259,15 @@ public class IncidenceMatrixGeneratorTest {
     LOGGER.debug("BB: " + ArrayUtils.toString(b));
     assertThat(Arrays.asList(b), contains(new int[] { 12, 21, 13, 22, 14, 23, 15, 17, 18, 20, 0, 3,
         6, 9, 1, 4, 7, 10, 2, 5, 8, 11, 24, 27, 30, 33, 25, 28, 31, 34, 26, 29, 32, 35 }));
+  }
+
+  /**
+   * Compute new weights for known geometry.
+   * 
+   * @throws Exception
+   */
+  @Test
+  public void testAssignStack() throws Exception {
+    throw new RuntimeException("not yet implemented");
   }
 }

@@ -39,13 +39,23 @@ public class IncidenceMatrixGenerator implements Serializable {
    * Internally IP keeps image in 1D array, see
    * com.github.celldynamics.quimp.utils.QuimPArrayUtils.castToNumber(ImageProcessor)
    */
+  final double sigmaGrad = 0.1; // TODO expose
+  final double sigmaMean = 1e6;
+  final double meanSource = 0.6;
+
   transient private ImageStack stack; // original image for segmentation
   private int nrows; // number of rows of stack
   private int ncols; // number of columns of stack
   private int nz; // number of slices of the stack
   private SparseMatrixHost incidence; // incidence matrix coords
-  private SparseMatrixHost weights; // weights coords
+  transient private SparseMatrixHost weights; // weights coords, depends on stack, not serialised
   private int[] sink; // indexes of pixel on bounding box
+
+  // this array stores coordinates of pixels used for computing weights. The order is:
+  // [ro1 col1 z1 row2 col2 z2 .....] Weight should be computed between P1 and P2, P3 and P4 etc.
+  // Array is serialised and allows for restoring the whole structure and compute new weights
+  // for any stack with the same dimensions like that the object was serialised.
+  private int[] coords;
 
   /**
    * For mocked tests. Do not use.
@@ -71,6 +81,21 @@ public class IncidenceMatrixGenerator implements Serializable {
     computeSinkBox();
     timer.stop();
     LOGGER.info("Incidence and BBox matrices computed in " + timer.toString());
+  }
+
+  /**
+   * Assign new stack to incidence matrix. Should be called when new weights need to be computed.
+   * 
+   * @param stack Stack to assign. Should have the same size like that used to construct the object.
+   */
+  public void assignStack(ImageStack stack) {
+    if (this.stack.getWidth() != stack.getWidth() || this.stack.getHeight() != stack.getHeight()
+            || this.stack.getSize() != stack.getSize()) {
+      throw new IllegalArgumentException(
+              "Geometry of this stack is different than that used for incidence matrix generation.");
+    }
+    this.stack = stack;
+    recomputeWeights();
   }
 
   /**
@@ -112,9 +137,6 @@ public class IncidenceMatrixGenerator implements Serializable {
    * @see SparseMatrixHost
    */
   void computeIncidence() {
-    final double sigmaGrad = 0.1; // TODO expose
-    final double sigmaMean = 1e6;
-    final double meanSource = 0.6;
     // right - pixel on right
     // lower - pixel below of current but on the same slice
     // bottom - pixel below but on lower slice
@@ -123,10 +145,12 @@ public class IncidenceMatrixGenerator implements Serializable {
     int verts = getNodesNumber(nrows, ncols, nz);
     LOGGER.info("Number of edges: " + edges + ", number of verts: " + verts);
     weights = new SparseMatrixHost(edges);
-    incidence = new SparseMatrixHost(edges * 2); // each edge has at leas 2 points
+    coords = new int[edges * 6]; // 2 pixels * 3 coords for each edge
+    incidence = new SparseMatrixHost(edges * 2); // each edge has at least 2 points
     // counter for aggregating opposite pairs of neighbouring pixel in one row of
     // incidence matrix. It is incidence matrix row index (edges)
     int in = 0;
+    int cl = 0;
     int[] rcz = new int[3]; // [row col z] (y,x,z) - current pixel
     int[] rczR = new int[3]; // pixel next to current (right - use separate variables for cleaner c)
     int[] rczL = new int[3]; // pixel next to current - lower
@@ -177,27 +201,69 @@ public class IncidenceMatrixGenerator implements Serializable {
       if (right < ncols) { // if no BC this can be larger or equal than ncols and then it is skipped
         incidence.add(in, rightLin, -1.0);
         incidence.add(in, i, 1.0);
-        weights.add(in, in, computeWeight(stack, rczR, rcz, sigmaGrad, sigmaMean, meanSource));
+        // weights.add(in, in, computeWeight(stack, rczR, rcz, sigmaGrad, sigmaMean, meanSource));
+        coords[cl++] = rczR[0];
+        coords[cl++] = rczR[1];
+        coords[cl++] = rczR[2];
+        coords[cl++] = rcz[0];
+        coords[cl++] = rcz[1];
+        coords[cl++] = rcz[2];
+
         in++; // go to next edge (next row in incidence matrix)
       }
       // edge from current pixel to lower
       if (lower < nrows) {
         incidence.add(in, lowerLin, -1.0);
         incidence.add(in, i, 1.0);
-        weights.add(in, in, computeWeight(stack, rczL, rcz, sigmaGrad, sigmaMean, meanSource));
+        // weights.add(in, in, computeWeight(stack, rczL, rcz, sigmaGrad, sigmaMean, meanSource));
+        coords[cl++] = rczL[0];
+        coords[cl++] = rczL[1];
+        coords[cl++] = rczL[2];
+        coords[cl++] = rcz[0];
+        coords[cl++] = rcz[1];
+        coords[cl++] = rcz[2];
         in++; // go to next edge (next row in incidence
       }
       // edge from current pixel to bottom
       if (nz > 1 && bottom < nz) {
         incidence.add(in, bottomLin, -1.0);
         incidence.add(in, i, 1.0);
-        weights.add(in, in, computeWeight(stack, rczB, rcz, sigmaGrad, sigmaMean, meanSource));
+        // weights.add(in, in, computeWeight(stack, rczB, rcz, sigmaGrad, sigmaMean, meanSource));
+        coords[cl++] = rczB[0];
+        coords[cl++] = rczB[1];
+        coords[cl++] = rczB[2];
+        coords[cl++] = rcz[0];
+        coords[cl++] = rcz[1];
+        coords[cl++] = rcz[2];
         in++; // go to next edge (next row in incidence
       }
     }
+    recomputeWeights(); // fill weights
     // update dimension after using add
     incidence.updateDimension();
     weights.updateDimension();
+  }
+
+  /**
+   * Recompute weights for stack. Uses coordinates stored by {@link #computeIncidence()}
+   */
+  private void recomputeWeights() {
+    int edges = getEdgesNumber(nrows, ncols, nz); // number of edges
+    weights = new SparseMatrixHost(edges);
+    int l = 0; // diagonal counter
+    int[] rcz = new int[3];
+    int[] rc = new int[3];
+    for (int i = 0; i < coords.length; i += 6) {
+      rcz[0] = coords[i];
+      rcz[1] = coords[i + 1];
+      rcz[2] = coords[i + 2];
+      rc[0] = coords[i + 3];
+      rc[1] = coords[i + 4];
+      rc[2] = coords[i + 5];
+      double w = computeWeight(stack, rcz, rc, sigmaGrad, sigmaMean, meanSource);
+      weights.add(l, l, w);
+      l++;
+    }
   }
 
   /**
@@ -346,15 +412,22 @@ public class IncidenceMatrixGenerator implements Serializable {
    * <p>stack is not serialised.
    * 
    * @param filename name of the file
+   * @param stack stack of the same size as that used for constructing the object.
    * @return Instance of loaded object
    * @throws Exception
    */
-  public static IncidenceMatrixGenerator restoreObject(String filename) throws Exception {
+  public static IncidenceMatrixGenerator restoreObject(String filename, ImageStack stack)
+          throws Exception {
     FileInputStream file = new FileInputStream(filename);
     ObjectInputStream in = new ObjectInputStream(file);
     try {
+      StopWatch timer = new StopWatch();
+      timer.start();
       IncidenceMatrixGenerator ret = (IncidenceMatrixGenerator) in.readObject();
-      LOGGER.info("Incidence matrix restored from " + filename);
+      ret.stack = stack; // stack is not serialised, assign here
+      ret.assignStack(stack);
+      timer.stop();
+      LOGGER.info("Incidence matrix restored from " + filename + " in " + timer.toString());
       return ret;
     } catch (Exception e) {
       throw e;
