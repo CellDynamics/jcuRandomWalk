@@ -31,6 +31,7 @@ public class JcuRandomWalk {
     options.addOption(new Option("loadincidence",
             "Load incidence matrix for this size of stack or compute new one and save it"
                     + " if relevant file has not been found."));
+    options.addOption(new Option("defaultprocessing", "Apply default processing to stack."));
     try {
       CommandLine cmd = parser.parse(options, args);
       if (cmd.hasOption("help")) { // show help and finish

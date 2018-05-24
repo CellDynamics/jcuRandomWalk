@@ -1,7 +1,10 @@
 
 % test matrix - virtual matrix of indexes we assume to go through
-a = reshape([0:4*3*3-1],3,4,3);
-a = permute(a,[2,1,3]);
+R=4; %rows
+C=3; %columns;
+Z=3; %z-slices, layers
+a = reshape([0:R*C*Z-1],R,C,Z);
+a = permute(a,[1,2,3]);
 
 %% Retrieve r,c,z index from linear
 % test of lin20ind and ind20lin

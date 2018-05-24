@@ -20,7 +20,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.celldynamics.jcudarandomwalk.matrices.ISparseMatrix;
-import com.github.celldynamics.jcudarandomwalk.matrices.SparseMatrixHost;
+import com.github.celldynamics.jcudarandomwalk.matrices.SparseMatrixDevice;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.LoggerContext;
@@ -105,27 +105,43 @@ public class RandomWalkAlgorithmTest {
   }
 
   /**
-   * Test method for
-   * {@link com.github.celldynamics.jcurandomwalk.RandomWalkAlgorithm#computeLaplacean()}.
-   */
-  @Test
-  public void testComputeLaplacean() throws Exception {
-    RandomWalkOptions options = new RandomWalkOptions();
-    options.configFolder = folder.newFolder().toPath();
-    RandomWalkAlgorithm obj = new RandomWalkAlgorithm(stack, options);
-    obj.computeIncidence(true);
-    ISparseMatrix lap = obj.computeLaplacean();
-  }
-
-  @Test
-  public void testComputeLaplacean_1() throws Exception {
-    RandomWalkOptions options = new RandomWalkOptions();
-    options.configFolder = folder.newFolder().toPath();
-    // RandomWalkAlgorithm obj = new RandomWalkAlgorithm(stack, options);
-    // obj.img = Mockito.spy(new IncidenceMatrixGenerator(stack));
-    // Mockito.doReturn(new double[] { 1.0, 2.0 }).when(objMocked.img).getIncidence();
-    Mockito.when(img.getIncidence()).thenReturn(new SparseMatrixHost(2));
-    LOGGER.debug("" + objMocked.img.getIncidence());
-  }
+     * Test of {@link RandomWalkAlgorithm#computeLaplacian()}.
+     * 
+     * <p>Compute laplacean for {@link TestDataGenerators#getTestStack(int, int, int, String)} and
+     * mocked weights.
+     * 
+     * @throws Exception
+     */
+    @Test
+    public void testComputeLaplacian_1() throws Exception {
+      RandomWalkOptions options = new RandomWalkOptions();
+      options.configFolder = folder.newFolder().toPath();
+      // mocked IncidenceMatrixGenerator that return fixed weights
+      IncidenceMatrixGenerator img = Mockito.spy(Mockito.spy(new IncidenceMatrixGenerator(stack)));
+      // return 2.0 for each weight
+      Mockito.doReturn(2.0).when(img).computeWeight(Mockito.any(ImageStack.class),
+              Mockito.any(int[].class), Mockito.any(int[].class), Mockito.anyDouble(),
+              Mockito.anyDouble(), Mockito.anyDouble());
+      img.computeIncidence(); // repeated to use mocked (first is in constructor)
+  
+      // final object
+      RandomWalkAlgorithm obj = Mockito.spy(new RandomWalkAlgorithm(stack, options));
+      // assign mocked generator
+      obj.img = img;
+      ISparseMatrix lap = obj.computeLaplacian();
+      // A' [24 46]
+      // W [46 46]
+      // A [46 24]
+      // L = A'*W*A [24 24]
+      assertThat(lap.getRowNumber(), is(24));
+      assertThat(lap.getColNumber(), is(24));
+      LOGGER.debug("Incidence:" + obj.img.getIncidence().toString());
+      LOGGER.debug("Weights:" + obj.img.getWeights().toString());
+      SparseMatrixDevice lapcoo = (SparseMatrixDevice) lap.convert2coo();
+      lapcoo.retrieveFromDevice();
+      // compare with jcuRandomWalk/JCudaMatrix/Matlab/tests.java
+      LOGGER.debug("Laplacean" + lapcoo.toString());
+      LOGGER.debug(ArrayTools.printArray(ArrayTools.array2Object(lapcoo.full())));
+    }
 
 }

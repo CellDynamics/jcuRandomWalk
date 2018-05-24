@@ -35,6 +35,12 @@ R=143; %rows
 C=116; %columns;
 Z=93; %z-slices, layers
 
+% test stack
+% R=3; %rows
+% C=4; %columns;
+% Z=2; %z-slices, layers
+% stack = reshape([0:R*C*Z-1],R,C,Z);
+% stack = permute(stack,[1,2,3]);
 
 %  R=21; %rows
 %  C=31; %columns;
@@ -94,6 +100,8 @@ end
 
 %for now, we use the centre of the image volume as source
 % Centre= ( round (Z/2)-1)*VerticesInLayer+R*(round(C/2)-1) +round(R/2) ; %round( (Z/2-1)*VerticesInLayer+R*(C/2-1) +R/2 );
+
+% Source contains linear indexes
 Source =find(stack>SOURCEMIN)'; %find(stack>0.5)'; !! Potential incompatibility - I have row order
 
 if SecondPass

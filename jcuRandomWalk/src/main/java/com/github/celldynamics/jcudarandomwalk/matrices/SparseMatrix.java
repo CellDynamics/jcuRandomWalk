@@ -1,6 +1,7 @@
 package com.github.celldynamics.jcudarandomwalk.matrices;
 
 import java.io.Serializable;
+import java.util.Arrays;
 import java.util.stream.IntStream;
 
 import org.slf4j.Logger;
@@ -129,7 +130,9 @@ public abstract class SparseMatrix implements ISparseMatrix, Serializable {
    * @see com.github.celldynamics.jcudarandomwalk.matrices.ISparseMatrix#full()
    */
   public double[][] full() {
-    updateDimension();
+    if (getColNumber() == 0 || getRowNumber() == 0) {
+      updateDimension();
+    }
     int ncols = getColNumber();
     int nrows = getRowNumber();
     if (nrows * ncols > 1e5) {
@@ -144,4 +147,17 @@ public abstract class SparseMatrix implements ISparseMatrix, Serializable {
     }
     return ret;
   }
+
+  /*
+   * (non-Javadoc)
+   * 
+   * @see java.lang.Object#toString()
+   */
+  @Override
+  public String toString() {
+    return "SparseMatrix [matrixFormat=" + matrixFormat + ", nnz=" + nnz + ", rowInd="
+            + Arrays.toString(rowInd) + ", colInd=" + Arrays.toString(colInd) + ", val="
+            + Arrays.toString(val) + ", rowNumber=" + rowNumber + ", colNumber=" + colNumber + "]";
+  }
+
 }
