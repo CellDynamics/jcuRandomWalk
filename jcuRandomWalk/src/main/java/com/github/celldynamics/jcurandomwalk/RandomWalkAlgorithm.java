@@ -12,6 +12,8 @@ import com.github.celldynamics.jcudarandomwalk.matrices.SparseMatrixHost;
 
 import ij.ImagePlus;
 import ij.ImageStack;
+import ij.process.StackConverter;
+import ij.process.StackProcessor;
 import ij.process.StackStatistics;
 import jcuda.jcusparse.JCusparse;
 import jcuda.runtime.JCuda;
@@ -92,29 +94,38 @@ public class RandomWalkAlgorithm {
   }
 
   /**
-   * Apply default processing to stack.
+   * Apply default processing to stack. Assumes 8-bit imput.
    * 
-   * <p>Apply 3x3 median filer 2D in each slice
+   * <p>Apply 3x3 median filer 2D in each slice and normalisation.
    * 
    */
   public void processStack() {
     StopWatch timer = new StopWatch();
     timer.start();
-    for (int z = 1; z <= stack.getSize(); z++) {
-      stack.getProcessor(z).medianFilter();
-    }
-    StackStatistics stats = new StackStatistics(new ImagePlus("", stack));
+    ImageStack filterOut =
+            ImageStack.create(stack.getWidth(), stack.getHeight(), stack.getSize(), 8);
+    new StackProcessor(this.stack).filter3D(filterOut, 1, 1, 1, 0, stack.getSize(),
+            StackProcessor.FILTER_MEDIAN);
+    ImagePlus ip = new ImagePlus("", filterOut);
+
+    StackStatistics stats = new StackStatistics(ip);
     double min = stats.min;
-    for (int z = 1; z <= stack.getSize(); z++) {
-      stack.getProcessor(z).subtract(min);
-      stack.getProcessor(z).sqrt();
+    double max = stats.max; // test if computed for the whole stack
+    // convert stack to Float
+    StackConverter stc = new StackConverter(ip);
+    stc.convertToGray32();
+
+    for (int z = 1; z <= ip.getImageStackSize(); z++) {
+      ip.getStack().getProcessor(z).subtract(min);
+      ip.getStack().getProcessor(z).sqrt();
     }
-    stats = new StackStatistics(new ImagePlus("", stack));
-    double max = 1 / stats.max;
-    for (int z = 1; z <= stack.getSize(); z++) {
-      stack.getProcessor(z).multiply(max);
+    stats = new StackStatistics(ip);
+    max = 1 / stats.max;
+    for (int z = 1; z <= ip.getImageStackSize(); z++) {
+      ip.getStack().getProcessor(z).multiply(max);
     }
     timer.stop();
+    this.stack = ip.getStack();
     LOGGER.info("Stack normalised in " + timer.toString());
   }
 
