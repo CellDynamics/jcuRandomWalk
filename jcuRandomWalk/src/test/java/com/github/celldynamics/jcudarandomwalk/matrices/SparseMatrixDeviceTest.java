@@ -32,14 +32,9 @@ public class SparseMatrixDeviceTest {
   static final Logger LOGGER = LoggerFactory.getLogger(SparseMatrixDeviceTest.class.getName());
 
   private SparseMatrixDevice obj;
-  private int[] rowInd;
-  private int[] colInd;
-  private double[] val;
-
   private SparseMatrixDevice obj1;
-  private int[] rowInd1;
-  private int[] colInd1;
-  private double[] val1;
+
+  private TestDataGenerators gen;
 
   /**
    * Enable exceptions.
@@ -67,7 +62,7 @@ public class SparseMatrixDeviceTest {
    */
   @Before
   public void setUp() throws Exception {
-    TestDataGenerators gen = new TestDataGenerators();
+    gen = new TestDataGenerators();
     obj = new SparseMatrixDevice(gen.rowInd, gen.colInd, gen.val,
             SparseMatrixType.MATRIX_FORMAT_COO);
     obj1 = new SparseMatrixDevice(gen.rowInd1, gen.colInd1, gen.val1,
@@ -138,7 +133,7 @@ public class SparseMatrixDeviceTest {
   @Test
   public void testGetRowInd() throws Exception {
     int[] r = obj.getRowInd();
-    assertThat(Arrays.asList(r), contains(rowInd));
+    assertThat(Arrays.asList(r), contains(gen.rowInd));
   }
 
   /**
@@ -149,7 +144,7 @@ public class SparseMatrixDeviceTest {
   @Test
   public void testGetColInd() throws Exception {
     int[] c = obj.getColInd();
-    assertThat(Arrays.asList(c), contains(colInd));
+    assertThat(Arrays.asList(c), contains(gen.colInd));
   }
 
   /**
@@ -160,7 +155,7 @@ public class SparseMatrixDeviceTest {
   @Test
   public void testgetVal() throws Exception {
     double[] v = obj.getVal();
-    assertThat(Arrays.asList(v), contains(val));
+    assertThat(Arrays.asList(v), contains(gen.val));
   }
 
   /**
@@ -171,7 +166,7 @@ public class SparseMatrixDeviceTest {
   @Test
   public void testGetRowInd_1() throws Exception {
     obj.retrieveFromDevice();
-    assertThat(Arrays.asList(obj.getRowInd()), contains(rowInd));
+    assertThat(Arrays.asList(obj.getRowInd()), contains(gen.rowInd));
   }
 
   /**
@@ -182,7 +177,7 @@ public class SparseMatrixDeviceTest {
   @Test
   public void testGetColInd_1() throws Exception {
     obj.retrieveFromDevice();
-    assertThat(Arrays.asList(obj.getColInd()), contains(colInd));
+    assertThat(Arrays.asList(obj.getColInd()), contains(gen.colInd));
   }
 
   /**
@@ -193,7 +188,7 @@ public class SparseMatrixDeviceTest {
   @Test()
   public void testgetVal_1() throws Exception {
     obj.retrieveFromDevice();
-    assertThat(Arrays.asList(obj.getVal()), contains(val));
+    assertThat(Arrays.asList(obj.getVal()), contains(gen.val));
     LOGGER.debug(ArrayTools.printArray(ArrayTools.array2Object(obj.full())));
   }
 
@@ -206,10 +201,10 @@ public class SparseMatrixDeviceTest {
   @Test
   public void testToSparseMatrixHost() throws Exception {
     ISparseMatrix sph = obj.toCpu();
-    assertThat(Arrays.asList(sph.getVal()), contains(val));
-    assertThat(Arrays.asList(sph.getColInd()), contains(colInd));
-    assertThat(Arrays.asList(sph.getRowInd()), contains(rowInd));
-    assertThat(sph.getElementNumber(), is(9));
+    assertThat(Arrays.asList(sph.getVal()), contains(gen.val));
+    assertThat(Arrays.asList(sph.getColInd()), contains(gen.colInd));
+    assertThat(Arrays.asList(sph.getRowInd()), contains(gen.rowInd));
+    assertThat(sph.getElementNumber(), is(gen.val.length));
   }
 
   /**
@@ -246,13 +241,13 @@ public class SparseMatrixDeviceTest {
    * @throws Exception
    */
   @Test
-  public void testSparseMatrixDeviceIntArrayIntArrayDoubleArraySparseMatrixType() throws Exception {
-    assertThat(obj.getElementNumber(), is(val.length));
+  public void testSparseMatrixDevice() throws Exception {
+    assertThat(obj.getElementNumber(), is(gen.val.length));
     assertThat(obj.getRowNumber(), is(4));
     assertThat(obj.getColNumber(), is(5));
     assertThat(obj.getSparseMatrixType(), is(SparseMatrixType.MATRIX_FORMAT_COO));
 
-    assertThat(obj1.getElementNumber(), is(val1.length));
+    assertThat(obj1.getElementNumber(), is(gen.val1.length));
     assertThat(obj1.getRowNumber(), is(5));
     assertThat(obj1.getColNumber(), is(4));
     assertThat(obj1.getSparseMatrixType(), is(SparseMatrixType.MATRIX_FORMAT_COO));
@@ -272,8 +267,8 @@ public class SparseMatrixDeviceTest {
     assertThat(ret.getColNumber(), is(5));
     assertThat(ret.getElementNumber(), is(obj.getElementNumber()));
     assertThat(Arrays.asList(ret.getVal()), contains(obj.getVal()));
-    assertThat(Arrays.asList(ret.getVal()), contains(val));
-    assertThat(Arrays.asList(ret.getColInd()), contains(colInd)); // col does not change
+    assertThat(Arrays.asList(ret.getVal()), contains(gen.val));
+    assertThat(Arrays.asList(ret.getColInd()), contains(gen.colInd)); // col does not change
     // from page 9 https://docs.nvidia.com/cuda/pdf/CUSPARSE_Library.pdf
     assertThat(Arrays.asList(ret.getRowInd()), contains(new int[] { 0, 2, 4, 7, 9 }));
 
@@ -298,9 +293,9 @@ public class SparseMatrixDeviceTest {
     assertThat(tobj.getRowNumber(), is(obj1.getRowNumber()));
     assertThat(tobj.getColNumber(), is(obj1.getColNumber()));
     // resutls from manual transposition -> ob1
-    assertThat(Arrays.asList(tobj.getColInd()), contains(colInd1));
-    assertThat(Arrays.asList(tobj.getRowInd()), contains(rowInd1));
-    assertThat(Arrays.asList(tobj.getVal()), contains(val1));
+    assertThat(Arrays.asList(tobj.getColInd()), contains(gen.colInd1));
+    assertThat(Arrays.asList(tobj.getRowInd()), contains(gen.rowInd1));
+    assertThat(Arrays.asList(tobj.getVal()), contains(gen.val1));
     ((SparseMatrixDevice) tobj).free();
 
     // and from obj1 to obj
@@ -308,9 +303,9 @@ public class SparseMatrixDeviceTest {
     assertThat(tobj.getRowNumber(), is(obj.getRowNumber()));
     assertThat(tobj.getColNumber(), is(obj.getColNumber()));
     // resutls from manual transposition -> ob1
-    assertThat(Arrays.asList(tobj.getColInd()), contains(colInd));
-    assertThat(Arrays.asList(tobj.getRowInd()), contains(rowInd));
-    assertThat(Arrays.asList(tobj.getVal()), contains(val));
+    assertThat(Arrays.asList(tobj.getColInd()), contains(gen.colInd));
+    assertThat(Arrays.asList(tobj.getRowInd()), contains(gen.rowInd));
+    assertThat(Arrays.asList(tobj.getVal()), contains(gen.val));
     ((SparseMatrixDevice) tobj).free();
 
   }
