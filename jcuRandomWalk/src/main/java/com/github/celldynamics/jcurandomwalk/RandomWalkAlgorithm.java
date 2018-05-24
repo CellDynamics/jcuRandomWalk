@@ -2,6 +2,7 @@ package com.github.celldynamics.jcurandomwalk;
 
 import java.nio.file.Path;
 
+import org.apache.commons.lang3.time.StopWatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -9,7 +10,9 @@ import com.github.celldynamics.jcudarandomwalk.matrices.ISparseMatrix;
 import com.github.celldynamics.jcudarandomwalk.matrices.SparseMatrixDevice;
 import com.github.celldynamics.jcudarandomwalk.matrices.SparseMatrixHost;
 
+import ij.ImagePlus;
 import ij.ImageStack;
+import ij.process.StackStatistics;
 import jcuda.jcusparse.JCusparse;
 import jcuda.runtime.JCuda;
 
@@ -26,8 +29,10 @@ public class RandomWalkAlgorithm {
   RandomWalkOptions options;
 
   /**
-   * @param stack
-   * @param options
+   * Default constructor,
+   * 
+   * @param stack stack to be segmented
+   * @param options options
    */
   public RandomWalkAlgorithm(ImageStack stack, RandomWalkOptions options) {
     this.options = options;
@@ -43,6 +48,7 @@ public class RandomWalkAlgorithm {
    */
   public void computeIncidence(boolean always) throws Exception {
     if (always) {
+      LOGGER.info("Computing new incidence matrix");
       img = new IncidenceMatrixGenerator(stack);
     } else {
       String filename = options.configBaseName + "_" + stack.toString() + options.configBaseExt;
@@ -65,9 +71,13 @@ public class RandomWalkAlgorithm {
   }
 
   /**
-   * @return
+   * Compute Laplacian A'XA.
+   * 
+   * @return Laplacian on GPU
    */
-  public ISparseMatrix computeLaplacean() {
+  public ISparseMatrix computeLaplacian() {
+    StopWatch timer = new StopWatch();
+    timer.start();
     ISparseMatrix incidenceGpu = ((SparseMatrixHost) img.getIncidence()).toGpu().convert2csr();
     ISparseMatrix incidenceGpuT = incidenceGpu.transpose();
 
@@ -76,7 +86,36 @@ public class RandomWalkAlgorithm {
     // ISparseMatrix ATW = incidenceGpuT.multiply(wGpu);
     // ISparseMatrix ATWA = ATW.multiply(incidenceGpu);
     ISparseMatrix lap = incidenceGpuT.multiply(wGpu).multiply(incidenceGpu);
+    timer.stop();
+    LOGGER.info("Laplacian computed in " + timer.toString());
     return lap;
+  }
+
+  /**
+   * Apply default processing to stack.
+   * 
+   * <p>Apply 3x3 median filer 2D in each slice
+   * 
+   */
+  public void processStack() {
+    StopWatch timer = new StopWatch();
+    timer.start();
+    for (int z = 1; z <= stack.getSize(); z++) {
+      stack.getProcessor(z).medianFilter();
+    }
+    StackStatistics stats = new StackStatistics(new ImagePlus("", stack));
+    double min = stats.min;
+    for (int z = 1; z <= stack.getSize(); z++) {
+      stack.getProcessor(z).subtract(min);
+      stack.getProcessor(z).sqrt();
+    }
+    stats = new StackStatistics(new ImagePlus("", stack));
+    double max = 1 / stats.max;
+    for (int z = 1; z <= stack.getSize(); z++) {
+      stack.getProcessor(z).multiply(max);
+    }
+    timer.stop();
+    LOGGER.info("Stack normalised in " + timer.toString());
   }
 
   /**

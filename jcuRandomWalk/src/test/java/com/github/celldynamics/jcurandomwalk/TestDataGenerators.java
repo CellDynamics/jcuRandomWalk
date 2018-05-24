@@ -34,6 +34,8 @@ public class TestDataGenerators {
    * 13 16 19 22
    * 14 17 20 23
    * 
+   * <p>There is 46 edges and 24 vertices in graph.
+   * 
    * @param width number of columns
    * @param height number of rows
    * @param nz number of slices

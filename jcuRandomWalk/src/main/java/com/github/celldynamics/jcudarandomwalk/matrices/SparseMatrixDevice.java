@@ -34,6 +34,10 @@ import jcuda.runtime.JCuda;
 public class SparseMatrixDevice extends SparseMatrix implements IStoredOnGpu {
 
   /**
+   * UID.
+   */
+  private static final long serialVersionUID = 2760825038592785223L;
+  /**
    * Handle to cusparse driver.
    * 
    * It must be created before use: <tt>JCusparse.cusparseCreate(SparseMatrixDevice.handle);</tt>
@@ -370,4 +374,16 @@ public class SparseMatrixDevice extends SparseMatrix implements IStoredOnGpu {
             csrm.getRowNumber(), getElementNumber(), SparseMatrixType.MATRIX_FORMAT_CSR);
 
   }
+
+  /*
+   * (non-Javadoc)
+   * 
+   * @see java.lang.Object#toString()
+   */
+  @Override
+  public String toString() {
+    retrieveFromDevice();
+    return super.toString();
+  }
+
 }

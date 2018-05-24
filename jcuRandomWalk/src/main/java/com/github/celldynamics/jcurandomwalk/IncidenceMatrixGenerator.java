@@ -7,6 +7,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 
+import org.apache.commons.lang3.time.StopWatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,7 +45,11 @@ public class IncidenceMatrixGenerator implements Serializable {
   private int nz; // number of slices of the stack
   private SparseMatrixHost incidence; // incidence matrix coords
   private SparseMatrixHost weights; // weights coords
+  private int[] sink; // indexes of pixel on bounding box
 
+  /**
+   * For mocked tests. Do not use.
+   */
   IncidenceMatrixGenerator() {
 
   }
@@ -57,11 +62,46 @@ public class IncidenceMatrixGenerator implements Serializable {
   public IncidenceMatrixGenerator(ImageStack stack) {
     this.stack = stack;
     LOGGER.debug("Got stack: " + stack.toString());
+    StopWatch timer = new StopWatch();
     nrows = stack.getHeight();
     ncols = stack.getWidth();
     nz = stack.getSize();
+    timer.start();
     computeIncidence();
-    LOGGER.info("Incidence matrix computed");
+    computeSinkBox();
+    timer.stop();
+    LOGGER.info("Incidence and BBox matrices computed in " + timer.toString());
+  }
+
+  /**
+   * Compute indexes of points on bounding box.
+   */
+  void computeSinkBox() {
+    // TODO consider use one loop and parallelism
+    int verticesInLayer = nrows * ncols;
+    // taken from Till's code
+    int numBoxEl = (nrows * 2 + (ncols - 2) * 2) * (nz - 2) + 2 * nrows * ncols;
+    this.sink = new int[numBoxEl];
+    int l = 0;
+    for (int k = 1; k < nz - 1; k++) {
+      for (int i = 0; i < nrows; i++) {
+        sink[l++] = i + k * verticesInLayer;
+        sink[l++] = (ncols - 1) * nrows + i + k * verticesInLayer;
+      }
+      for (int i = 1; i < ncols - 1; i++) {
+        sink[l++] = i * nrows + k * verticesInLayer;
+        sink[l++] = i * nrows + nrows - 1 + k * verticesInLayer;
+      }
+    }
+
+    for (int k = 0; k < nz; k += nz - 1) {
+      for (int i = 0; i < nrows; i++) {
+        for (int j = 0; j < ncols; j++) {
+          sink[l++] = j * nrows + i + k * verticesInLayer;
+        }
+      }
+    }
+
   }
 
   /**
@@ -155,6 +195,9 @@ public class IncidenceMatrixGenerator implements Serializable {
         in++; // go to next edge (next row in incidence
       }
     }
+    // update dimension after using add
+    incidence.updateDimension();
+    weights.updateDimension();
   }
 
   /**
@@ -320,5 +363,14 @@ public class IncidenceMatrixGenerator implements Serializable {
       file.close();
     }
 
+  }
+
+  /**
+   * Get sink bounding box - pixels on edges.
+   * 
+   * @return indexes of pixels on edges.
+   */
+  public int[] getSinkBox() {
+    return sink;
   }
 }

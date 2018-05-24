@@ -30,6 +30,7 @@ public class SparseMatrixHost extends SparseMatrix implements IStoredOnCpu {
     colInd = new int[size];
     val = new double[size];
     matrixFormat = SparseMatrixType.MATRIX_FORMAT_COO;
+    updateDimension();
   }
 
   /**
@@ -56,11 +57,14 @@ public class SparseMatrixHost extends SparseMatrix implements IStoredOnCpu {
       default:
         throw new NotImplementedException("This format is not implemented yet");
     }
-
+    updateDimension();
   }
 
   /**
    * Add entry (coordinates and value) to store. Matrix is created in CCO format.
+   * 
+   * <p>This method does not update {@link #getRowNumber()} or {@link #getColNumber()}. The
+   * {@link #updateDimension()} must be called explicitelly and the end.
    * 
    * @param r row coordinate
    * @param c column coordinate
