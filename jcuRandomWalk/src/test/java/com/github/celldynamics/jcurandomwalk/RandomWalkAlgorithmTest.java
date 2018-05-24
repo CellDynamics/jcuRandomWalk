@@ -163,7 +163,7 @@ public class RandomWalkAlgorithmTest {
    */
   @Test
   public void testProcessStack() throws Exception {
-    ImagePlus test_stack = IJ.openImage("src/test/data/Stack_cut.tif");
+    ImagePlus test_stack = IJ.openImage("src/test/test_data/Stack_cut.tif");
     RandomWalkOptions options = new RandomWalkOptions();
     RandomWalkAlgorithm obj = new RandomWalkAlgorithm(test_stack.getImageStack(), options);
     obj.processStack();
