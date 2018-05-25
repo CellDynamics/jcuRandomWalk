@@ -96,6 +96,7 @@ public class IncidenceMatrixGenerator implements Serializable {
     }
     this.stack = stack;
     recomputeWeights();
+    weights.updateDimension();
   }
 
   /**
@@ -131,6 +132,21 @@ public class IncidenceMatrixGenerator implements Serializable {
 
   /**
    * Compute incidence matrix and fills this object.
+   * 
+   * Pixels in stack are numbered along columns:
+   * 0 3
+   * 1 4
+   * 2 5...
+   * 
+   * Order of edges in incidence matrix and weight matrix is: Right, Lower, Bottom, where:
+   * <oi>
+   * <li>Right is pixel on right to current one: (x0+1,y0,z0)
+   * <li>Lower is pixel below current one on the same slice: (x0, y0+1,z0)
+   * <li>Bottom is pixel on next layer: (x0,y0,z0+1)
+   * </ol>
+   * 
+   * <p>Note that vector of values in incidence matrix is order along rows, it matters only in
+   * tests.
    * 
    * @see #getIncidence()
    * @see #getWeights()
@@ -245,7 +261,7 @@ public class IncidenceMatrixGenerator implements Serializable {
   }
 
   /**
-   * Recompute weights for stack. Uses coordinates stored by {@link #computeIncidence()}
+   * Recompute weights for stack. Uses coordinates stored by {@link #computeIncidence()}.
    */
   private void recomputeWeights() {
     int edges = getEdgesNumber(nrows, ncols, nz); // number of edges
@@ -379,9 +395,9 @@ public class IncidenceMatrixGenerator implements Serializable {
   }
 
   /**
-   * Convert x,y,z coordinates to linear index. )-based and columns ordered.
+   * Convert x,y,z coordinates to linear index. 0-based and columns ordered.
    * 
-   * @param ind coordinates to convert. ind[0] - x, ind[1] - y, ind [2] - z.
+   * @param ind coordinates to convert. ind[0] - row, ind[1] - column, ind [2] - z.
    * @param nrows number of rows
    * @param ncols number of columns
    * @param nz number of slices

@@ -181,6 +181,14 @@ public class IncidenceMatrixGeneratorTest {
             contains(obj.getWeights().getRowInd()));
     assertThat(Arrays.asList(restored.getWeights().getVal()), contains(obj.getWeights().getVal()));
     assertThat(Arrays.asList(restored.getSinkBox()), contains(obj.getSinkBox()));
+    assertThat(restored.getWeights().getColNumber(), is(obj.getWeights().getColNumber()));
+    assertThat(restored.getWeights().getRowNumber(), is(obj.getWeights().getRowNumber()));
+    assertThat(restored.getWeights().getElementNumber(), is(obj.getWeights().getElementNumber()));
+
+    assertThat(restored.getIncidence().getColNumber(), is(obj.getIncidence().getColNumber()));
+    assertThat(restored.getIncidence().getRowNumber(), is(obj.getIncidence().getRowNumber()));
+    assertThat(restored.getIncidence().getElementNumber(),
+            is(obj.getIncidence().getElementNumber()));
   }
 
   /**
@@ -250,13 +258,14 @@ public class IncidenceMatrixGeneratorTest {
     IncidenceMatrixGenerator obj = new IncidenceMatrixGenerator(stack);
     obj.computeSinkBox();
     int[] b = obj.getSinkBox();
+    // Arrays.sort(b);
     LOGGER.trace("BBA: " + ArrayTools
             .printArray(ArrayTools.array2Object(stack.getProcessor(1).getFloatArray())));
     LOGGER.trace("BBA: " + ArrayTools
             .printArray(ArrayTools.array2Object(stack.getProcessor(2).getFloatArray())));
     LOGGER.trace("BBA: " + ArrayTools
             .printArray(ArrayTools.array2Object(stack.getProcessor(3).getFloatArray())));
-    LOGGER.debug("BB: " + ArrayUtils.toString(b));
+    LOGGER.trace("BB: " + ArrayUtils.toString(b));
     assertThat(Arrays.asList(b), contains(new int[] { 12, 21, 13, 22, 14, 23, 15, 17, 18, 20, 0, 3,
         6, 9, 1, 4, 7, 10, 2, 5, 8, 11, 24, 27, 30, 33, 25, 28, 31, 34, 26, 29, 32, 35 }));
   }
@@ -264,10 +273,47 @@ public class IncidenceMatrixGeneratorTest {
   /**
    * Compute new weights for known geometry.
    * 
+   * <p>Input stack has 4 rows and 5 columns and 3 slices. Incidence matrix is generated traversing
+   * along columns (rows first for specified column). E.G first three lines of incidence are:
+   * 1 0 0 0 -1 0 0 0 0 0 ...
+   * 1 -1 0 0 0 0 0.0 0.0 ..
+   * 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -1
+   * That means right neighbour of pixel of index 0 is pixel of index 4, down neighbour is pixel of
+   * index 1 and upper slice neighbour is pixel of index 20. Pixels are counted along columns:
+   * 0 4 8 12 16
+   * 1 5 9 13 17
+   * 2 6 10 14 18
+   * 3 7 11 15 19
+   * 
+   * Which can be observed in weight vector: 0.011108992565355967, 0.6065306958646659,
+   * 0.9950124886818522 which are computed for respective pixels
+   * {@link TestDataGenerators#getTestStack_1()}
+   * 
+   * <p>The order of neighbours is R, D, U, next three rows of incidence matrix are for pixel of
+   * number 1, which has Cartesian coordinates (1,0) (next row, the same column). Column index in
+   * incidence matrix defines which pixels are taken to compute weight.
+   * 
    * @throws Exception
    */
   @Test
   public void testAssignStack() throws Exception {
-    throw new RuntimeException("not yet implemented");
+    ImageStack ts = TestDataGenerators.getTestStack_1();
+    IncidenceMatrixGenerator inc = new IncidenceMatrixGenerator(ts);
+    inc.assignStack(ts);
+    LOGGER.trace("Slice 1: "
+            + ArrayTools.printArray(ArrayTools.array2Object(ts.getProcessor(1).getFloatArray())));
+    ISparseMatrix weights = inc.getWeights();
+    // LOGGER.trace(ArrayTools.printArray(ArrayTools.array2Object(inicidence.full())));
+    // LOGGER.trace(ArrayTools.printArray(ArrayTools.array2Object(weights.full())));
+    LOGGER.trace("INC: " + inc.getIncidence());
+    LOGGER.trace("WEI: " + weights.toString());
+    // Arrays.sort(inc.getSinkBox());
+    LOGGER.trace("BBX: " + ArrayUtils.toString(inc.getSinkBox()));
+
+    double[][] f = inc.getIncidence().full();
+    LOGGER.debug(ArrayTools.printArray(ArrayTools.array2Object(f)));
+    double[][] w = weights.full();
+    LOGGER.trace(ArrayTools.printArray(ArrayTools.array2Object(w)));
+
   }
 }

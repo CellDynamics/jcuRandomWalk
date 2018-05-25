@@ -1,5 +1,7 @@
 package com.github.celldynamics.jcurandomwalk;
 
+import ij.IJ;
+import ij.ImagePlus;
 import ij.ImageStack;
 import ij.process.FloatProcessor;
 import ij.process.ImageProcessor;
@@ -67,6 +69,55 @@ public class TestDataGenerators {
       stack.addSlice(ip);
     }
     return stack;
+  }
+
+  /**
+   * Load prepared stack of size 5x4x3
+   * 
+   * <p>Slice 1
+   * 0.500 0.800 0.300 0.900 0.200
+   * 0.400 0.500 0.300 0.800 0.900
+   * 0.100 0.200 0.300 0.400 0.500
+   * 0.900 0.700 0.500 0.300 0.200
+   * 
+   * Slice 2
+   * 0.510 0.900 0.300 0.800 0.500
+   * 0.900 0.800 0.300 0.500 0.400
+   * 0.500 0.400 0.300 0.200 0.100
+   * 0.200 0.300 0.500 0.700 0.900
+   * 
+   * Slice 3
+   * 0.900 0.700 0.500 0.300 0.200
+   * 0.100 0.200 0.300 0.400 0.500
+   * 0.400 0.500 0.300 0.800 0.900
+   * 0.500 0.800 0.300 0.900 0.200
+   * 
+   * @return stack
+   */
+  public static ImageStack getTestStack_1() {
+    ImagePlus ret = IJ.openImage("src/test/test_data/TestStack.tif");
+    return ret.getImageStack();
+  }
+
+  /**
+   * Load prepared seed stack 5x4x3
+   * 
+   * Non zero pixels at positions (x,y column-wise index):
+   * 0,0,0, 0
+   * 0,2,0, 2
+   * 3,1,0, 13
+   * 
+   * 2,2,1, 30
+   * 
+   * 1,3,2, 47
+   * 2,1,2, 49
+   * 4,3,2, 59
+   * 
+   * @return stack
+   */
+  public static ImageStack getSeedStack_1() {
+    ImagePlus ret = IJ.openImage("src/test/test_data/seeds.tif");
+    return ret.getImageStack();
   }
 
 }

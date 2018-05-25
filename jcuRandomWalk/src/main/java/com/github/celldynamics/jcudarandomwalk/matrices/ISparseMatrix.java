@@ -1,16 +1,6 @@
 package com.github.celldynamics.jcudarandomwalk.matrices;
 
 /**
- * Type of sparse matrix according to https://docs.nvidia.com/cuda/pdf/CUSPARSE_Library.pdf
- * 
- * @author p.baniukiewicz
- *
- */
-enum SparseMatrixType {
-  MATRIX_FORMAT_COO, MATRIX_FORMAT_CSR
-}
-
-/**
  * General interface representing sparse matrix.
  * 
  * <p>Depending on device, class implementing this interface should implement also either

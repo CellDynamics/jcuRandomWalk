@@ -3,8 +3,10 @@ package com.github.celldynamics.jcurandomwalk;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.closeTo;
+import static org.hamcrest.Matchers.contains;
 
 import java.io.File;
+import java.util.Arrays;
 
 import org.junit.After;
 import org.junit.AfterClass;
@@ -22,6 +24,7 @@ import org.slf4j.LoggerFactory;
 
 import com.github.celldynamics.jcudarandomwalk.matrices.ISparseMatrix;
 import com.github.celldynamics.jcudarandomwalk.matrices.SparseMatrixDevice;
+import com.github.celldynamics.jcudarandomwalk.matrices.SparseMatrixType;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.LoggerContext;
@@ -65,6 +68,8 @@ public class RandomWalkAlgorithmTest {
   private int nz = 2;
   private ImageStack stack;
 
+  private TestDataGenerators tdg;
+
   /**
    * @throws java.lang.Exception
    */
@@ -72,6 +77,7 @@ public class RandomWalkAlgorithmTest {
   public void setUp() throws Exception {
     MockitoAnnotations.initMocks(this);
     stack = TestDataGenerators.getTestStack(width, height, nz, "double");
+    tdg = new TestDataGenerators();
   }
 
   /**
@@ -171,6 +177,49 @@ public class RandomWalkAlgorithmTest {
     StackStatistics st = new StackStatistics(new ImagePlus("", obj.stack));
     assertThat(st.min, closeTo(0.0, 1e-8));
     assertThat(st.max, closeTo(1.0, 1e-8));
+  }
+
+  /**
+   * Test method for
+   * {@link com.github.celldynamics.jcurandomwalk.RandomWalkAlgorithm#getSourceIndices(ij.ImageStack)}.
+   * 
+   * <p>Output indexes are column-ordered
+   * 
+   * @throws Exception
+   */
+  @Test
+  public void testGetSourceIndices() throws Exception {
+    ImageStack seed = TestDataGenerators.getSeedStack_1();
+    RandomWalkAlgorithm obj = new RandomWalkAlgorithm();
+    int[] ret = obj.getSourceIndices(seed);
+    assertThat(Arrays.asList(ret), contains(new int[] { 0, 2, 13, 30, 47, 49, 59 }));
+  }
+
+  /**
+   * Test method for
+   * {@link com.github.celldynamics.jcurandomwalk.RandomWalkAlgorithm#computeReducedLaplacian(com.github.celldynamics.jcudarandomwalk.matrices.ISparseMatrix, int[], int[])}.
+   * 
+   * @throws Exception
+   */
+  @Test
+  public void testComputeReducedLaplacian() throws Exception {
+    // Laplacian is square, assume diagonal only
+    int[] rI = new int[] { 0, 0, 0, 1, 2, 3, 4, 4, 5 };
+    int[] cI = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
+    double[] v = new double[] { 10, 101, 102, 11, 12, 13, 131, 14, 15 };
+    ISparseMatrix testL = new SparseMatrixDevice(rI, cI, v, SparseMatrixType.MATRIX_FORMAT_COO);
+    LOGGER.debug("Laplacean" + testL.toString());
+    RandomWalkAlgorithm obj = new RandomWalkAlgorithm();
+
+    int[] source = new int[] { 1, 3 };
+    int[] sink = new int[] { 1, 2 };
+
+    ISparseMatrix ret = obj.computeReducedLaplacian(testL, source, sink).convert2coo();
+    LOGGER.debug("Reduced" + ret.toString());
+    assertThat(ret.getColNumber(), is(3));
+    assertThat(ret.getRowNumber(), is(3));
+    assertThat(ret.getElementNumber(), is(5));
+
   }
 
 }
