@@ -20,6 +20,13 @@ public class SparseMatrixHost extends SparseMatrix implements IStoredOnCpu {
   private int i = 0; // counter
 
   /**
+   * Create empty matrix of size 0.
+   */
+  public SparseMatrixHost() {
+    this(0);
+  }
+
+  /**
    * Create empty storage for specified number of sparse elements. Format COO
    * 
    * @param size size of the storage
@@ -82,13 +89,21 @@ public class SparseMatrixHost extends SparseMatrix implements IStoredOnCpu {
   @Override
   public ISparseMatrix convert2csr() {
     // consider this in abstract with conversion through host
-    throw new NotImplementedException("this is not supported");
+    if (matrixFormat == SparseMatrixType.MATRIX_FORMAT_CSR) {
+      return this;
+    } else {
+      throw new NotImplementedException("this is not supported");
+    }
   }
 
   @Override
   public ISparseMatrix convert2coo() {
     // consider this in abstract with conversion through host
-    throw new NotImplementedException("this is not supported");
+    if (matrixFormat == SparseMatrixType.MATRIX_FORMAT_COO) {
+      return this;
+    } else {
+      throw new NotImplementedException("this is not supported");
+    }
   }
 
   /*

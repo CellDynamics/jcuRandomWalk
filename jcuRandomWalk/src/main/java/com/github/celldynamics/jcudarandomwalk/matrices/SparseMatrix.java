@@ -1,9 +1,11 @@
 package com.github.celldynamics.jcudarandomwalk.matrices;
 
 import java.io.Serializable;
+import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 import java.util.stream.IntStream;
 
+import org.apache.commons.lang3.NotImplementedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -158,6 +160,53 @@ public abstract class SparseMatrix implements ISparseMatrix, Serializable {
     return "SparseMatrix [matrixFormat=" + matrixFormat + ", nnz=" + nnz + ", rowInd="
             + Arrays.toString(rowInd) + ", colInd=" + Arrays.toString(colInd) + ", val="
             + Arrays.toString(val) + ", rowNumber=" + rowNumber + ", colNumber=" + colNumber + "]";
+  }
+
+  /**
+   * Produce sparse matrix of the same type as specified from raw data.
+   * 
+   * @param type type of output matrix, can be even empty dummy object
+   * @param rowInd indices of rows
+   * @param colInd indices of columns
+   * @param val values
+   * @param matrixInputFormat matrix format
+   * @return matrix of type 'type' from above arrays
+   */
+  public static ISparseMatrix sparseMatrixFactory(ISparseMatrix type, int[] rowInd, int[] colInd,
+          double[] val, SparseMatrixType matrixInputFormat) {
+    Class<? extends ISparseMatrix> classToLoad = type.getClass();
+    Class<?>[] cArg = new Class[4]; // Our constructor has 4 arguments
+    cArg[0] = int[].class;
+    cArg[1] = int[].class;
+    cArg[2] = double[].class;
+    cArg[3] = SparseMatrixType.class;
+    try {
+      return (ISparseMatrix) classToLoad.getDeclaredConstructor(cArg).newInstance(rowInd, colInd,
+              val, matrixInputFormat);
+    } catch (InstantiationException | IllegalAccessException | IllegalArgumentException
+            | InvocationTargetException | NoSuchMethodException | SecurityException e) {
+      throw new IllegalArgumentException("Can not create object instance");
+    }
+  }
+
+  /**
+   * Default constructor for building sparse matrix from list of indices. Must be implemented in
+   * concrete classes.
+   * 
+   * @param rowInd rows
+   * @param colInd columns
+   * @param val values
+   * @param matrixInputFormat type of matrix
+   */
+  public SparseMatrix(int[] rowInd, int[] colInd, double[] val,
+          SparseMatrixType matrixInputFormat) {
+    throw new NotImplementedException("This constructor must be implemented in concrete classes.");
+  }
+
+  /**
+   * Default constructor. Generally not used.
+   */
+  public SparseMatrix() {
   }
 
 }

@@ -96,7 +96,6 @@ public class IncidenceMatrixGenerator implements Serializable {
     }
     this.stack = stack;
     recomputeWeights();
-    weights.updateDimension();
   }
 
   /**
@@ -257,7 +256,6 @@ public class IncidenceMatrixGenerator implements Serializable {
     recomputeWeights(); // fill weights
     // update dimension after using add
     incidence.updateDimension();
-    weights.updateDimension();
   }
 
   /**
@@ -280,6 +278,7 @@ public class IncidenceMatrixGenerator implements Serializable {
       weights.add(l, l, w);
       l++;
     }
+    weights.updateDimension();
   }
 
   /**
