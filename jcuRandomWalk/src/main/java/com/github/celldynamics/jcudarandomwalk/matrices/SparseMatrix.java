@@ -120,8 +120,8 @@ public abstract class SparseMatrix implements ISparseMatrix, Serializable {
    */
   public void updateDimension() {
     // TODO see 9.3. cusparse<t>csrgemm() to get nnz and rows number?
-    colNumber = IntStream.of(getColInd()).max().getAsInt() + 1; // assuming 0 based
-    rowNumber = IntStream.of(getRowInd()).max().getAsInt() + 1;
+    colNumber = IntStream.of(getColInd()).parallel().max().getAsInt() + 1; // assuming 0 based
+    rowNumber = IntStream.of(getRowInd()).parallel().max().getAsInt() + 1;
   }
 
   /*

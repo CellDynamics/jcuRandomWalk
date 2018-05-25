@@ -17,8 +17,8 @@ L = A'*ws*A;
 fL = full(L);
 
 %% computeWeight com.github.celldynamics.jcurandomwalk.IncidenceMatrixGeneratorTest.testComputeWeight()
-p1 = 2;
-p2 = 2.5;
+p1 = 0.4;
+p2 = 0.9;
 sigma_grad = 0.1;
 mean_source = 0.6;
 sigma_mean = 1e6;
@@ -26,8 +26,8 @@ exp(-0.5*( (p1-p2).^2 / sigma_grad^2 )  -0.5*( (p1-mean_source).^2 / sigma_mean^
 
 %% computeSinkBox com.github.celldynamics.jcurandomwalk.IncidenceMatrixGeneratorTest.testComputeSinkBox()
 
-R=3; %rows
-C=4; %columns;
+R=4; %rows
+C=5; %columns;
 Z=3; %z-slices, layers
 stack = reshape([0:R*C*Z-1],R,C,Z);
 stack = permute(stack,[1,2,3]);
@@ -36,6 +36,8 @@ V = R*C*Z; % number of vertices
 VerticesInLayer = R*C;
 EdgesInLayer=R*(C-1)+C*(R-1);
 E = Z*EdgesInLayer +(Z-1)*R*C; %number of edges in layers plus edges connecting layers
+
+[A, W_] = generateAdjacency(stack, V, E);
 
 Sink=[]; %we will use the faces of the bounding box as sink
 
