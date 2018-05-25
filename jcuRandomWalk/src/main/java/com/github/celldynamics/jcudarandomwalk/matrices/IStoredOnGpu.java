@@ -11,6 +11,8 @@ public interface IStoredOnGpu {
   /**
    * Retrieve from GPU.
    * 
+   * TODO add parameter and use SparseMatrix.sparseMatrixFactory() to generate in required format
+   * 
    * @return CPU version.
    */
   public ISparseMatrix toCpu();

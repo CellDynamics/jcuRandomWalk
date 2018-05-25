@@ -24,6 +24,7 @@ import org.slf4j.LoggerFactory;
 
 import com.github.celldynamics.jcudarandomwalk.matrices.ISparseMatrix;
 import com.github.celldynamics.jcudarandomwalk.matrices.SparseMatrixDevice;
+import com.github.celldynamics.jcudarandomwalk.matrices.SparseMatrixHost;
 import com.github.celldynamics.jcudarandomwalk.matrices.SparseMatrixType;
 
 import ch.qos.logback.classic.Level;
@@ -92,7 +93,11 @@ public class RandomWalkAlgorithmTest {
    */
   @BeforeClass
   public static void before() {
-    RandomWalkAlgorithm.initilizeGpu();
+    try {
+      RandomWalkAlgorithm.initilizeGpu();
+    } catch (UnsatisfiedLinkError | NoClassDefFoundError e) {
+      LOGGER.error(e.getMessage());
+    }
   }
 
   /**
@@ -100,7 +105,11 @@ public class RandomWalkAlgorithmTest {
    */
   @AfterClass
   public static void after() {
-    RandomWalkAlgorithm.finish();
+    try {
+      RandomWalkAlgorithm.finish();
+    } catch (UnsatisfiedLinkError | NoClassDefFoundError e) {
+      LOGGER.error(e.getMessage());
+    }
   }
 
   /**
@@ -207,7 +216,7 @@ public class RandomWalkAlgorithmTest {
     int[] rI = new int[] { 0, 0, 0, 1, 2, 3, 4, 4, 5 };
     int[] cI = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
     double[] v = new double[] { 10, 101, 102, 11, 12, 13, 131, 14, 15 };
-    ISparseMatrix testL = new SparseMatrixDevice(rI, cI, v, SparseMatrixType.MATRIX_FORMAT_COO);
+    ISparseMatrix testL = new SparseMatrixHost(rI, cI, v, SparseMatrixType.MATRIX_FORMAT_COO);
     LOGGER.debug("Laplacean" + testL.toString());
     RandomWalkAlgorithm obj = new RandomWalkAlgorithm();
 

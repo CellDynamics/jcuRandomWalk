@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 
 import com.github.celldynamics.jcudarandomwalk.matrices.ISparseMatrix;
 import com.github.celldynamics.jcudarandomwalk.matrices.IStoredOnGpu;
+import com.github.celldynamics.jcudarandomwalk.matrices.SparseMatrix;
 import com.github.celldynamics.jcudarandomwalk.matrices.SparseMatrixDevice;
 import com.github.celldynamics.jcudarandomwalk.matrices.SparseMatrixHost;
 import com.github.celldynamics.jcudarandomwalk.matrices.SparseMatrixType;
@@ -207,8 +208,9 @@ public class RandomWalkAlgorithm {
       }
     }
     // use reduced indexes to build new Sparse array
-    ISparseMatrix reducedL = new SparseMatrixDevice(newRowIndcp, newColIndcp, newVal,
-            SparseMatrixType.MATRIX_FORMAT_COO).convert2csr();
+    ISparseMatrix reducedL;
+    reducedL = SparseMatrix.sparseMatrixFactory(lap, newRowIndcp, newColIndcp, newVal,
+            SparseMatrixType.MATRIX_FORMAT_COO);
     LOGGER.info("Laplacian reduced in " + timer.toString());
     return reducedL;
   }
