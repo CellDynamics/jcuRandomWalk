@@ -80,7 +80,7 @@ public interface IMatrix {
   public IMatrix toGpu();
 
   /**
-   * Retrieve from GPU.
+   * Retrieve from GPU. Rethurn this if matrix is already on cpu.
    * 
    * TODO add parameter and use SparseMatrix.sparseMatrixFactory() to generate in required format
    * 
@@ -89,8 +89,15 @@ public interface IMatrix {
   public IMatrix toCpu();
 
   /**
-   * Release resources.
+   * Release resources (if needed).
    */
   public void free();
+
+  /**
+   * Compute sum along rows.
+   * 
+   * @return Vector of size Rx1
+   */
+  public IMatrix sumAlongRows();
 
 }

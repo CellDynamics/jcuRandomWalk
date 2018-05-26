@@ -1,9 +1,13 @@
 package com.github.celldynamics.jcurandomwalk;
 
 import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.List;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.time.StopWatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -137,10 +141,35 @@ public class RandomWalkAlgorithm {
   }
 
   /**
+   * Compute B.
+   * 
+   * @param lap Laplacian with removed edges (rows).
+   * @param indexes indexes of either source or sink
+   * @return B vector
+   */
+  public IMatrix computeB(ISparseMatrix lap, int[] indexes) {
+    if (lap instanceof SparseMatrixDevice) {
+      // on gpu it could be completely different
+      throw new NotImplementedException("not implemented");
+    } else {
+      List<Integer> ilist = Arrays.asList(ArrayUtils.toObject(indexes));
+      // all cols except indexes
+      int[] colsRemove =
+              IntStream.range(0, lap.getColNumber()).filter(x -> !ilist.contains(x)).toArray();
+      IMatrix tmp = lap.removeCols(colsRemove);
+      ISparseMatrix ret = (ISparseMatrix) tmp.sumAlongRows();
+      for (int i = 0; i < ret.getVal().length; i++) {
+        ret.getVal()[i] *= -1;
+      }
+      return ret;
+    }
+  }
+
+  /**
    * Merge indexes from source and sink into one array and removes duplicates.
    * 
-   * @param source indexes (column ordered) of pixels that are source
-   * @param sink indexes (column ordered) of pixels that are sink
+   * @param source indexes (column ordered) of pixels that are the source
+   * @param sink indexes (column ordered) of pixels that are the sink
    * @return merged two input arrays without duplicates.
    */
   public int[] mergeSeeds(int[] source, int[] sink) {

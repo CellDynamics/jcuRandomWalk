@@ -410,4 +410,9 @@ public class SparseMatrixDevice extends SparseMatrix {
     return this;
   }
 
+  @Override
+  public IMatrix sumAlongRows() {
+    throw new NotImplementedException("Not implemented");
+  }
+
 }

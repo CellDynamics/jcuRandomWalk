@@ -2,7 +2,10 @@ package com.github.celldynamics.jcudarandomwalk.matrices;
 
 import java.security.InvalidParameterException;
 import java.util.Arrays;
+import java.util.List;
+import java.util.stream.IntStream;
 
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.NotImplementedException;
 
 /**
@@ -176,8 +179,20 @@ public class SparseMatrixHost extends SparseMatrix {
       l++;
     }
     int[] newRowIndcp = compressIndices(toRem, remainingRow, newRowInd);
+
+    // now compress also rows that can be empty
+    List<Integer> ilist = Arrays.asList(ArrayUtils.toObject(newColInd));
+    // will contain 1 at index to remove
+    int[] toRemCol = new int[newColInd.length];
+    // find those rows that are not in new row indexes (indexes must be continous)
+    int max = IntStream.of(newColInd).max().getAsInt() + 1;
+    int[] colsRemove = IntStream.range(0, max).parallel().filter(x -> !ilist.contains(x)).toArray();
+    IntStream.of(colsRemove).forEach(x -> toRemCol[x] = 1); // build toRem
+    // compress rows
+    int[] newColIndcp = compressIndices(toRemCol, newColInd.length, newColInd);
+
     ISparseMatrix reducedL;
-    reducedL = SparseMatrix.sparseMatrixFactory(this, newRowIndcp, newColInd, newVal,
+    reducedL = SparseMatrix.sparseMatrixFactory(this, newRowIndcp, newColIndcp, newVal,
             SparseMatrixType.MATRIX_FORMAT_COO);
 
     return reducedL;
@@ -230,8 +245,20 @@ public class SparseMatrixHost extends SparseMatrix {
       l++;
     }
     int[] newColIndcp = compressIndices(toRem, remainingCol, newColInd);
+
+    // now compress also rows that can be empty
+    List<Integer> ilist = Arrays.asList(ArrayUtils.toObject(newRowInd));
+    // will contain 1 at index to remove
+    int[] toRemRow = new int[newRowInd.length];
+    // find those rows that are not in new row indexes (indexes must be continous)
+    int max = IntStream.of(newRowInd).max().getAsInt() + 1;
+    int[] rowsRemove = IntStream.range(0, max).parallel().filter(x -> !ilist.contains(x)).toArray();
+    IntStream.of(rowsRemove).forEach(x -> toRemRow[x] = 1); // build toRem
+    // compress rows
+    int[] newRowIndcp = compressIndices(toRemRow, newRowInd.length, newRowInd);
+
     ISparseMatrix reducedL;
-    reducedL = SparseMatrix.sparseMatrixFactory(this, newRowInd, newColIndcp, newVal,
+    reducedL = SparseMatrix.sparseMatrixFactory(this, newRowIndcp, newColIndcp, newVal,
             SparseMatrixType.MATRIX_FORMAT_COO);
 
     return reducedL;
@@ -277,9 +304,35 @@ public class SparseMatrixHost extends SparseMatrix {
     return this;
   }
 
+  /*
+   * (non-Javadoc)
+   * 
+   * @see com.github.celldynamics.jcudarandomwalk.matrices.IMatrix#free()
+   */
   @Override
   public void free() {
     // do nothing
+  }
+
+  /*
+   * (non-Javadoc)
+   * 
+   * @see com.github.celldynamics.jcudarandomwalk.matrices.IMatrix#sumAlongRows()
+   */
+  @Override
+  public IMatrix sumAlongRows() {
+    int[] ri = this.getRowInd();
+    double[] v = this.getVal();
+    double[] ret = new double[this.getRowNumber()];
+    for (int i = 0; i < ri.length; i++) { // along all row indices
+      ret[ri[i]] += v[i]; // sum all elements from the same row
+    }
+    int[] ci_ret = new int[ret.length];
+    int[] ri_ret = IntStream.range(0, ret.length).toArray();
+    Arrays.fill(ci_ret, 0);
+
+    return SparseMatrix.sparseMatrixFactory(this, ri_ret, ci_ret, ret,
+            SparseMatrixType.MATRIX_FORMAT_COO);
   }
 
 }

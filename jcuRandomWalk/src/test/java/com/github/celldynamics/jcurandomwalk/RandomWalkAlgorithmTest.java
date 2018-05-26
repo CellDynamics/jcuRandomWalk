@@ -23,6 +23,7 @@ import org.mockito.junit.MockitoRule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.github.celldynamics.jcudarandomwalk.matrices.IMatrix;
 import com.github.celldynamics.jcudarandomwalk.matrices.ISparseMatrix;
 import com.github.celldynamics.jcudarandomwalk.matrices.SparseMatrixDevice;
 import com.github.celldynamics.jcudarandomwalk.matrices.SparseMatrixHost;
@@ -249,6 +250,17 @@ public class RandomWalkAlgorithmTest {
     int[] ret = obj.mergeSeeds(a1, a2);
     LOGGER.debug("CS: " + ArrayUtils.toString(ret));
 
+  }
+
+  @Test
+  public void testComputeB() throws Exception {
+    RandomWalkAlgorithm obj = new RandomWalkAlgorithm();
+    int[] rI = new int[] { 0, 0, 0, 1, 2, 3, 4, 4, 5 };
+    int[] cI = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
+    double[] v = new double[] { 10, 101, 102, 11, 12, 13, 131, 14, 15 };
+    ISparseMatrix testL = new SparseMatrixHost(rI, cI, v, SparseMatrixType.MATRIX_FORMAT_COO);
+    IMatrix ret = obj.computeB(testL, new int[] { 0, 1 });
+    assertThat(Arrays.asList(ret.getVal()), contains(new double[] { -110.0, -11.0, -131.0 }));
   }
 
 }
