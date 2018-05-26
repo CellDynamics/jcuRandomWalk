@@ -95,7 +95,13 @@ public class RandomWalkAlgorithm {
     // A'*W*A
     // ISparseMatrix ATW = incidenceGpuT.multiply(wGpu);
     // ISparseMatrix ATWA = ATW.multiply(incidenceGpu);
-    ISparseMatrix lap = incidenceGpuT.multiply(wGpu).multiply(incidenceGpu);
+    ISparseMatrix atw = incidenceGpuT.multiply(wGpu);// .multiply(incidenceGpu);
+    ((SparseMatrixDevice) incidenceGpuT).free();
+    ((SparseMatrixDevice) wGpu).free();
+    ISparseMatrix lap = atw.multiply(incidenceGpu);
+    ((SparseMatrixDevice) atw).free();
+    ((SparseMatrixDevice) incidenceGpu).free();
+
     timer.stop();
     LOGGER.info("Laplacian computed in " + timer.toString());
     return lap;
