@@ -19,6 +19,8 @@ import static jcuda.runtime.JCuda.cudaMemcpy;
 import static jcuda.runtime.cudaMemcpyKind.cudaMemcpyDeviceToHost;
 import static jcuda.runtime.cudaMemcpyKind.cudaMemcpyHostToDevice;
 
+import org.apache.commons.lang3.NotImplementedException;
+
 import jcuda.Pointer;
 import jcuda.Sizeof;
 import jcuda.jcusparse.cusparseHandle;
@@ -384,6 +386,26 @@ public class SparseMatrixDevice extends SparseMatrix implements IStoredOnGpu {
   public String toString() {
     retrieveFromDevice();
     return super.toString();
+  }
+
+  /*
+   * (non-Javadoc)
+   * 
+   * @see com.github.celldynamics.jcudarandomwalk.matrices.IMatrix#removeRows(int[])
+   */
+  @Override
+  public IMatrix removeRows(int[] rows) {
+    throw new NotImplementedException("Not implemented");
+  }
+
+  /*
+   * (non-Javadoc)
+   * 
+   * @see com.github.celldynamics.jcudarandomwalk.matrices.IMatrix#removeCols(int[])
+   */
+  @Override
+  public IMatrix removeCols(int[] cols) {
+    throw new NotImplementedException("Not implemented");
   }
 
 }

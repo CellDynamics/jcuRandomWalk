@@ -185,7 +185,7 @@ public abstract class SparseMatrix implements ISparseMatrix, Serializable {
               val, matrixInputFormat);
     } catch (InstantiationException | IllegalAccessException | IllegalArgumentException
             | InvocationTargetException | NoSuchMethodException | SecurityException e) {
-      throw new IllegalArgumentException("Can not create object instance");
+      throw new IllegalArgumentException("Can not create object instance: " + e.getMessage());
     }
   }
 

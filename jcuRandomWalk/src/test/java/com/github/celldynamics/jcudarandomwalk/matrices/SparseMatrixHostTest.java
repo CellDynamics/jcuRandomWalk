@@ -137,4 +137,58 @@ public class SparseMatrixHostTest {
     spd.free();
   }
 
+  /**
+   * Test method for
+   * {@link com.github.celldynamics.jcudarandomwalk.matrices.SparseMatrixHost#removeRows(int[])}.
+   * 
+   * @throws Exception
+   */
+  @Test
+  public void testRemoveRows() throws Exception {
+    // Laplacian is square, assume diagonal only
+    int[] rI = new int[] { 0, 0, 0, 1, 2, 3, 4, 4, 5 };
+    int[] cI = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
+    double[] v = new double[] { 10, 101, 102, 11, 12, 13, 131, 14, 15 };
+    ISparseMatrix testL = new SparseMatrixHost(rI, cI, v, SparseMatrixType.MATRIX_FORMAT_COO);
+    LOGGER.debug("Laplacean" + testL.toString());
+
+    // remove row/co 1,2,3
+    int[] toRem = new int[] { 1, 3, 4 };
+
+    IMatrix ret = testL.removeRows(toRem);
+    LOGGER.debug("Reduced" + ret.toString());
+    assertThat(ret.getColNumber(), is(6));
+    assertThat(ret.getRowNumber(), is(3));
+    assertThat(ret.getElementNumber(), is(5));
+    assertThat(Arrays.asList(ret.getVal()),
+            contains(new double[] { 10.0, 101.0, 102.0, 12.0, 15.0 }));
+  }
+
+  /**
+   * Test method for
+   * {@link com.github.celldynamics.jcudarandomwalk.matrices.SparseMatrixHost#removeCols(int[])}.
+   * 
+   * @throws Exception
+   */
+  @Test
+  public void testRemoveCols() throws Exception {
+    // Laplacian is square, assume diagonal only
+    int[] rI = new int[] { 0, 0, 0, 1, 2, 3, 4, 4, 5 };
+    int[] cI = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
+    double[] v = new double[] { 10, 101, 102, 11, 12, 13, 131, 14, 15 };
+    ISparseMatrix testL = new SparseMatrixHost(rI, cI, v, SparseMatrixType.MATRIX_FORMAT_COO);
+    LOGGER.debug("Laplacean" + testL.toString());
+
+    // remove row/co 1,2,3
+    int[] toRem = new int[] { 1, 3, 4 };
+
+    IMatrix ret = testL.removeCols(toRem);
+    LOGGER.debug("Reduced" + ret.toString());
+    assertThat(ret.getColNumber(), is(3));
+    assertThat(ret.getRowNumber(), is(6));
+    assertThat(ret.getElementNumber(), is(5));
+    assertThat(Arrays.asList(ret.getVal()),
+            contains(new double[] { 10.0, 102.0, 12.0, 131.0, 15.0 }));
+  }
+
 }

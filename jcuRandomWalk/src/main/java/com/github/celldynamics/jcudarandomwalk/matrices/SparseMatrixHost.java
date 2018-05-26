@@ -1,5 +1,8 @@
 package com.github.celldynamics.jcudarandomwalk.matrices;
 
+import java.security.InvalidParameterException;
+import java.util.Arrays;
+
 import org.apache.commons.lang3.NotImplementedException;
 
 /**
@@ -124,6 +127,144 @@ public class SparseMatrixHost extends SparseMatrix implements IStoredOnCpu {
   @Override
   public ISparseMatrix transpose() {
     throw new NotImplementedException("this is not supported");
+  }
+
+  /*
+   * (non-Javadoc)
+   * 
+   * @see com.github.celldynamics.jcudarandomwalk.matrices.IMatrix#removeRows(int[])
+   */
+  @Override
+  public IMatrix removeRows(int[] rows) {
+    if (matrixFormat != SparseMatrixType.MATRIX_FORMAT_COO) {
+      throw new InvalidParameterException(
+              "This matrix must be in COO format. Perform explicit conversion.");
+    }
+    // any 1 at index i in this array stand for index i to remove from Lap
+    // merge two arrays in one because they can point the same row/column
+    int[] toRem = new int[this.getRowNumber()];
+    for (int s = 0; s < rows.length; s++) {
+      toRem[rows[s]] = 1;
+    }
+    // iterate over indices lists and mark those to remove by -1 - ROWS
+    int[] rowInd = this.getRowInd();
+    int[] colInd = this.getColInd();
+    for (int i = 0; i < rowInd.length; i++) {
+      if (toRem[rowInd[i]] > 0) {
+        rowInd[i] = -1; // to remove
+      }
+    }
+    // compute number of nonzero elements that remains
+    // ... and find how many rows is >=0 - valid rows
+    int remainingRow = 0;
+    for (int i = 0; i < rowInd.length; i++) {
+      if (rowInd[i] >= 0) {
+        remainingRow++;
+      }
+    }
+    int[] newRowInd = new int[remainingRow];
+    int[] newColInd = new int[remainingRow];
+    double[] newVal = new double[remainingRow];
+    int l = 0;
+    for (int i = 0; i < this.getElementNumber(); i++) {
+      if (rowInd[i] < 0) {
+        continue;
+      }
+      newRowInd[l] = rowInd[i];
+      newColInd[l] = colInd[i];
+      newVal[l] = this.getVal()[i];
+      l++;
+    }
+    int[] newRowIndcp = compressIndices(toRem, remainingRow, newRowInd);
+    ISparseMatrix reducedL;
+    reducedL = SparseMatrix.sparseMatrixFactory(this, newRowIndcp, newColInd, newVal,
+            SparseMatrixType.MATRIX_FORMAT_COO);
+
+    return reducedL;
+  }
+
+  /*
+   * (non-Javadoc)
+   * 
+   * @see com.github.celldynamics.jcudarandomwalk.matrices.IMatrix#removeCols(int[])
+   */
+  @Override
+  public IMatrix removeCols(int[] cols) {
+    if (matrixFormat != SparseMatrixType.MATRIX_FORMAT_COO) {
+      throw new InvalidParameterException(
+              "This matrix must be in COO format. Perform explicit conversion.");
+    }
+    // any 1 at index i in this array stand for index i to remove from Lap
+    // merge two arrays in one because they can point the same row/column
+    int[] toRem = new int[this.getColNumber()];
+    for (int s = 0; s < cols.length; s++) {
+      toRem[cols[s]] = 1;
+    }
+    // iterate over indices lists and mark those to remove by -1 - ROWS
+    int[] rowInd = this.getRowInd();
+    int[] colInd = this.getColInd();
+    for (int i = 0; i < rowInd.length; i++) {
+      if (toRem[colInd[i]] > 0) {
+        colInd[i] = -1; // to remove
+      }
+    }
+    // compute number of nonzero elements that remains
+    // ... and find how many rows is >=0 - valid rows
+    int remainingCol = 0;
+    for (int i = 0; i < colInd.length; i++) {
+      if (colInd[i] >= 0) {
+        remainingCol++;
+      }
+    }
+    int[] newRowInd = new int[remainingCol];
+    int[] newColInd = new int[remainingCol];
+    double[] newVal = new double[remainingCol];
+    int l = 0;
+    for (int i = 0; i < this.getElementNumber(); i++) {
+      if (colInd[i] < 0) {
+        continue;
+      }
+      newRowInd[l] = rowInd[i];
+      newColInd[l] = colInd[i];
+      newVal[l] = this.getVal()[i];
+      l++;
+    }
+    int[] newColIndcp = compressIndices(toRem, remainingCol, newColInd);
+    ISparseMatrix reducedL;
+    reducedL = SparseMatrix.sparseMatrixFactory(this, newRowInd, newColIndcp, newVal,
+            SparseMatrixType.MATRIX_FORMAT_COO);
+
+    return reducedL;
+  }
+
+  /**
+   * @param toRem
+   * @param remainingRow
+   * @param newRowInd
+   * @return Array with compressed indices
+   */
+  private int[] compressIndices(int[] toRem, int remainingRow, int[] newRowInd) {
+    // compress
+    // after removing indices from newColInd/RowInd it contains only valid nonzero elements (without
+    // those from deleted rows and
+    // cols) but indexes contain gaps, e.g. if 2nd column was removed newColInd will keep next
+    // column after as third whereas it should be moved to left and become the second
+    // because we assumed square matrix we will go through toRem array and check which indexes were
+    // removed (marked by 1 at index i - removed) and then decrease all indexes larger than those
+    // removed in newColInd/newRowInd by one to shift them
+    // These arrays need to be copied first otherwise next comparison would be wrong
+    int[] newRowIndcp = Arrays.copyOf(newRowInd, newRowInd.length);
+    for (int i = 0; i < toRem.length; i++) {
+      if (toRem[i] > 0) { // compress all indices larger than i
+        for (int k = 0; k < remainingRow; k++) { // go through sparse indexes
+          if (newRowInd[k] > i) { // the same for rows
+            newRowIndcp[k]--;
+          }
+        }
+
+      }
+    }
+    return newRowIndcp;
   }
 
 }

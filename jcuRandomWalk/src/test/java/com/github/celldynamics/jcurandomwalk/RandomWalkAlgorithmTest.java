@@ -8,6 +8,7 @@ import static org.hamcrest.Matchers.contains;
 import java.io.File;
 import java.util.Arrays;
 
+import org.apache.commons.lang3.ArrayUtils;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -220,6 +221,7 @@ public class RandomWalkAlgorithmTest {
     LOGGER.debug("Laplacean" + testL.toString());
     RandomWalkAlgorithm obj = new RandomWalkAlgorithm();
 
+    // remove row/co 1,2,3
     int[] source = new int[] { 1, 3 };
     int[] sink = new int[] { 1, 2 };
 
@@ -228,6 +230,24 @@ public class RandomWalkAlgorithmTest {
     assertThat(ret.getColNumber(), is(3));
     assertThat(ret.getRowNumber(), is(3));
     assertThat(ret.getElementNumber(), is(5));
+    assertThat(Arrays.asList(ret.getVal()),
+            contains(new double[] { 10.0, 102.0, 131.0, 14.0, 15.0 }));
+
+  }
+
+  /**
+   * Test method for
+   * {@link com.github.celldynamics.jcurandomwalk.RandomWalkAlgorithm#mergeSeeds(int[], int[])}.
+   * 
+   * @throws Exception
+   */
+  @Test
+  public void testMergeSeeds() throws Exception {
+    RandomWalkAlgorithm obj = new RandomWalkAlgorithm();
+    int[] a1 = new int[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+    int[] a2 = new int[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 };
+    int[] ret = obj.mergeSeeds(a1, a2);
+    LOGGER.debug("CS: " + ArrayUtils.toString(ret));
 
   }
 

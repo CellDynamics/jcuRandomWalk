@@ -11,7 +11,9 @@ public class ToolVersionTest {
 
   /**
    * Test method for
-   * {@link com.github.celldynamics.versioning.ToolVersion#getFormattedToolVersion(com.github.celldynamics.versioning.ToolVersionStruct, java.lang.String[])}.
+   * {@link com.github.celldynamics.versioning.ToolVersion#getFormattedToolVersion(ToolVersionStruct, String[], String)}.
+   * 
+   * @throws Exception
    */
   @Test
   public void testGetFormattedToolVersion() throws Exception {
@@ -21,8 +23,11 @@ public class ToolVersionTest {
     Mockito.when(version.getVersion()).thenReturn("v1.2.3");
     Mockito.when(version.getBuildstamp()).thenReturn("10:32:56");
     Mockito.when(version.getName()).thenReturn("jcuRandomWalk");
-    String ret = ToolVersion.getFormattedToolVersion(version, aut);
+    String ret = ToolVersion.getFormattedToolVersion(version, aut, "jcurandomwalk.properties");
     System.out.println(ret);
+
+    ToolVersion tv = new ToolVersion("jcurandomwalk.properties");
+    ToolVersionStruct bi = tv.getQuimPBuildInfo();
   }
 
 }
