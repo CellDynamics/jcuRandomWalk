@@ -50,21 +50,6 @@ public interface ISparseMatrix extends IMatrix {
   public ISparseMatrix convert2coo();
 
   /**
-   * Matrix multiplication.
-   * 
-   * @param in right argument
-   * @return this*in
-   */
-  public ISparseMatrix multiply(ISparseMatrix in);
-
-  /**
-   * Transpose sparse matrix.
-   * 
-   * @return transposed matrix in CSR format
-   */
-  public ISparseMatrix transpose();
-
-  /**
    * Convert sparse coordinates to full matrix.
    * 
    * <p>Only small matrixes. Column ordered. [col][row] like x,y

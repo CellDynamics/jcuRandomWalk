@@ -55,4 +55,42 @@ public interface IMatrix {
    */
   public IMatrix removeCols(int[] cols);
 
+  /**
+   * Matrix multiplication.
+   * 
+   * @param in right argument
+   * @return this*in
+   */
+  public IMatrix multiply(IMatrix in);
+
+  /**
+   * Transpose sparse matrix.
+   * 
+   * @return transposed matrix in CSR format
+   */
+  public IMatrix transpose();
+
+  /**
+   * Send to GPU.
+   * 
+   * <p>Class can throw java.lang.UnsupportedOperationException if that conversion is not possible.
+   * 
+   * @return GPU version.
+   */
+  public IMatrix toGpu();
+
+  /**
+   * Retrieve from GPU.
+   * 
+   * TODO add parameter and use SparseMatrix.sparseMatrixFactory() to generate in required format
+   * 
+   * @return CPU version.
+   */
+  public IMatrix toCpu();
+
+  /**
+   * Release resources.
+   */
+  public void free();
+
 }

@@ -33,7 +33,7 @@ import jcuda.runtime.JCuda;
  * @author p.baniukiewicz
  *
  */
-public class SparseMatrixDevice extends SparseMatrix implements IStoredOnGpu {
+public class SparseMatrixDevice extends SparseMatrix {
 
   /**
    * UID.
@@ -280,24 +280,16 @@ public class SparseMatrixDevice extends SparseMatrix implements IStoredOnGpu {
    * celldynamics.jcudarandomwalk.matrices.ISparseMatrixGpu)
    */
   @Override
-  public ISparseMatrix multiply(ISparseMatrix in) {
+  public IMatrix multiply(IMatrix in) {
     if (this.getColNumber() != in.getRowNumber()) {
       throw new IllegalArgumentException("Incompatibile sizes");
     }
-    if (in.getSparseMatrixType() != SparseMatrixType.MATRIX_FORMAT_CSR) {
+    if (((ISparseMatrix) in).getSparseMatrixType() != SparseMatrixType.MATRIX_FORMAT_CSR) {
       throw new IllegalArgumentException("multiply requires CSR input format.");
     }
     SparseMatrixDevice m2;
     // if not instance og GPU try to convert it to GPU
-    if (!(in instanceof IStoredOnGpu)) {
-      if (in instanceof IStoredOnCpu) {
-        m2 = (SparseMatrixDevice) ((IStoredOnCpu) in).toGpu();
-      } else {
-        throw new IllegalArgumentException("Input matrix do not implement either IStoredOnCpu");
-      }
-    } else {
-      m2 = (SparseMatrixDevice) in;
-    }
+    m2 = (SparseMatrixDevice) in.toGpu();
 
     int m = this.getRowNumber();
     int n = m2.getColNumber();
@@ -406,6 +398,16 @@ public class SparseMatrixDevice extends SparseMatrix implements IStoredOnGpu {
   @Override
   public IMatrix removeCols(int[] cols) {
     throw new NotImplementedException("Not implemented");
+  }
+
+  /*
+   * (non-Javadoc)
+   * 
+   * @see com.github.celldynamics.jcudarandomwalk.matrices.IMatrix#toGpu()
+   */
+  @Override
+  public IMatrix toGpu() {
+    return this;
   }
 
 }

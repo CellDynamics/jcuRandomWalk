@@ -217,7 +217,7 @@ public class SparseMatrixDeviceTest {
   public void testMultiply() throws Exception {
     ISparseMatrix objcsr = obj.convert2csr();
     ISparseMatrix obj1csr = obj1.convert2csr();
-    ISparseMatrix ret = objcsr.multiply(obj1csr);
+    ISparseMatrix ret = (ISparseMatrix) objcsr.multiply(obj1csr);
     ISparseMatrix retcoo = ret.convert2coo();
     int[] r = retcoo.getRowInd();
     int[] c = retcoo.getColInd();

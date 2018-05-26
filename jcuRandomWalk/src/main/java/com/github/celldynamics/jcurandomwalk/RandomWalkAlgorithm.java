@@ -10,9 +10,7 @@ import org.slf4j.LoggerFactory;
 
 import com.github.celldynamics.jcudarandomwalk.matrices.IMatrix;
 import com.github.celldynamics.jcudarandomwalk.matrices.ISparseMatrix;
-import com.github.celldynamics.jcudarandomwalk.matrices.IStoredOnGpu;
 import com.github.celldynamics.jcudarandomwalk.matrices.SparseMatrixDevice;
-import com.github.celldynamics.jcudarandomwalk.matrices.SparseMatrixHost;
 
 import ij.ImagePlus;
 import ij.ImageStack;
@@ -88,23 +86,22 @@ public class RandomWalkAlgorithm {
   public ISparseMatrix computeLaplacian() {
     StopWatch timer = new StopWatch();
     timer.start();
-    ISparseMatrix incidenceGpu = ((SparseMatrixHost) img.getIncidence()).toGpu().convert2csr();
-    ISparseMatrix incidenceGpuT = incidenceGpu.transpose();
+    IMatrix incidenceGpu = ((ISparseMatrix) img.getIncidence().toGpu()).convert2csr();
+    IMatrix incidenceGpuT = incidenceGpu.transpose();
 
-    ISparseMatrix wGpu = ((SparseMatrixHost) img.getWeights()).toGpu().convert2csr();
+    IMatrix wGpu = ((ISparseMatrix) img.getWeights().toGpu()).convert2csr();
     // A'*W*A
     // ISparseMatrix ATW = incidenceGpuT.multiply(wGpu);
     // ISparseMatrix ATWA = ATW.multiply(incidenceGpu);
-    ISparseMatrix atw = incidenceGpuT.multiply(wGpu);// .multiply(incidenceGpu);
-    ((SparseMatrixDevice) incidenceGpuT).free();
-    ((SparseMatrixDevice) wGpu).free();
-    ISparseMatrix lap = atw.multiply(incidenceGpu);
-    ((SparseMatrixDevice) atw).free();
-    ((SparseMatrixDevice) incidenceGpu).free();
-
+    IMatrix atw = incidenceGpuT.multiply(wGpu);// .multiply(incidenceGpu);
+    incidenceGpuT.free();
+    wGpu.free();
+    IMatrix lap = atw.multiply(incidenceGpu);
+    atw.free();
+    incidenceGpu.free();
     timer.stop();
     LOGGER.info("Laplacian computed in " + timer.toString());
-    return lap;
+    return (ISparseMatrix) lap;
   }
 
   /**
@@ -127,12 +124,8 @@ public class RandomWalkAlgorithm {
     timer.start();
     ISparseMatrix lapCoo = lap.convert2coo();
     ISparseMatrix cpuL;
-    if (lap instanceof IStoredOnGpu) {
-      cpuL = ((IStoredOnGpu) lapCoo).toCpu();
-      ((IStoredOnGpu) lapCoo).free();
-    } else {
-      cpuL = lapCoo;
-    }
+    cpuL = (ISparseMatrix) lapCoo.toCpu();
+    lapCoo.free();
     int[] merged = mergeSeeds(source, sink);
     IMatrix cpuLr = cpuL.removeRows(merged);
 
