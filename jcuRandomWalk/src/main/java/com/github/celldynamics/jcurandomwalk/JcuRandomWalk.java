@@ -9,6 +9,8 @@ import org.apache.commons.cli.Options;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.github.celldynamics.versioning.ToolVersion;
+
 /**
  * Main application class.
  */
@@ -50,9 +52,15 @@ public class JcuRandomWalk {
    * Print help string.
    */
   private void showHelp() {
+    String[] authors = new String[] { "Till Bretschneider (Till.Bretschneider@warwick.ac.uk)",
+        "Piotr Baniukiewicz (P.Baniukiewicz@warwick.ac.uk)" };
+    ToolVersion tv =
+            new ToolVersion("/" + this.getClass().getPackage().getName().replaceAll("\\.", "/")
+                    + "/jcurandomwalk.properties");
     HelpFormatter formatter = new HelpFormatter();
-    String header = "Random Walk segemntaion on GPU.\n\n";
-    String footer = "\n";
+    String header = "\nRandom Walk segemntaion on GPU.\n";
+    header = header.concat(tv.getToolversion(authors));
+    String footer = "\n\n";
     formatter.printHelp("JcuRandomWalk", header, options, footer, true);
   }
 

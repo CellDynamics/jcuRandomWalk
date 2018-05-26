@@ -1,18 +1,18 @@
 package com.github.celldynamics.jcurandomwalk;
 
 import java.nio.file.Path;
-import java.util.Arrays;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import org.apache.commons.lang3.time.StopWatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.github.celldynamics.jcudarandomwalk.matrices.IMatrix;
 import com.github.celldynamics.jcudarandomwalk.matrices.ISparseMatrix;
 import com.github.celldynamics.jcudarandomwalk.matrices.IStoredOnGpu;
-import com.github.celldynamics.jcudarandomwalk.matrices.SparseMatrix;
 import com.github.celldynamics.jcudarandomwalk.matrices.SparseMatrixDevice;
 import com.github.celldynamics.jcudarandomwalk.matrices.SparseMatrixHost;
-import com.github.celldynamics.jcudarandomwalk.matrices.SparseMatrixType;
 
 import ij.ImagePlus;
 import ij.ImageStack;
@@ -109,7 +109,7 @@ public class RandomWalkAlgorithm {
    * should be < length(lap)
    * 
    * @param lap square matrix where columns are rows are removed from
-   * @param source list of indices to remove
+   * @param source list of indices to remove - sources
    * @param sink second list of indices to remove, merged with the first one
    * @return Reduced matrix lap.
    */
@@ -123,96 +123,32 @@ public class RandomWalkAlgorithm {
     ISparseMatrix cpuL;
     if (lap instanceof IStoredOnGpu) {
       cpuL = ((IStoredOnGpu) lapCoo).toCpu();
+      ((IStoredOnGpu) lapCoo).free();
     } else {
       cpuL = lapCoo;
     }
+    int[] merged = mergeSeeds(source, sink);
+    IMatrix cpuLr = cpuL.removeRows(merged);
 
-    // any 1 at index i in this array stand for index i to remove from Lap
-    // merge two arrays in one because they can point the same row/column
-    int[] toRem = new int[lap.getColNumber()];
-    for (int s = 0; s < source.length; s++) {
-      toRem[source[s]] = 1;
-    }
-    for (int s = 0; s < sink.length; s++) {
-      toRem[sink[s]] = 1;
-    }
+    ISparseMatrix reducedL = (ISparseMatrix) cpuLr.removeCols(merged);
 
-    // iterate over indices lists and mark those to remove by -1
-    int[] colInd = cpuL.getColInd();
-    for (int i = 0; i < colInd.length; i++) {
-      if (toRem[colInd[i]] > 0) {
-        colInd[i] = -1; // to remove
-      }
-    }
-    int[] rowInd = cpuL.getRowInd();
-    for (int i = 0; i < rowInd.length; i++) {
-      if (toRem[rowInd[i]] > 0) {
-        rowInd[i] = -1; // to remove
-      }
-    }
-    // compute number of nonzero elements that remains
-    // find how many col is >=0 - valid cols ...
-    int remainingCol = 0;
-    for (int i = 0; i < colInd.length; i++) {
-      if (colInd[i] >= 0) {
-        remainingCol++;
-      }
-    }
-    // ... and find how many rows is >=0 - valid rows
-    int remainingRow = 0;
-    for (int i = 0; i < rowInd.length; i++) {
-      if (rowInd[i] >= 0) {
-        remainingRow++;
-      }
-    }
-    // take smaller of them because valid value is that that has both indices positive
-    int remaining = Math.min(remainingCol, remainingRow);
-
-    // copy those that are >0 to new array
-    int[] newColInd = new int[remaining];
-    int[] newRowInd = new int[remaining];
-    double[] newVal = new double[remaining];
-
-    int l = 0;
-    for (int i = 0; i < cpuL.getElementNumber(); i++) {
-      if (colInd[i] < 0 || rowInd[i] < 0) {
-        continue;
-      }
-      newColInd[l] = colInd[i];
-      newRowInd[l] = rowInd[i];
-      newVal[l] = cpuL.getVal()[i];
-      l++;
-    }
-    // compress
-    // newColInd contains only valid nonzero elements (without those from deleted rows and
-    // cols) but indexes contain gaps, e.g. if 2nd column was removed newColInd will keep next
-    // column after as third whereas it should be moved to left and become the second
-    // because we assumed square matrix we will go through toRem array and check which indexes were
-    // removed (marked by 1 at index i - removed) and then decrease all indexes larger than those
-    // removed in newColInd/newRowInd by one to shift them
-    // These arrays need to be copied first otherwise next comparison would be wrong
-    int[] newColIndcp = Arrays.copyOf(newColInd, newColInd.length);
-    int[] newRowIndcp = Arrays.copyOf(newRowInd, newRowInd.length);
-
-    for (int i = 0; i < toRem.length; i++) {
-      if (toRem[i] > 0) { // compress all indices larger than i
-        for (int k = 0; k < remaining; k++) { // go through sparse indexes
-          if (newColInd[k] > i) { // if any is larger than that removed (i)
-            newColIndcp[k]--; // reduce it by one, note that we reduce copy
-          }
-          if (newRowInd[k] > i) { // the same for rows
-            newRowIndcp[k]--;
-          }
-        }
-
-      }
-    }
-    // use reduced indexes to build new Sparse array
-    ISparseMatrix reducedL;
-    reducedL = SparseMatrix.sparseMatrixFactory(lap, newRowIndcp, newColIndcp, newVal,
-            SparseMatrixType.MATRIX_FORMAT_COO);
+    timer.stop();
     LOGGER.info("Laplacian reduced in " + timer.toString());
     return reducedL;
+  }
+
+  /**
+   * Merge indexes from source and sink into one array and removes duplicates.
+   * 
+   * @param source indexes (column ordered) of pixels that are source
+   * @param sink indexes (column ordered) of pixels that are sink
+   * @return merged two input arrays without duplicates.
+   */
+  public int[] mergeSeeds(int[] source, int[] sink) {
+    int[] ret = Stream
+            .concat(IntStream.of(source).parallel().boxed(), IntStream.of(sink).parallel().boxed())
+            .distinct().mapToInt(i -> i).toArray();
+    return ret;
   }
 
   /**

@@ -39,4 +39,20 @@ public interface IMatrix {
    */
   public int getElementNumber();
 
+  /**
+   * Remove rows from this matrix.
+   * 
+   * @param rows list of indices, 0-based, can not contain duplicates
+   * @return Matrix without rows.
+   */
+  public IMatrix removeRows(int[] rows);
+
+  /**
+   * Remove cols from this matrix.
+   * 
+   * @param cols list of indices, 0-based, can not contain duplicates
+   * @return Matrix without rows.
+   */
+  public IMatrix removeCols(int[] cols);
+
 }

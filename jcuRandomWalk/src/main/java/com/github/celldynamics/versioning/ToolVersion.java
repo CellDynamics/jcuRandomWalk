@@ -37,17 +37,29 @@ public class ToolVersion {
    * Default line length.
    */
   public static int LINE_WRAP = 80;
+  private String propertyFileName;
+
+  /**
+   * Constructor that links to property file with Maven data.
+   * 
+   * <p>Maven needs to have enabled resources plugin.
+   * 
+   * @param propertyFileName
+   */
+  public ToolVersion(String propertyFileName) {
+    this.propertyFileName = propertyFileName;
+  }
 
   /**
    * Prepare info plate for QuimP.
    * 
    * @param authors
    * @return QuimP version
-   * @see #getFormattedToolVersion(ToolVersionStruct, String[])
+   * @see #getFormattedToolVersion(ToolVersionStruct, String[], String)
    */
   public String getToolversion(String[] authors) {
     ToolVersionStruct quimpBuildInfo = getQuimPBuildInfo();
-    return getFormattedToolVersion(quimpBuildInfo, authors);
+    return getFormattedToolVersion(quimpBuildInfo, authors, propertyFileName);
   }
 
   /**
@@ -62,10 +74,12 @@ public class ToolVersion {
    * 
    * @param toolBuildInfo info read from jar
    * @param authors array of authors
+   * @param propertyFileName name of property file. It should be in correct package
    * @return Formatted string with QuimP version and authors
    * @see #getQuimPBuildInfo()
    */
-  public static String getFormattedToolVersion(ToolVersionStruct toolBuildInfo, String[] authors) {
+  public static String getFormattedToolVersion(ToolVersionStruct toolBuildInfo, String[] authors,
+          String propertyFileName) {
     java.util.function.Function<Object[], String> times = (Object[] a) -> {
       String ch = (String) a[0];
       int i = (int) a[1];
@@ -77,7 +91,7 @@ public class ToolVersion {
     };
     String web = "";
     try {
-      web = new PropertyReader().readProperty("quimpconfig.properties", "webPage");
+      web = new PropertyReader().readProperty(propertyFileName, "webPage");
     } catch (Exception e) {
       ;
     }
@@ -86,31 +100,41 @@ public class ToolVersion {
     if (longest > LINE_WRAP) {
       longest = LINE_WRAP;
     }
-    String infoPlate = "." + times.apply(new Object[] { "-", longest + 2 }) + ".";
+    String infoPlate = "\u2554" + times.apply(new Object[] { "\u2550", longest + 2 }) + "\u2557";
     infoPlate = infoPlate.concat("\n");
-    infoPlate = infoPlate.concat("| " + toolBuildInfo.getName()
-            + times.apply(new Object[] { " ", longest - toolBuildInfo.getName().length() }) + " |");
+    infoPlate = infoPlate.concat("\u2551" + " " + toolBuildInfo.getName()
+            + times.apply(new Object[] { " ", longest - toolBuildInfo.getName().length() }) + " "
+            + "\u2551");
     infoPlate = infoPlate.concat("\n");
-    infoPlate = infoPlate.concat("| " + times.apply(new Object[] { " ", longest - 0 }) + " |");
+    infoPlate = infoPlate.concat(
+            "\u2551" + " " + times.apply(new Object[] { " ", longest - 0 }) + " " + "\u2551");
     infoPlate = infoPlate.concat("\n");
     for (String s : authors) {
-      infoPlate = infoPlate
-              .concat("| " + s + times.apply(new Object[] { " ", longest - s.length() }) + " |");
+      infoPlate = infoPlate.concat("\u2551" + " " + s
+              + times.apply(new Object[] { " ", longest - s.length() }) + " " + "\u2551");
       infoPlate = infoPlate.concat("\n");
     }
     infoPlate = infoPlate
-            .concat("| " + web + times.apply(new Object[] { " ", longest - web.length() }) + " |");
+            .concat("\u255F" + times.apply(new Object[] { "\u2500", longest + 2 }) + "\u2562");
     infoPlate = infoPlate.concat("\n");
-    infoPlate = infoPlate.concat("| Version: " + toolBuildInfo.getVersion()
+
+    infoPlate = infoPlate.concat("\u2551" + " " + web
+            + times.apply(new Object[] { " ", longest - web.length() }) + " " + "\u2551");
+    infoPlate = infoPlate.concat("\n");
+    infoPlate = infoPlate.concat(
+            "\u2551" + " " + times.apply(new Object[] { " ", longest - 0 }) + " " + "\u2551");
+    infoPlate = infoPlate.concat("\n");
+    infoPlate = infoPlate.concat("\u2551" + " " + "Version: " + toolBuildInfo.getVersion()
             + times.apply(new Object[] { " ", longest - toolBuildInfo.getVersion().length() - 9 })
-            + " |");
+            + " " + "\u2551");
     infoPlate = infoPlate.concat("\n");
-    infoPlate = infoPlate.concat("| Build by: " + toolBuildInfo.getBuildstamp()
+    infoPlate = infoPlate.concat("\u2551" + " " + "Build by: " + toolBuildInfo.getBuildstamp()
             + times.apply(
                     new Object[] { " ", longest - toolBuildInfo.getBuildstamp().length() - 10 })
-            + " |");
+            + " " + "\u2551");
     infoPlate = infoPlate.concat("\n");
-    infoPlate = infoPlate.concat("." + times.apply(new Object[] { "-", longest + 2 }) + ".");
+    infoPlate = infoPlate
+            .concat("\u255A" + times.apply(new Object[] { "\u2550", longest + 2 }) + "\u255D");
     return infoPlate;
   }
 
@@ -126,9 +150,9 @@ public class ToolVersion {
       // get internal name - jar name
       String iname = "not_found";
       try {
-        iname = new PropertyReader().readProperty("quimpconfig.properties", "internalName");
+        iname = new PropertyReader().readProperty(propertyFileName, "internalName");
       } catch (Exception e) {
-        ;
+        LOGGER.debug("Property not found: " + e.getMessage());
       }
       while (resources.hasMoreElements()) {
         URL reselement = resources.nextElement();
