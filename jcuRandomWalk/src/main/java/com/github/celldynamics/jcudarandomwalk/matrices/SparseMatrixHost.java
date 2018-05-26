@@ -14,7 +14,7 @@ import org.apache.commons.lang3.NotImplementedException;
  * @author baniu
  *
  */
-public class SparseMatrixHost extends SparseMatrix implements IStoredOnCpu {
+public class SparseMatrixHost extends SparseMatrix {
 
   /**
    * UID
@@ -120,7 +120,7 @@ public class SparseMatrixHost extends SparseMatrix implements IStoredOnCpu {
   }
 
   @Override
-  public ISparseMatrix multiply(ISparseMatrix in) {
+  public IMatrix multiply(IMatrix in) {
     throw new NotImplementedException("this is not supported");
   }
 
@@ -265,6 +265,21 @@ public class SparseMatrixHost extends SparseMatrix implements IStoredOnCpu {
       }
     }
     return newRowIndcp;
+  }
+
+  /*
+   * (non-Javadoc)
+   * 
+   * @see com.github.celldynamics.jcudarandomwalk.matrices.IMatrix#toCpu()
+   */
+  @Override
+  public IMatrix toCpu() {
+    return this;
+  }
+
+  @Override
+  public void free() {
+    // do nothing
   }
 
 }
