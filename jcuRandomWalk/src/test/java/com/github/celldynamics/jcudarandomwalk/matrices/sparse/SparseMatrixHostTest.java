@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import com.github.celldynamics.jcudarandomwalk.matrices.IMatrix;
 import com.github.celldynamics.jcurandomwalk.ArrayTools;
 
+// TODO: Auto-generated Javadoc
 /**
  * Test class for {@link SparseMatrixHost}.
  * 
@@ -120,8 +121,8 @@ public class SparseMatrixHostTest {
   /**
    * Test method for
    * {@link com.github.celldynamics.jcudarandomwalk.matrices.sparse.SparseMatrixHost#toGpu()}.
-   * 
-   * @throws Exception
+   *
+   * @throws Exception the exception
    */
   @Test
   public void testToSparseMatrixDevice() throws Exception {
@@ -140,23 +141,24 @@ public class SparseMatrixHostTest {
 
   /**
    * Test method for
-   * {@link com.github.celldynamics.jcudarandomwalk.matrices.sparse.SparseMatrixHost#removeRows(int[])}.
-   * 
-   * @throws Exception
+   * {@link SparseMatrixHost#removeRows(int[])}.
+   *
+   * @throws Exception the exception
    */
   @Test
   public void testRemoveRows() throws Exception {
     // Laplacian is square, assume diagonal only
-    int[] rI = new int[] { 0, 0, 0, 1, 2, 3, 4, 4, 5 };
-    int[] cI = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
+    int[] ri = new int[] { 0, 0, 0, 1, 2, 3, 4, 4, 5 };
+    int[] ci = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
     double[] v = new double[] { 10, 101, 102, 11, 12, 13, 131, 14, 15 };
-    ISparseMatrix testL = new SparseMatrixHost(rI, cI, v, SparseMatrixType.MATRIX_FORMAT_COO);
+    ISparseMatrix testL = new SparseMatrixHost(ri, ci, v, SparseMatrixType.MATRIX_FORMAT_COO);
     LOGGER.debug("Laplacean" + testL.toString());
 
     // remove row/co 1,2,3
     int[] toRem = new int[] { 1, 3, 4 };
 
     IMatrix ret = testL.removeRows(toRem);
+    ((SparseMatrixHost) ret).compressSparseIndices();
     LOGGER.debug("Reduced" + ret.toString());
     assertThat(ret.getColNumber(), is(4));
     assertThat(ret.getRowNumber(), is(3));
@@ -169,52 +171,54 @@ public class SparseMatrixHostTest {
 
   /**
    * Test method for
-   * {@link com.github.celldynamics.jcudarandomwalk.matrices.sparse.SparseMatrixHost#removeRows(int[])}.
-   * 
-   * @throws Exception
+   * {@link SparseMatrixHost#removeRows(int[])}.
+   *
+   * @throws Exception the exception
    */
   @Test
   public void testRemoveRows_1() throws Exception {
     // Laplacian is square, assume diagonal only
-    int[] rI = new int[] { 0, 0, 0, 1, 2, 3, 4, 4, 5 };
-    int[] cI = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
+    int[] ri = new int[] { 0, 0, 0, 1, 2, 3, 4, 4, 5 };
+    int[] ci = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
     double[] v = new double[] { 10, 101, 102, 11, 12, 13, 131, 14, 15 };
-    ISparseMatrix testL = new SparseMatrixHost(rI, cI, v, SparseMatrixType.MATRIX_FORMAT_COO);
+    ISparseMatrix testL = new SparseMatrixHost(ri, ci, v, SparseMatrixType.MATRIX_FORMAT_COO);
     LOGGER.debug("Laplacean" + testL.toString());
 
     // remove row/co 1,2,3
     int[] toRem = new int[] { 2 };
 
     IMatrix ret = testL.removeRows(toRem);
+    ((SparseMatrixHost) ret).compressSparseIndices();
     LOGGER.debug("Reduced" + ret.toString());
     assertThat(ret.getColNumber(), is(5));
     assertThat(ret.getRowNumber(), is(5));
     assertThat(ret.getElementNumber(), is(8));
     assertThat(Arrays.asList(ret.getVal()),
             contains(new double[] { 10.0, 101.0, 102.0, 11.0, 13.0, 131.0, 14.0, 15.0 }));
-    LOGGER.trace(
+    LOGGER.debug(
             "Red" + ArrayTools.printArray(ArrayTools.array2Object(((ISparseMatrix) ret).full())));
   }
 
   /**
    * Test method for
-   * {@link com.github.celldynamics.jcudarandomwalk.matrices.sparse.SparseMatrixHost#removeCols(int[])}.
-   * 
-   * @throws Exception
+   * {@link SparseMatrixHost#removeCols(int[])}.
+   *
+   * @throws Exception the exception
    */
   @Test
   public void testRemoveCols() throws Exception {
     // Laplacian is square, assume diagonal only
-    int[] rI = new int[] { 0, 0, 0, 1, 2, 3, 4, 4, 5 };
-    int[] cI = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
+    int[] ri = new int[] { 0, 0, 0, 1, 2, 3, 4, 4, 5 };
+    int[] ci = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
     double[] v = new double[] { 10, 101, 102, 11, 12, 13, 131, 14, 15 };
-    ISparseMatrix testL = new SparseMatrixHost(rI, cI, v, SparseMatrixType.MATRIX_FORMAT_COO);
+    ISparseMatrix testL = new SparseMatrixHost(ri, ci, v, SparseMatrixType.MATRIX_FORMAT_COO);
     LOGGER.debug("Laplacean" + testL.toString());
 
     // remove row/co 1,2,3
     int[] toRem = new int[] { 1, 3, 4 };
 
     IMatrix ret = testL.removeCols(toRem);
+    ((SparseMatrixHost) ret).compressSparseIndices();
     LOGGER.debug("Reduced" + ret.toString());
     assertThat(ret.getColNumber(), is(3));
     assertThat(ret.getRowNumber(), is(4));
@@ -227,23 +231,24 @@ public class SparseMatrixHostTest {
 
   /**
    * Test method for
-   * {@link com.github.celldynamics.jcudarandomwalk.matrices.sparse.SparseMatrixHost#removeCols(int[])}.
-   * 
-   * @throws Exception
+   * {@link SparseMatrixHost#removeCols(int[])}.
+   *
+   * @throws Exception the exception
    */
   @Test
   public void testRemoveCols_1() throws Exception {
     // Laplacian is square, assume diagonal only
-    int[] rI = new int[] { 0, 0, 0, 1, 2, 3, 4, 4, 5 };
-    int[] cI = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
+    int[] ri = new int[] { 0, 0, 0, 1, 2, 3, 4, 4, 5 };
+    int[] ci = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
     double[] v = new double[] { 10, 101, 102, 11, 12, 13, 131, 14, 15 };
-    ISparseMatrix testL = new SparseMatrixHost(rI, cI, v, SparseMatrixType.MATRIX_FORMAT_COO);
+    ISparseMatrix testL = new SparseMatrixHost(ri, ci, v, SparseMatrixType.MATRIX_FORMAT_COO);
     LOGGER.debug("Laplacean" + testL.toString());
 
     // remove row/co 1,2,3
     int[] toRem = new int[] { 2 };
 
     IMatrix ret = testL.removeCols(toRem);
+    ((SparseMatrixHost) ret).compressSparseIndices();
     LOGGER.debug("Reduced" + ret.toString());
     assertThat(ret.getColNumber(), is(5));
     assertThat(ret.getRowNumber(), is(5));
@@ -255,14 +260,16 @@ public class SparseMatrixHostTest {
   }
 
   /**
-   * @throws Exception
+   * Test sum along rows.
+   *
+   * @throws Exception the exception
    */
   @Test
   public void testSumAlongRows() throws Exception {
-    int[] rI = new int[] { 0, 0, 0, 1, 2, 3, 4, 4, 5 };
-    int[] cI = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
+    int[] ri = new int[] { 0, 0, 0, 1, 2, 3, 4, 4, 5 };
+    int[] ci = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
     double[] v = new double[] { 10, 101, 102, 11, 12, 13, 131, 14, 15 };
-    ISparseMatrix testL = new SparseMatrixHost(rI, cI, v, SparseMatrixType.MATRIX_FORMAT_COO);
+    ISparseMatrix testL = new SparseMatrixHost(ri, ci, v, SparseMatrixType.MATRIX_FORMAT_COO);
 
     IMatrix ret = testL.sumAlongRows();
     assertThat(Arrays.asList(ret.getVal()),

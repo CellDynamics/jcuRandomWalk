@@ -36,12 +36,15 @@ import ij.ImagePlus;
 import ij.ImageStack;
 import ij.process.StackStatistics;
 
+// TODO: Auto-generated Javadoc
 /**
- * @author p.baniukiewicz
+ * The Class RandomWalkAlgorithmTest.
  *
+ * @author p.baniukiewicz
  */
 public class RandomWalkAlgorithmTest {
 
+  /** The Constant LOGGER. */
   static final Logger LOGGER = LoggerFactory.getLogger(RandomWalkAlgorithmTest.class.getName());
 
   /**
@@ -49,8 +52,11 @@ public class RandomWalkAlgorithmTest {
    */
   static String tmpdir = System.getProperty("java.io.tmpdir") + File.separator;
 
+  /** The folder. */
   @Rule
   public TemporaryFolder folder = new TemporaryFolder();
+
+  /** The mockito rule. */
   @Rule
   public MockitoRule mockitoRule = MockitoJUnit.rule();
 
@@ -65,16 +71,26 @@ public class RandomWalkAlgorithmTest {
     ((ch.qos.logback.classic.Logger) rootLogger).setLevel(Level.DEBUG);
   }
 
+  /** The width. */
   // dimensions of test stack
   private int width = 3;
+
+  /** The height. */
   private int height = 4;
+
+  /** The nz. */
   private int nz = 2;
+
+  /** The stack. */
   private ImageStack stack;
 
+  /** The tdg. */
   private TestDataGenerators tdg;
 
   /**
-   * @throws java.lang.Exception
+   * Sets the up.
+   *
+   * @throws Exception the exception
    */
   @Before
   public void setUp() throws Exception {
@@ -84,7 +100,9 @@ public class RandomWalkAlgorithmTest {
   }
 
   /**
-   * @throws java.lang.Exception
+   * Tear down.
+   *
+   * @throws Exception the exception
    */
   @After
   public void tearDown() throws Exception {
@@ -117,8 +135,8 @@ public class RandomWalkAlgorithmTest {
   /**
    * Test method for
    * {@link com.github.celldynamics.jcurandomwalk.RandomWalkAlgorithm#computeIncidence(boolean)}.
-   * 
-   * @throws Exception
+   *
+   * @throws Exception the exception
    */
   @Test
   public void testComputeIncidence() throws Exception {
@@ -133,10 +151,10 @@ public class RandomWalkAlgorithmTest {
   /**
    * Test of {@link RandomWalkAlgorithm#computeLaplacian()}.
    * 
-   * <p>Compute laplacean for {@link TestDataGenerators#getTestStack(int, int, int, String)} and
+   * <p>Compute laplacian for {@link TestDataGenerators#getTestStack(int, int, int, String)} and
    * mocked weights.
-   * 
-   * @throws Exception
+   *
+   * @throws Exception the exception
    */
   @Test
   public void testComputeLaplacian_1() throws Exception {
@@ -175,14 +193,14 @@ public class RandomWalkAlgorithmTest {
    * {@link com.github.celldynamics.jcurandomwalk.RandomWalkAlgorithm#processStack()}.
    * 
    * <p>Process stack, save it to tmp and check if minmax is in range 0-1
-   * 
-   * @throws Exception
+   *
+   * @throws Exception the exception
    */
   @Test
   public void testProcessStack() throws Exception {
-    ImagePlus test_stack = IJ.openImage("src/test/test_data/Stack_cut.tif");
+    ImagePlus teststack = IJ.openImage("src/test/test_data/Stack_cut.tif");
     RandomWalkOptions options = new RandomWalkOptions();
-    RandomWalkAlgorithm obj = new RandomWalkAlgorithm(test_stack.getImageStack(), options);
+    RandomWalkAlgorithm obj = new RandomWalkAlgorithm(teststack.getImageStack(), options);
     obj.processStack();
     IJ.saveAsTiff(new ImagePlus("", obj.stack), tmpdir + "testProcessStack.tiff");
     StackStatistics st = new StackStatistics(new ImagePlus("", obj.stack));
@@ -192,11 +210,11 @@ public class RandomWalkAlgorithmTest {
 
   /**
    * Test method for
-   * {@link com.github.celldynamics.jcurandomwalk.RandomWalkAlgorithm#getSourceIndices(ij.ImageStack)}.
+   * {@link RandomWalkAlgorithm#getSourceIndices(ij.ImageStack)}.
    * 
    * <p>Output indexes are column-ordered
-   * 
-   * @throws Exception
+   *
+   * @throws Exception the exception
    */
   @Test
   public void testGetSourceIndices() throws Exception {
@@ -208,17 +226,17 @@ public class RandomWalkAlgorithmTest {
 
   /**
    * Test method for
-   * {@link com.github.celldynamics.jcurandomwalk.RandomWalkAlgorithm#computeReducedLaplacian(com.github.celldynamics.jcudarandomwalk.matrices.sparse.ISparseMatrix, int[], int[])}.
-   * 
-   * @throws Exception
+   * {@link RandomWalkAlgorithm#computeReducedLaplacian(com.github.celldynamics.jcudarandomwalk.matrices.sparse.ISparseMatrix, int[], int[])}.
+   *
+   * @throws Exception the exception
    */
   @Test
   public void testComputeReducedLaplacian() throws Exception {
     // Laplacian is square, assume diagonal only
-    int[] rI = new int[] { 0, 0, 0, 1, 2, 3, 4, 4, 5 };
-    int[] cI = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
+    int[] ri = new int[] { 0, 0, 0, 1, 2, 3, 4, 4, 5 };
+    int[] ci = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
     double[] v = new double[] { 10, 101, 102, 11, 12, 13, 131, 14, 15 };
-    ISparseMatrix testL = new SparseMatrixHost(rI, cI, v, SparseMatrixType.MATRIX_FORMAT_COO);
+    ISparseMatrix testL = new SparseMatrixHost(ri, ci, v, SparseMatrixType.MATRIX_FORMAT_COO);
     LOGGER.debug("Laplacean" + testL.toString());
     RandomWalkAlgorithm obj = new RandomWalkAlgorithm();
 
@@ -226,7 +244,8 @@ public class RandomWalkAlgorithmTest {
     int[] source = new int[] { 1, 3 };
     int[] sink = new int[] { 1, 2 };
 
-    ISparseMatrix ret = obj.computeReducedLaplacian(testL, source, sink).convert2coo();
+    obj.computeReducedLaplacian(testL, source, sink);
+    ISparseMatrix ret = obj.reducedLap.convert2coo();
     LOGGER.debug("Reduced" + ret.toString());
     assertThat(ret.getColNumber(), is(3));
     assertThat(ret.getRowNumber(), is(3));
@@ -239,8 +258,8 @@ public class RandomWalkAlgorithmTest {
   /**
    * Test method for
    * {@link com.github.celldynamics.jcurandomwalk.RandomWalkAlgorithm#mergeSeeds(int[], int[])}.
-   * 
-   * @throws Exception
+   *
+   * @throws Exception the exception
    */
   @Test
   public void testMergeSeeds() throws Exception {
@@ -252,15 +271,20 @@ public class RandomWalkAlgorithmTest {
 
   }
 
+  /**
+   * Test compute B.
+   *
+   * @throws Exception the exception
+   */
   @Test
   public void testComputeB() throws Exception {
     RandomWalkAlgorithm obj = new RandomWalkAlgorithm();
-    int[] rI = new int[] { 0, 0, 0, 1, 2, 3, 4, 4, 5 };
-    int[] cI = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
+    int[] ri = new int[] { 0, 0, 0, 1, 2, 3, 4, 4, 5 };
+    int[] ci = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
     double[] v = new double[] { 10, 101, 102, 11, 12, 13, 131, 14, 15 };
-    ISparseMatrix testL = new SparseMatrixHost(rI, cI, v, SparseMatrixType.MATRIX_FORMAT_COO);
+    ISparseMatrix testL = new SparseMatrixHost(ri, ci, v, SparseMatrixType.MATRIX_FORMAT_COO);
     IMatrix ret = obj.computeB(testL, new int[] { 0, 1 });
-    assertThat(Arrays.asList(ret.getVal()), contains(new double[] { -110.0, -11.0, -131.0 }));
+    assertThat(Arrays.asList(ret.getVal()), contains(new double[] { -111.0, -11.0, -131.0 }));
   }
 
 }

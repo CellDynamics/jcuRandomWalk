@@ -6,6 +6,7 @@ import static jcuda.runtime.JCuda.cudaMemcpy;
 import static jcuda.runtime.cudaMemcpyKind.cudaMemcpyDeviceToHost;
 import static jcuda.runtime.cudaMemcpyKind.cudaMemcpyHostToDevice;
 
+import com.github.celldynamics.jcudarandomwalk.matrices.ICudaLibHandles;
 import com.github.celldynamics.jcudarandomwalk.matrices.IMatrix;
 
 import jcuda.Pointer;
@@ -17,7 +18,7 @@ import jcuda.Sizeof;
  * @author baniu
  *
  */
-public class DenseVectorDevice extends DenseVector {
+public class DenseVectorDevice extends DenseVector implements ICudaLibHandles {
 
   /**
    * Default UID.
@@ -78,7 +79,7 @@ public class DenseVectorDevice extends DenseVector {
    */
   @Override
   public void free() {
-    // TODO protect against freeing already fried
+    // TODO protect against freeing already freed
     cudaFree(valPtr);
   }
 }

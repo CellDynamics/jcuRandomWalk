@@ -12,9 +12,14 @@ import org.apache.commons.lang3.time.StopWatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.github.celldynamics.jcudarandomwalk.matrices.ICudaLibHandles;
 import com.github.celldynamics.jcudarandomwalk.matrices.IMatrix;
+import com.github.celldynamics.jcudarandomwalk.matrices.dense.DenseVector;
+import com.github.celldynamics.jcudarandomwalk.matrices.dense.DenseVectorHost;
+import com.github.celldynamics.jcudarandomwalk.matrices.dense.IDenseVector;
 import com.github.celldynamics.jcudarandomwalk.matrices.sparse.ISparseMatrix;
 import com.github.celldynamics.jcudarandomwalk.matrices.sparse.SparseMatrixDevice;
+import com.github.celldynamics.jcudarandomwalk.matrices.sparse.SparseMatrixHost;
 
 import ij.ImagePlus;
 import ij.ImageStack;
@@ -37,6 +42,8 @@ public class RandomWalkAlgorithm {
   ImageStack stack;
   IncidenceMatrixGenerator img;
   RandomWalkOptions options;
+  ISparseMatrix reducedLap; // reduced laplacian
+  IDenseVector b; // right vector
 
   RandomWalkAlgorithm() {
 
@@ -111,35 +118,42 @@ public class RandomWalkAlgorithm {
   }
 
   /**
-   * This method remove rows and columns from source and sink arrays from Laplacian lap.
+   * This method remove rows and columns defined in source and sink arrays from Laplacian lap and
+   * computed B vector.
    * 
    * <p>Laplacian must be square. Indexes from source and sink are merged first to deal with
    * duplicates. There is no special checking implemented so largest index from sink and source
    * should be < length(lap)
    * 
+   * <p>Source and sink can be swapped to get background oriented segmentation. B vector is computed
+   * always from source.
+   * 
    * @param lap square matrix where columns are rows are removed from
    * @param source list of indices to remove - sources
    * @param sink second list of indices to remove, merged with the first one
-   * @return Reduced matrix lap.
    */
-  public ISparseMatrix computeReducedLaplacian(ISparseMatrix lap, int[] source, int[] sink) {
+  public void computeReducedLaplacian(ISparseMatrix lap, int[] source, int[] sink) {
     if (lap.getColNumber() != lap.getRowNumber()) {
       throw new IllegalArgumentException("Matrix should be square");
     }
     StopWatch timer = new StopWatch();
     timer.start();
-    ISparseMatrix lapCoo = lap.convert2coo();
-    ISparseMatrix cpuL;
-    cpuL = (ISparseMatrix) lapCoo.toCpu();
-    lapCoo.free();
+    // ISparseMatrix lapCoo = lap.convert2coo();
+    // ISparseMatrix cpuL;
+    // cpuL = (ISparseMatrix) lapCoo.toCpu();
+    // lapCoo.free();
     int[] merged = mergeSeeds(source, sink);
-    IMatrix cpuLr = cpuL.removeRows(merged);
+    IMatrix lapRowsRem = lap.removeRows(merged);
 
-    ISparseMatrix reducedL = (ISparseMatrix) cpuLr.removeCols(merged);
-
+    this.b = computeB(lapRowsRem, source);
+    ISparseMatrix reducedL = (ISparseMatrix) lapRowsRem.removeCols(merged);
+    if (reducedL instanceof SparseMatrixHost) {
+      ((SparseMatrixHost) reducedL).compressSparseIndices();
+    }
+    lapRowsRem.free();
     timer.stop();
     LOGGER.info("Laplacian reduced in " + timer.toString());
-    return reducedL;
+    this.reducedLap = reducedL;
   }
 
   /**
@@ -149,9 +163,11 @@ public class RandomWalkAlgorithm {
    * @param indexes indexes of either source or sink
    * @return B vector
    */
-  public IMatrix computeB(ISparseMatrix lap, int[] indexes) {
+  IDenseVector computeB(IMatrix lap, int[] indexes) {
+    StopWatch timer = StopWatch.createStarted();
     if (lap instanceof SparseMatrixDevice) {
       // on gpu it could be completely different
+      timer.stop();
       throw new NotImplementedException("not implemented");
     } else {
       List<Integer> ilist = Arrays.asList(ArrayUtils.toObject(indexes));
@@ -159,11 +175,18 @@ public class RandomWalkAlgorithm {
       int[] colsRemove =
               IntStream.range(0, lap.getColNumber()).filter(x -> !ilist.contains(x)).toArray();
       IMatrix tmp = lap.removeCols(colsRemove);
+      if (tmp instanceof SparseMatrixHost) {
+        ((SparseMatrixHost) tmp).compressSparseIndices();
+      }
       ISparseMatrix ret = (ISparseMatrix) tmp.sumAlongRows();
       for (int i = 0; i < ret.getVal().length; i++) {
         ret.getVal()[i] *= -1;
       }
-      return ret;
+      IDenseVector dwret = DenseVector.denseVectorFactory(new DenseVectorHost(), ret.getRowNumber(),
+              1, ret.getVal());
+      timer.stop();
+      LOGGER.info("B computed in " + timer.toString());
+      return dwret;
     }
   }
 
@@ -178,6 +201,7 @@ public class RandomWalkAlgorithm {
     int[] ret = Stream
             .concat(IntStream.of(source).parallel().boxed(), IntStream.of(sink).parallel().boxed())
             .distinct().mapToInt(i -> i).toArray();
+    Arrays.sort(ret);
     return ret;
   }
 
@@ -262,7 +286,7 @@ public class RandomWalkAlgorithm {
   public static void initilizeGpu() {
     JCusparse.setExceptionsEnabled(true);
     JCuda.setExceptionsEnabled(true);
-    JCusparse.cusparseCreate(SparseMatrixDevice.handle);
+    JCusparse.cusparseCreate(ICudaLibHandles.handle);
   }
 
   /**
@@ -271,6 +295,6 @@ public class RandomWalkAlgorithm {
   public static void finish() {
     JCusparse.setExceptionsEnabled(false);
     JCuda.setExceptionsEnabled(false);
-    JCusparse.cusparseDestroy(SparseMatrixDevice.handle);
+    JCusparse.cusparseDestroy(ICudaLibHandles.handle);
   }
 }

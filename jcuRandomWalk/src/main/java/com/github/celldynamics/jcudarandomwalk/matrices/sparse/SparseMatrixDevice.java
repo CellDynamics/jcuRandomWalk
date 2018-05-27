@@ -21,11 +21,11 @@ import static jcuda.runtime.cudaMemcpyKind.cudaMemcpyHostToDevice;
 
 import org.apache.commons.lang3.NotImplementedException;
 
+import com.github.celldynamics.jcudarandomwalk.matrices.ICudaLibHandles;
 import com.github.celldynamics.jcudarandomwalk.matrices.IMatrix;
 
 import jcuda.Pointer;
 import jcuda.Sizeof;
-import jcuda.jcusparse.cusparseHandle;
 import jcuda.jcusparse.cusparseMatDescr;
 import jcuda.runtime.JCuda;
 
@@ -35,19 +35,13 @@ import jcuda.runtime.JCuda;
  * @author p.baniukiewicz
  *
  */
-public class SparseMatrixDevice extends SparseMatrix {
+public class SparseMatrixDevice extends SparseMatrix implements ICudaLibHandles {
 
   /**
    * Default UID.
    */
   private static final long serialVersionUID = 2760825038592785223L;
-  /**
-   * Handle to cusparse driver.
-   * 
-   * <p>It must be created before use: <tt>JCusparse.cusparseCreate(SparseMatrixDevice.handle);</tt>
-   * and then destroyed: <tt>JCusparse.cusparseDestroy(SparseMatrixDevice.handle);</tt>
-   */
-  public static cusparseHandle handle = new cusparseHandle();
+
   private cusparseMatDescr descr = new cusparseMatDescr();
   private Pointer rowIndPtr = new Pointer();
   private Pointer colIndPtr = new Pointer();

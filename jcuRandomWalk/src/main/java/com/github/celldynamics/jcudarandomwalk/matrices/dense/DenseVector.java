@@ -150,7 +150,7 @@ public abstract class DenseVector implements IDenseVector, Serializable {
     Class<?>[] carg = new Class[3]; // Our constructor has 3 arguments
     carg[0] = int.class;
     carg[1] = int.class;
-    carg[2] = double.class;
+    carg[2] = double[].class;
     try {
       return (IDenseVector) classToLoad.getDeclaredConstructor(carg).newInstance(rows, cols, val);
     } catch (InstantiationException | IllegalAccessException | IllegalArgumentException
