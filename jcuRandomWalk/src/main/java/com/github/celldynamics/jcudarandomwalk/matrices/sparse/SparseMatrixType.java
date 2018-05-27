@@ -1,4 +1,4 @@
-package com.github.celldynamics.jcudarandomwalk.matrices;
+package com.github.celldynamics.jcudarandomwalk.matrices.sparse;
 
 /**
  * Type of sparse matrix according to https://docs.nvidia.com/cuda/pdf/CUSPARSE_Library.pdf
@@ -7,5 +7,12 @@ package com.github.celldynamics.jcudarandomwalk.matrices;
  *
  */
 public enum SparseMatrixType {
-  MATRIX_FORMAT_COO, MATRIX_FORMAT_CSR
+  /**
+   * COO format.
+   */
+  MATRIX_FORMAT_COO,
+  /**
+   * CSR format.
+   */
+  MATRIX_FORMAT_CSR
 }

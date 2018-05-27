@@ -1,4 +1,4 @@
-package com.github.celldynamics.jcudarandomwalk.matrices;
+package com.github.celldynamics.jcudarandomwalk.matrices.sparse;
 
 import java.security.InvalidParameterException;
 import java.util.Arrays;
@@ -7,6 +7,8 @@ import java.util.stream.IntStream;
 
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.NotImplementedException;
+
+import com.github.celldynamics.jcudarandomwalk.matrices.IMatrix;
 
 /**
  * Structure for holding coordinates for sparse matrices.
@@ -20,10 +22,10 @@ import org.apache.commons.lang3.NotImplementedException;
 public class SparseMatrixHost extends SparseMatrix {
 
   /**
-   * UID
+   * Default UID.
    */
   private static final long serialVersionUID = -2934384684498319094L;
-  private int i = 0; // counter
+  private int counter = 0; // counter
 
   /**
    * Create empty matrix of size 0.
@@ -66,7 +68,7 @@ public class SparseMatrixHost extends SparseMatrix {
         this.colInd = colInd;
         this.val = val;
         this.nnz = rowInd.length;
-        this.i = this.nnz; // to block adding
+        this.counter = this.nnz; // to block adding
         break;
       default:
         throw new NotImplementedException("This format is not implemented yet");
@@ -78,18 +80,17 @@ public class SparseMatrixHost extends SparseMatrix {
    * Add entry (coordinates and value) to store. Matrix is created in CCO format.
    * 
    * <p>This method does not update {@link #getRowNumber()} or {@link #getColNumber()}. The
-   * {@link #updateDimension()} must be called explicitelly and the end.
+   * {@link #updateDimension()} must be called explicitly and the end.
    * 
    * @param r row coordinate
    * @param c column coordinate
    * @param v value stored under [r,c]
-   * @throws ArrayIndexOutOfBoundsException
    */
   public void add(int r, int c, double v) {
-    rowInd[i] = r;
-    colInd[i] = c;
-    val[i] = v;
-    i++;
+    rowInd[counter] = r;
+    colInd[counter] = c;
+    val[counter] = v;
+    counter++;
   }
 
   @Override
@@ -247,6 +248,8 @@ public class SparseMatrixHost extends SparseMatrix {
     int[] newColIndcp = compressIndices(toRem, remainingCol, newColInd);
 
     // now compress also rows that can be empty
+    // TODO Check conversion to set first:
+    // https://stackoverflow.com/questions/36246998/stream-filter-of-1-list-based-on-another-list
     List<Integer> ilist = Arrays.asList(ArrayUtils.toObject(newRowInd));
     // will contain 1 at index to remove
     int[] toRemRow = new int[newRowInd.length];
@@ -265,9 +268,11 @@ public class SparseMatrixHost extends SparseMatrix {
   }
 
   /**
-   * @param toRem
-   * @param remainingRow
-   * @param newRowInd
+   * Compress sparse indices, removing gaps.
+   * 
+   * @param toRem array with "1" at positions to be removed.
+   * @param remainingRow size of array of indices to be prossed
+   * @param newRowInd array to be processed
    * @return Array with compressed indices
    */
   private int[] compressIndices(int[] toRem, int remainingRow, int[] newRowInd) {
@@ -327,11 +332,11 @@ public class SparseMatrixHost extends SparseMatrix {
     for (int i = 0; i < ri.length; i++) { // along all row indices
       ret[ri[i]] += v[i]; // sum all elements from the same row
     }
-    int[] ci_ret = new int[ret.length];
-    int[] ri_ret = IntStream.range(0, ret.length).toArray();
-    Arrays.fill(ci_ret, 0);
+    int[] ciret = new int[ret.length];
+    int[] riret = IntStream.range(0, ret.length).toArray();
+    Arrays.fill(ciret, 0);
 
-    return SparseMatrix.sparseMatrixFactory(this, ri_ret, ci_ret, ret,
+    return SparseMatrix.sparseMatrixFactory(this, riret, ciret, ret,
             SparseMatrixType.MATRIX_FORMAT_COO);
   }
 

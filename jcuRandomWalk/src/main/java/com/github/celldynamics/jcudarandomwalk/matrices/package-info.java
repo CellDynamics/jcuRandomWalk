@@ -1,4 +1,6 @@
 /**
+ * General interfaces for matrices.
+ * 
  * @author baniu
  *
  */

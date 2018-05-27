@@ -11,8 +11,8 @@ import org.apache.commons.lang3.time.StopWatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.github.celldynamics.jcudarandomwalk.matrices.ISparseMatrix;
-import com.github.celldynamics.jcudarandomwalk.matrices.SparseMatrixHost;
+import com.github.celldynamics.jcudarandomwalk.matrices.sparse.ISparseMatrix;
+import com.github.celldynamics.jcudarandomwalk.matrices.sparse.SparseMatrixHost;
 
 import ij.ImageStack;
 
@@ -43,12 +43,12 @@ public class IncidenceMatrixGenerator implements Serializable {
   final double sigmaMean = 1e6;
   final double meanSource = 0.6;
 
-  transient private ImageStack stack; // original image for segmentation
+  private transient ImageStack stack; // original image for segmentation
   private int nrows; // number of rows of stack
   private int ncols; // number of columns of stack
   private int nz; // number of slices of the stack
   private SparseMatrixHost incidence; // incidence matrix coords
-  transient private SparseMatrixHost weights; // weights coords, depends on stack, not serialised
+  private transient SparseMatrixHost weights; // weights coords, depends on stack, not serialised
   private int[] sink; // indexes of pixel on bounding box
 
   // this array stores coordinates of pixels used for computing weights. The order is:
@@ -91,8 +91,8 @@ public class IncidenceMatrixGenerator implements Serializable {
   public void assignStack(ImageStack stack) {
     if (this.stack.getWidth() != stack.getWidth() || this.stack.getHeight() != stack.getHeight()
             || this.stack.getSize() != stack.getSize()) {
-      throw new IllegalArgumentException(
-              "Geometry of this stack is different than that used for incidence matrix generation.");
+      throw new IllegalArgumentException("Geometry of this stack is different than that used "
+              + "for incidence matrix generation.");
     }
     this.stack = stack;
     recomputeWeights();
@@ -132,13 +132,13 @@ public class IncidenceMatrixGenerator implements Serializable {
   /**
    * Compute incidence matrix and fills this object.
    * 
-   * Pixels in stack are numbered along columns:
+   * <p>Pixels in stack are numbered along columns:
    * 0 3
    * 1 4
    * 2 5...
    * 
-   * Order of edges in incidence matrix and weight matrix is: Right, Lower, Bottom, where:
-   * <oi>
+   * <p>Order of edges in incidence matrix and weight matrix is: Right, Lower, Bottom, where:
+   * <ol>
    * <li>Right is pixel on right to current one: (x0+1,y0,z0)
    * <li>Lower is pixel below current one on the same slice: (x0, y0+1,z0)
    * <li>Bottom is pixel on next layer: (x0,y0,z0+1)
@@ -287,27 +287,27 @@ public class IncidenceMatrixGenerator implements Serializable {
    * @param stack 3D stack (one slice for 2d)
    * @param p1 first point [row col z] (y,x,z)
    * @param p2 second point [row col z] (y,x,z)
-   * @param sigmaGrad
-   * @param sigmaMean
-   * @param meanSource
+   * @param sigmaGrad sigma gradient parameter
+   * @param sigmaMean mean
+   * @param meanSource mean of source
    * @return weight between p1 and p2
    */
   double computeWeight(ImageStack stack, int[] p1, int[] p2, double sigmaGrad, double sigmaMean,
           double meanSource) {
     //!>
     double sqDiff1 = Math.pow(
-            stack.getVoxel(p1[1], p1[0], p1[2]) -
-            stack.getVoxel(p2[1], p2[0], p2[2]),
+            stack.getVoxel(p1[1], p1[0], p1[2])
+            - stack.getVoxel(p2[1], p2[0], p2[2]),
             2);
     double sqDiff2 = Math.pow(
-            stack.getVoxel(p1[1], p1[0], p1[2]) -
-            meanSource,
+            stack.getVoxel(p1[1], p1[0], p1[2])
+            - meanSource,
             2);
-    double sigmaGrad2 = sigmaGrad*sigmaGrad;
-    double sigmaMean2 = sigmaMean*sigmaMean;
+    double sigmaGrad2 = sigmaGrad * sigmaGrad;
+    double sigmaMean2 = sigmaMean * sigmaMean;
     double ret = Math.exp(
-            -0.5 * sqDiff1 / sigmaGrad2 - 
-            0.5 * sqDiff2 / sigmaMean2);
+            -0.5 * sqDiff1 / sigmaGrad2
+            - 0.5 * sqDiff2 / sigmaMean2);
     return ret;
     //!<
   }
@@ -359,7 +359,7 @@ public class IncidenceMatrixGenerator implements Serializable {
   /**
    * Retrieve weights coordinates from the object.
    * 
-   * <p>Weight matrix is square of size IncidenceMatrixGenerator.getEdgesNumber(height, width,
+   * <p>Weight matrix is square of size <tt>IncidenceMatrixGenerator.getEdgesNumber(height, width,
    * nz)</tt>
    * 
    * @return the weights
@@ -407,10 +407,10 @@ public class IncidenceMatrixGenerator implements Serializable {
   }
 
   /**
-   * Serialize this object
+   * Serialize this object.
    * 
    * @param filename name of the file
-   * @throws IOException
+   * @throws IOException on problem with saving
    */
   public void saveObject(String filename) throws IOException {
     FileOutputStream file = new FileOutputStream(filename);
@@ -429,10 +429,12 @@ public class IncidenceMatrixGenerator implements Serializable {
    * @param filename name of the file
    * @param stack stack of the same size as that used for constructing the object.
    * @return Instance of loaded object
-   * @throws Exception
+   * @throws IOException when file can not be read or deserialised
+   * @throws ClassNotFoundException when file can not be read or
+   *         deserialised
    */
   public static IncidenceMatrixGenerator restoreObject(String filename, ImageStack stack)
-          throws Exception {
+          throws IOException, ClassNotFoundException {
     FileInputStream file = new FileInputStream(filename);
     ObjectInputStream in = new ObjectInputStream(file);
     try {
@@ -444,13 +446,12 @@ public class IncidenceMatrixGenerator implements Serializable {
       timer.stop();
       LOGGER.info("Incidence matrix restored from " + filename + " in " + timer.toString());
       return ret;
-    } catch (Exception e) {
+    } catch (IOException | ClassNotFoundException e) {
       throw e;
     } finally {
       in.close();
       file.close();
     }
-
   }
 
   /**

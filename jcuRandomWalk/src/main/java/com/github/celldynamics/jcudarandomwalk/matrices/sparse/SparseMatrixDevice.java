@@ -1,4 +1,4 @@
-package com.github.celldynamics.jcudarandomwalk.matrices;
+package com.github.celldynamics.jcudarandomwalk.matrices.sparse;
 
 import static jcuda.jcusparse.JCusparse.cusparseCreateMatDescr;
 import static jcuda.jcusparse.JCusparse.cusparseDcsr2csc;
@@ -21,6 +21,8 @@ import static jcuda.runtime.cudaMemcpyKind.cudaMemcpyHostToDevice;
 
 import org.apache.commons.lang3.NotImplementedException;
 
+import com.github.celldynamics.jcudarandomwalk.matrices.IMatrix;
+
 import jcuda.Pointer;
 import jcuda.Sizeof;
 import jcuda.jcusparse.cusparseHandle;
@@ -36,13 +38,13 @@ import jcuda.runtime.JCuda;
 public class SparseMatrixDevice extends SparseMatrix {
 
   /**
-   * UID.
+   * Default UID.
    */
   private static final long serialVersionUID = 2760825038592785223L;
   /**
    * Handle to cusparse driver.
    * 
-   * It must be created before use: <tt>JCusparse.cusparseCreate(SparseMatrixDevice.handle);</tt>
+   * <p>It must be created before use: <tt>JCusparse.cusparseCreate(SparseMatrixDevice.handle);</tt>
    * and then destroyed: <tt>JCusparse.cusparseDestroy(SparseMatrixDevice.handle);</tt>
    */
   public static cusparseHandle handle = new cusparseHandle();
@@ -196,6 +198,8 @@ public class SparseMatrixDevice extends SparseMatrix {
   }
 
   /**
+   * Return cuSparse descriptor.
+   * 
    * @return the descr
    */
   public cusparseMatDescr getDescr() {
@@ -203,6 +207,8 @@ public class SparseMatrixDevice extends SparseMatrix {
   }
 
   /**
+   * Return rows indices pointer.
+   * 
    * @return the rowIndPtr
    */
   public Pointer getRowIndPtr() {
@@ -210,6 +216,8 @@ public class SparseMatrixDevice extends SparseMatrix {
   }
 
   /**
+   * Return columns indices pointer.
+   * 
    * @return the colIndPtr
    */
   public Pointer getColIndPtr() {
@@ -217,6 +225,8 @@ public class SparseMatrixDevice extends SparseMatrix {
   }
 
   /**
+   * Return pointer to values.
+   * 
    * @return the valPtr
    */
   public Pointer getValPtr() {
@@ -292,10 +302,6 @@ public class SparseMatrixDevice extends SparseMatrix {
     m2 = (SparseMatrixDevice) in.toGpu();
 
     int m = this.getRowNumber();
-    int n = m2.getColNumber();
-    int k = this.getColNumber();
-    int[] nnzOut = new int[1];
-    int n_t = CUSPARSE_OPERATION_NON_TRANSPOSE;
 
     cusparseMatDescr descrOut = new cusparseMatDescr();
     cusparseCreateMatDescr(descrOut);
@@ -304,18 +310,22 @@ public class SparseMatrixDevice extends SparseMatrix {
 
     Pointer nnzOutPtr = new Pointer();
     Pointer rowIndOutPtr = new Pointer();
-    Pointer colIndOutPtr = new Pointer();
-    Pointer valOutPtr = new Pointer();
+    int nt = CUSPARSE_OPERATION_NON_TRANSPOSE;
+    int n = m2.getColNumber();
+    int k = this.getColNumber();
+    int[] nnzOut = new int[1];
     cudaMalloc(nnzOutPtr, Sizeof.INT);
     cudaMalloc(rowIndOutPtr, (m + 1) * Sizeof.INT);
-    cusparseXcsrgemmNnz(handle, n_t, n_t, m, n, k, this.getDescr(), this.getElementNumber(),
+    cusparseXcsrgemmNnz(handle, nt, nt, m, n, k, this.getDescr(), this.getElementNumber(),
             this.getRowIndPtr(), this.getColIndPtr(), m2.getDescr(), m2.getElementNumber(),
             m2.getRowIndPtr(), m2.getColIndPtr(), descrOut, rowIndOutPtr, nnzOutPtr);
     JCuda.cudaDeviceSynchronize();
+    Pointer colIndOutPtr = new Pointer();
+    Pointer valOutPtr = new Pointer();
     cudaMemcpy(Pointer.to(nnzOut), nnzOutPtr, Sizeof.INT, cudaMemcpyDeviceToHost);
     cudaMalloc(colIndOutPtr, nnzOut[0] * Sizeof.INT);
     cudaMalloc(valOutPtr, nnzOut[0] * Sizeof.DOUBLE);
-    cusparseDcsrgemm(handle, n_t, n_t, m, n, k, this.getDescr(), this.getElementNumber(),
+    cusparseDcsrgemm(handle, nt, nt, m, n, k, this.getDescr(), this.getElementNumber(),
             this.getValPtr(), this.getRowIndPtr(), this.getColIndPtr(), m2.getDescr(),
             m2.getElementNumber(), m2.getValPtr(), m2.getRowIndPtr(), m2.getColIndPtr(), descrOut,
             valOutPtr, rowIndOutPtr, colIndOutPtr);
@@ -324,13 +334,10 @@ public class SparseMatrixDevice extends SparseMatrix {
             SparseMatrixType.MATRIX_FORMAT_CSR);
   }
 
-  /**
-   * Create copy of this matrix on Host.
+  /*
+   * (non-Javadoc)
    * 
-   * <p>Note that this is shallow copy. You may wish to call {@link #retrieveFromDevice()} before.
-   * 
-   * @return reference to host matrix
-   * @see #retrieveFromDevice()
+   * @see com.github.celldynamics.jcudarandomwalk.matrices.IMatrix#toCpu()
    */
   @Override
   public ISparseMatrix toCpu() {

@@ -1,4 +1,4 @@
-package com.github.celldynamics.jcudarandomwalk.matrices;
+package com.github.celldynamics.jcudarandomwalk.matrices.sparse;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -12,6 +12,7 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.github.celldynamics.jcudarandomwalk.matrices.IMatrix;
 import com.github.celldynamics.jcurandomwalk.ArrayTools;
 
 /**
@@ -118,7 +119,7 @@ public class SparseMatrixHostTest {
 
   /**
    * Test method for
-   * {@link com.github.celldynamics.jcudarandomwalk.matrices.SparseMatrixHost#toGpu()}.
+   * {@link com.github.celldynamics.jcudarandomwalk.matrices.sparse.SparseMatrixHost#toGpu()}.
    * 
    * @throws Exception
    */
@@ -139,7 +140,7 @@ public class SparseMatrixHostTest {
 
   /**
    * Test method for
-   * {@link com.github.celldynamics.jcudarandomwalk.matrices.SparseMatrixHost#removeRows(int[])}.
+   * {@link com.github.celldynamics.jcudarandomwalk.matrices.sparse.SparseMatrixHost#removeRows(int[])}.
    * 
    * @throws Exception
    */
@@ -168,7 +169,7 @@ public class SparseMatrixHostTest {
 
   /**
    * Test method for
-   * {@link com.github.celldynamics.jcudarandomwalk.matrices.SparseMatrixHost#removeRows(int[])}.
+   * {@link com.github.celldynamics.jcudarandomwalk.matrices.sparse.SparseMatrixHost#removeRows(int[])}.
    * 
    * @throws Exception
    */
@@ -197,7 +198,7 @@ public class SparseMatrixHostTest {
 
   /**
    * Test method for
-   * {@link com.github.celldynamics.jcudarandomwalk.matrices.SparseMatrixHost#removeCols(int[])}.
+   * {@link com.github.celldynamics.jcudarandomwalk.matrices.sparse.SparseMatrixHost#removeCols(int[])}.
    * 
    * @throws Exception
    */
@@ -226,7 +227,7 @@ public class SparseMatrixHostTest {
 
   /**
    * Test method for
-   * {@link com.github.celldynamics.jcudarandomwalk.matrices.SparseMatrixHost#removeCols(int[])}.
+   * {@link com.github.celldynamics.jcudarandomwalk.matrices.sparse.SparseMatrixHost#removeCols(int[])}.
    * 
    * @throws Exception
    */

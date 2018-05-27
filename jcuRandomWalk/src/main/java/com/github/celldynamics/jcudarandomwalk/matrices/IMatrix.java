@@ -3,9 +3,6 @@ package com.github.celldynamics.jcudarandomwalk.matrices;
 /**
  * Base Interface representing general matrix.
  * 
- * <p>Depending on device, class implementing this interface should implement also either
- * {@link IStoredOnCpu} or {@link IStoredOnGpu}.
- * 
  * @author p.baniukiewicz
  *
  */
@@ -80,9 +77,7 @@ public interface IMatrix {
   public IMatrix toGpu();
 
   /**
-   * Retrieve from GPU. Rethurn this if matrix is already on cpu.
-   * 
-   * TODO add parameter and use SparseMatrix.sparseMatrixFactory() to generate in required format
+   * Retrieve from GPU. Return this if matrix is already on cpu.
    * 
    * @return CPU version.
    */
@@ -94,7 +89,7 @@ public interface IMatrix {
   public void free();
 
   /**
-   * Compute sum along rows.
+   * Compute sum along rows. For Vectors it will be sum of all elements.
    * 
    * @return Vector of size Rx1
    */

@@ -1,4 +1,4 @@
-package com.github.celldynamics.jcudarandomwalk.matrices;
+package com.github.celldynamics.jcudarandomwalk.matrices.sparse;
 
 import java.io.Serializable;
 import java.lang.reflect.InvocationTargetException;
@@ -17,7 +17,7 @@ import org.slf4j.LoggerFactory;
  */
 public abstract class SparseMatrix implements ISparseMatrix, Serializable {
   /**
-   * UID
+   * Default UID.
    */
   private static final long serialVersionUID = 6351642336769639014L;
 
@@ -129,7 +129,7 @@ public abstract class SparseMatrix implements ISparseMatrix, Serializable {
   /*
    * (non-Javadoc)
    * 
-   * @see com.github.celldynamics.jcudarandomwalk.matrices.ISparseMatrix#full()
+   * @see com.github.celldynamics.jcudarandomwalk.matrices.sparse.ISparseMatrix#full()
    */
   public double[][] full() {
     if (getColNumber() == 0 || getRowNumber() == 0) {
@@ -175,13 +175,13 @@ public abstract class SparseMatrix implements ISparseMatrix, Serializable {
   public static ISparseMatrix sparseMatrixFactory(ISparseMatrix type, int[] rowInd, int[] colInd,
           double[] val, SparseMatrixType matrixInputFormat) {
     Class<? extends ISparseMatrix> classToLoad = type.getClass();
-    Class<?>[] cArg = new Class[4]; // Our constructor has 4 arguments
-    cArg[0] = int[].class;
-    cArg[1] = int[].class;
-    cArg[2] = double[].class;
-    cArg[3] = SparseMatrixType.class;
+    Class<?>[] carg = new Class[4]; // Our constructor has 4 arguments
+    carg[0] = int[].class;
+    carg[1] = int[].class;
+    carg[2] = double[].class;
+    carg[3] = SparseMatrixType.class;
     try {
-      return (ISparseMatrix) classToLoad.getDeclaredConstructor(cArg).newInstance(rowInd, colInd,
+      return (ISparseMatrix) classToLoad.getDeclaredConstructor(carg).newInstance(rowInd, colInd,
               val, matrixInputFormat);
     } catch (InstantiationException | IllegalAccessException | IllegalArgumentException
             | InvocationTargetException | NoSuchMethodException | SecurityException e) {
