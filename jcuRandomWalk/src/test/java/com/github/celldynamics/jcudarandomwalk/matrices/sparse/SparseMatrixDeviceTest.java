@@ -1,4 +1,4 @@
-package com.github.celldynamics.jcudarandomwalk.matrices;
+package com.github.celldynamics.jcudarandomwalk.matrices.sparse;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -82,7 +82,7 @@ public class SparseMatrixDeviceTest {
 
   /**
    * Test method for
-   * {@link com.github.celldynamics.jcudarandomwalk.matrices.SparseMatrixDevice#SparseMatrixDevice(int[], int[], double[],SparseMatrixType)}.
+   * {@link com.github.celldynamics.jcudarandomwalk.matrices.sparse.SparseMatrixDevice#SparseMatrixDevice(int[], int[], double[],SparseMatrixType)}.
    * 
    * <p>Check array sizes in COO mode.
    * 
@@ -97,7 +97,7 @@ public class SparseMatrixDeviceTest {
 
   /**
    * Test method for
-   * {@link com.github.celldynamics.jcudarandomwalk.matrices.SparseMatrixDevice#SparseMatrixDevice(int[], int[], double[],SparseMatrixType)}.
+   * {@link com.github.celldynamics.jcudarandomwalk.matrices.sparse.SparseMatrixDevice#SparseMatrixDevice(int[], int[], double[],SparseMatrixType)}.
    * 
    * <p>Check array sizes in COO mode.
    * 
@@ -112,7 +112,7 @@ public class SparseMatrixDeviceTest {
 
   /**
    * Test method for
-   * {@link com.github.celldynamics.jcudarandomwalk.matrices.SparseMatrixDevice#SparseMatrixDevice(int[], int[], double[],SparseMatrixType)}.
+   * {@link com.github.celldynamics.jcudarandomwalk.matrices.sparse.SparseMatrixDevice#SparseMatrixDevice(int[], int[], double[],SparseMatrixType)}.
    * 
    * <p>Check array sizes in COO mode.
    * 
@@ -194,7 +194,7 @@ public class SparseMatrixDeviceTest {
 
   /**
    * Test method for
-   * {@link com.github.celldynamics.jcudarandomwalk.matrices.SparseMatrixDevice#toCpu()}.
+   * {@link com.github.celldynamics.jcudarandomwalk.matrices.sparse.SparseMatrixDevice#toCpu()}.
    * 
    * @throws Exception
    */
@@ -209,7 +209,7 @@ public class SparseMatrixDeviceTest {
 
   /**
    * Test method for
-   * {@link com.github.celldynamics.jcudarandomwalk.matrices.SparseMatrixDevice#multiply(com.github.celldynamics.jcudarandomwalk.matrices.ISparseMatrixGpu)}.
+   * {@link com.github.celldynamics.jcudarandomwalk.matrices.sparse.SparseMatrixDevice#multiply(com.github.celldynamics.jcudarandomwalk.matrices.ISparseMatrixGpu)}.
    * 
    * @throws Exception
    */
@@ -236,7 +236,7 @@ public class SparseMatrixDeviceTest {
 
   /**
    * Test method for
-   * {@link com.github.celldynamics.jcudarandomwalk.matrices.SparseMatrixDevice#SparseMatrixDevice(int[], int[], double[], com.github.celldynamics.jcudarandomwalk.matrices.SparseMatrixType)}.
+   * {@link com.github.celldynamics.jcudarandomwalk.matrices.sparse.SparseMatrixDevice#SparseMatrixDevice(int[], int[], double[], com.github.celldynamics.jcudarandomwalk.matrices.sparse.SparseMatrixType)}.
    * 
    * @throws Exception
    */
@@ -255,7 +255,7 @@ public class SparseMatrixDeviceTest {
 
   /**
    * Test method for
-   * {@link com.github.celldynamics.jcudarandomwalk.matrices.SparseMatrixDevice#convert2csr()}.
+   * {@link com.github.celldynamics.jcudarandomwalk.matrices.sparse.SparseMatrixDevice#convert2csr()}.
    * 
    * @throws Exception
    */
@@ -283,7 +283,7 @@ public class SparseMatrixDeviceTest {
 
   /**
    * Test method for
-   * {@link com.github.celldynamics.jcudarandomwalk.matrices.SparseMatrixDevice#transpose()}.
+   * {@link com.github.celldynamics.jcudarandomwalk.matrices.sparse.SparseMatrixDevice#transpose()}.
    * 
    * @throws Exception
    */

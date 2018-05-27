@@ -1,10 +1,9 @@
-package com.github.celldynamics.jcudarandomwalk.matrices;
+package com.github.celldynamics.jcudarandomwalk.matrices.sparse;
+
+import com.github.celldynamics.jcudarandomwalk.matrices.IMatrix;
 
 /**
  * General interface representing sparse matrix.
- * 
- * <p>Depending on device, class implementing this interface should implement also either
- * {@link IStoredOnCpu} or {@link IStoredOnGpu}.
  * 
  * @author p.baniukiewicz
  *

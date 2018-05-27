@@ -44,7 +44,7 @@ public class ToolVersion {
    * 
    * <p>Maven needs to have enabled resources plugin.
    * 
-   * @param propertyFileName
+   * @param propertyFileName name with path of the property file. Path is package name with slashes.
    */
   public ToolVersion(String propertyFileName) {
     this.propertyFileName = propertyFileName;
@@ -53,7 +53,7 @@ public class ToolVersion {
   /**
    * Prepare info plate for QuimP.
    * 
-   * @param authors
+   * @param authors array of authors and theirs emails. Content will be printed in box.
    * @return QuimP version
    * @see #getFormattedToolVersion(ToolVersionStruct, String[], String)
    */

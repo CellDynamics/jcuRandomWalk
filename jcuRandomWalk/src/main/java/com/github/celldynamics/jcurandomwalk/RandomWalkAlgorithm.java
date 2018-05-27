@@ -13,8 +13,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.celldynamics.jcudarandomwalk.matrices.IMatrix;
-import com.github.celldynamics.jcudarandomwalk.matrices.ISparseMatrix;
-import com.github.celldynamics.jcudarandomwalk.matrices.SparseMatrixDevice;
+import com.github.celldynamics.jcudarandomwalk.matrices.sparse.ISparseMatrix;
+import com.github.celldynamics.jcudarandomwalk.matrices.sparse.SparseMatrixDevice;
 
 import ij.ImagePlus;
 import ij.ImageStack;
@@ -25,6 +25,8 @@ import jcuda.jcusparse.JCusparse;
 import jcuda.runtime.JCuda;
 
 /**
+ * Main routine for RW segmentation.
+ * 
  * @author p.baniukiewicz
  *
  */
@@ -41,7 +43,7 @@ public class RandomWalkAlgorithm {
   }
 
   /**
-   * Default constructor,
+   * Default constructor.
    * 
    * @param stack stack to be segmented
    * @param options options
@@ -56,7 +58,7 @@ public class RandomWalkAlgorithm {
    * 
    * @param always if true compute always if false try to load first. If file has not been found
    *        compute new incidence matrix and save it.
-   * @throws Exception
+   * @throws Exception file can not be read or deserialised
    */
   public void computeIncidence(boolean always) throws Exception {
     if (always) {
@@ -93,13 +95,13 @@ public class RandomWalkAlgorithm {
     IMatrix incidenceGpu = ((ISparseMatrix) img.getIncidence().toGpu()).convert2csr();
     IMatrix incidenceGpuT = incidenceGpu.transpose();
 
-    IMatrix wGpu = ((ISparseMatrix) img.getWeights().toGpu()).convert2csr();
+    IMatrix weightGpu = ((ISparseMatrix) img.getWeights().toGpu()).convert2csr();
     // A'*W*A
     // ISparseMatrix ATW = incidenceGpuT.multiply(wGpu);
     // ISparseMatrix ATWA = ATW.multiply(incidenceGpu);
-    IMatrix atw = incidenceGpuT.multiply(wGpu);// .multiply(incidenceGpu);
+    IMatrix atw = incidenceGpuT.multiply(weightGpu);// .multiply(incidenceGpu);
     incidenceGpuT.free();
-    wGpu.free();
+    weightGpu.free();
     IMatrix lap = atw.multiply(incidenceGpu);
     atw.free();
     incidenceGpu.free();

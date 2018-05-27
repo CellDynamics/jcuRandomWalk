@@ -41,7 +41,7 @@ public class PropertyReader {
    * @param propFileName property file name
    * @param propKey name of the key
    * @return value for propKey
-   * @throws Exception
+   * @throws Exception on any error.
    * @see <a href=
    *      "link">http://stackoverflow.com/questions/333363/loading-a-properties-file-from-java-package</a>
    * @see #readProperty(Class, String, String, String)
@@ -86,7 +86,7 @@ public class PropertyReader {
    * @param propFileName file name in jar with path
    * @param propKey key
    * @return Value of property for <tt>propKey</tt>
-   * @throws Exception
+   * @throws Exception on any error.
    */
   public static String readProperty(Class<?> c, String partofFilename, String propFileName,
           String propKey) throws Exception {
