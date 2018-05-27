@@ -16,6 +16,14 @@ public class DenseVectorHost extends DenseVector {
   private static final long serialVersionUID = 5888367409910667331L;
 
   /**
+   * Empty vector.
+   */
+  public DenseVectorHost() {
+    super(0, 0);
+    val = new double[0];
+  }
+
+  /**
    * Default constructor for building dense vector from list of values. Must be implemented in
    * concrete classes.
    * 

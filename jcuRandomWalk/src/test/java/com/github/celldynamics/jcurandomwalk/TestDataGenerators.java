@@ -7,20 +7,33 @@ import ij.process.FloatProcessor;
 import ij.process.ImageProcessor;
 import ij.process.ShortProcessor;
 
+// TODO: Auto-generated Javadoc
 /**
- * @author baniu
+ * The Class TestDataGenerators.
  *
+ * @author baniu
  */
 public class TestDataGenerators {
 
+  /** The row ind. */
   public int[] rowInd = new int[] { 0, 0, 1, 1, 2, 2, 2, 3, 3 };
+
+  /** The col ind. */
   public int[] colInd = new int[] { 0, 1, 1, 2, 0, 3, 4, 2, 4 };
+
+  /** The val. */
   public double[] val = new double[] { 1, 4, 2, 3, 5, 7, 8, 9, 6 };
 
+  /** The row ind 1. */
   public int[] rowInd1 = new int[] { 0, 0, 1, 1, 2, 2, 3, 4, 4 };
+
+  /** The col ind 1. */
   public int[] colInd1 = new int[] { 0, 2, 0, 1, 1, 3, 2, 2, 3 };
+
+  /** The val 1. */
   public double[] val1 = new double[] { 1, 5, 4, 2, 3, 9, 7, 8, 6 };
 
+  /** The weights. */
   public double[] weights = new double[] { 1.0, 2.0, 3.0, 4.0, 5.0 };
 
   /**
@@ -111,8 +124,8 @@ public class TestDataGenerators {
    * 
    * 1,3,2, 47
    * 2,1,2, 49
-   * 4,3,2, 59
-   * 
+   * 4,3,2, 59.
+   *
    * @return stack
    */
   public static ImageStack getSeedStack_1() {

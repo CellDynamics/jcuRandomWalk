@@ -23,6 +23,7 @@ import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.LoggerContext;
 import ij.ImageStack;
 
+// TODO: Auto-generated Javadoc
 /**
  * Class test.
  * 
@@ -36,25 +37,34 @@ public class IncidenceMatrixGeneratorTest {
     Logger rootLogger = loggerContext.getLogger(IncidenceMatrixGeneratorTest.class.getName());
     ((ch.qos.logback.classic.Logger) rootLogger).setLevel(Level.TRACE);
   }
+
   /**
    * The Constant LOGGER.
    */
   static final Logger LOGGER =
           LoggerFactory.getLogger(IncidenceMatrixGeneratorTest.class.getName());
 
+  /** The width. */
   // dimensions of test stack
   private int width = 3;
+
+  /** The height. */
   private int height = 4;
+
+  /** The nz. */
   private int nz = 2;
+
+  /** The stack. */
   private ImageStack stack;
 
+  /** The folder. */
   @Rule
   public TemporaryFolder folder = new TemporaryFolder();
 
   /**
    * Setup test 3d stack.
-   * 
-   * @throws java.lang.Exception on error
+   *
+   * @throws Exception the exception
    */
   @Before
   public void setUp() throws Exception {
@@ -159,8 +169,8 @@ public class IncidenceMatrixGeneratorTest {
    * {@link com.github.celldynamics.jcurandomwalk.IncidenceMatrixGenerator#saveObject(java.lang.String)}.
    * 
    * Save and then restore object. compare both.
-   * 
-   * @throws Exception
+   *
+   * @throws Exception the exception
    */
   @Test
   public void testSaveObject() throws Exception {
@@ -196,8 +206,8 @@ public class IncidenceMatrixGeneratorTest {
    * {@link com.github.celldynamics.jcurandomwalk.IncidenceMatrixGenerator#getEdgesNumber(int, int, int)}.
    * 
    * <p>Compare with {@link TestDataGenerators#getTestStack(int, int, int, String)}
-   * 
-   * @throws Exception
+   *
+   * @throws Exception the exception
    */
   @Test
   public void testGetEdgesNumber() throws Exception {
@@ -210,8 +220,8 @@ public class IncidenceMatrixGeneratorTest {
    * {@link com.github.celldynamics.jcurandomwalk.IncidenceMatrixGenerator#getNodesNumber(int, int, int)}.
    * 
    * <p>Compare with {@link TestDataGenerators#getTestStack(int, int, int, String)}
-   * 
-   * @throws Exception
+   *
+   * @throws Exception the exception
    */
   @Test
   public void testGetNodesNumber() throws Exception {
@@ -224,8 +234,8 @@ public class IncidenceMatrixGeneratorTest {
    * {@link IncidenceMatrixGenerator#computeWeight(ij.ImageStack, int[], int[], double, double, double)}.
    * 
    * <p>Compute weight and compare result with jcuRandomWalk/JCudaMatrix/Matlab/tests.java
-   * 
-   * @throws Exception
+   *
+   * @throws Exception the exception
    */
   @Test
   public void testComputeWeight() throws Exception {
@@ -246,8 +256,8 @@ public class IncidenceMatrixGeneratorTest {
    * {@link com.github.celldynamics.jcurandomwalk.IncidenceMatrixGenerator#computeSinkBox()}.
    * 
    * <p>Resuts generated in %% computeSinkBox testsJava.m
-   * 
-   * @throws Exception
+   *
+   * @throws Exception the exception
    */
   @Test
   public void testComputeSinkBox() throws Exception {
@@ -285,15 +295,15 @@ public class IncidenceMatrixGeneratorTest {
    * 2 6 10 14 18
    * 3 7 11 15 19
    * 
-   * Which can be observed in weight vector: 0.011108992565355967, 0.6065306958646659,
+   * <p>Which can be observed in weight vector: 0.011108992565355967, 0.6065306958646659,
    * 0.9950124886818522 which are computed for respective pixels
    * {@link TestDataGenerators#getTestStack_1()}
    * 
    * <p>The order of neighbours is R, D, U, next three rows of incidence matrix are for pixel of
    * number 1, which has Cartesian coordinates (1,0) (next row, the same column). Column index in
    * incidence matrix defines which pixels are taken to compute weight.
-   * 
-   * @throws Exception
+   *
+   * @throws Exception the exception
    */
   @Test
   public void testAssignStack() throws Exception {
