@@ -29,9 +29,11 @@ public class CudaTest {
 
   @Test
   public void test() {
+    JCuda.setExceptionsEnabled(true);
     Pointer pointer = new Pointer();
     JCuda.cudaMalloc(pointer, 4);
     LOGGER.debug("Pointer: " + pointer);
+    JCuda.cudaFree(pointer);
     JCuda.cudaFree(pointer);
   }
 
