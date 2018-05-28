@@ -4,6 +4,8 @@ import org.junit.Test;
 import org.mockito.Mockito;
 
 /**
+ * App info test.
+ * 
  * @author baniu
  *
  */
@@ -11,9 +13,9 @@ public class ToolVersionTest {
 
   /**
    * Test method for
-   * {@link com.github.celldynamics.versioning.ToolVersion#getFormattedToolVersion(ToolVersionStruct, String[], String)}.
-   * 
-   * @throws Exception
+   * {@link ToolVersion#getFormattedToolVersion(ToolVersionStruct, String[], String)}.
+   *
+   * @throws Exception the exception
    */
   @Test
   public void testGetFormattedToolVersion() throws Exception {

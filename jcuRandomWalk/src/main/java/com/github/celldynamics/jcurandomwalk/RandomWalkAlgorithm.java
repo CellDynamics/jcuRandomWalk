@@ -148,7 +148,7 @@ public class RandomWalkAlgorithm {
     this.b = computeB(lapRowsRem, source);
     ISparseMatrix reducedL = (ISparseMatrix) lapRowsRem.removeCols(merged);
     if (reducedL instanceof SparseMatrixHost) {
-      ((SparseMatrixHost) reducedL).compressSparseIndices();
+      ((SparseMatrixHost) reducedL).compressSparseIndices(); // FIXME is necessary?
     }
     lapRowsRem.free();
     timer.stop();
@@ -176,7 +176,7 @@ public class RandomWalkAlgorithm {
               IntStream.range(0, lap.getColNumber()).filter(x -> !ilist.contains(x)).toArray();
       IMatrix tmp = lap.removeCols(colsRemove);
       if (tmp instanceof SparseMatrixHost) {
-        ((SparseMatrixHost) tmp).compressSparseIndices();
+        ((SparseMatrixHost) tmp).compressSparseIndices(); // FIXME is necessary?
       }
       ISparseMatrix ret = (ISparseMatrix) tmp.sumAlongRows();
       for (int i = 0; i < ret.getVal().length; i++) {
@@ -293,8 +293,12 @@ public class RandomWalkAlgorithm {
    * Must be called at very end.
    */
   public static void finish() {
-    JCusparse.setExceptionsEnabled(false);
-    JCuda.setExceptionsEnabled(false);
-    JCusparse.cusparseDestroy(ICudaLibHandles.handle);
+    try {
+      JCusparse.setExceptionsEnabled(false);
+      JCuda.setExceptionsEnabled(false);
+      JCusparse.cusparseDestroy(ICudaLibHandles.handle);
+    } catch (Exception e) {
+      LOGGER.error("Exception caugh during cleaning: " + e.getMessage());
+    }
   }
 }

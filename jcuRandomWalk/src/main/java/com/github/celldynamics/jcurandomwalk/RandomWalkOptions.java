@@ -28,4 +28,20 @@ public class RandomWalkOptions {
    * Default path to save incidence.
    */
   public Path configFolder = Paths.get(tmpdir);
+  /**
+   * GPU device to use.
+   */
+  public int device = 0;
+  /**
+   * If use gpu.
+   */
+  public boolean useGPU = true;
+  /**
+   * Path to stack to segment.
+   */
+  public Path stack;
+  /**
+   * Path to seeds.
+   */
+  public Path seeds;
 }
