@@ -7,6 +7,7 @@ import java.util.stream.IntStream;
 import org.apache.commons.lang3.NotImplementedException;
 
 import com.github.celldynamics.jcudarandomwalk.matrices.IMatrix;
+import com.github.celldynamics.jcudarandomwalk.matrices.dense.IDenseVector;
 
 /**
  * Structure for holding coordinates for sparse matrices.
@@ -377,6 +378,11 @@ public class SparseMatrixHost extends SparseMatrix {
 
     return SparseMatrix.sparseMatrixFactory(this, riret, ciret, ret,
             SparseMatrixType.MATRIX_FORMAT_COO);
+  }
+
+  @Override
+  public double[] luSolve(IDenseVector b_gpuPtr, boolean iLuBiCGStabSolve) {
+    throw new NotImplementedException("this is not supported");
   }
 
 }

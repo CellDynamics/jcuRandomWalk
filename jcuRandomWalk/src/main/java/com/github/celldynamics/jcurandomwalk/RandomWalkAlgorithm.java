@@ -43,6 +43,7 @@ public class RandomWalkAlgorithm {
   IncidenceMatrixGenerator img;
   RandomWalkOptions options;
   ISparseMatrix reducedLap; // reduced laplacian
+  ISparseMatrix lap; // full laplacian
   IDenseVector b; // right vector
 
   RandomWalkAlgorithm() {
@@ -97,24 +98,34 @@ public class RandomWalkAlgorithm {
    * @return Laplacian on GPU
    */
   public ISparseMatrix computeLaplacian() {
+    IMatrix incidence;
+    IMatrix incidenceT;
+    IMatrix weight;
     StopWatch timer = new StopWatch();
     timer.start();
-    IMatrix incidenceGpu = ((ISparseMatrix) img.getIncidence().toGpu()).convert2csr();
-    IMatrix incidenceGpuT = incidenceGpu.transpose();
+    if (options.useGPU) {
+      incidence = ((ISparseMatrix) img.getIncidence().toGpu()).convert2csr();
+      incidenceT = incidence.transpose();
 
-    IMatrix weightGpu = ((ISparseMatrix) img.getWeights().toGpu()).convert2csr();
+      weight = ((ISparseMatrix) img.getWeights().toGpu()).convert2csr();
+    } else {
+      incidence = ((ISparseMatrix) img.getIncidence()).convert2csr();
+      incidenceT = incidence.transpose();
+
+      weight = ((ISparseMatrix) img.getWeights()).convert2csr();
+    }
     // A'*W*A
     // ISparseMatrix ATW = incidenceGpuT.multiply(wGpu);
     // ISparseMatrix ATWA = ATW.multiply(incidenceGpu);
-    IMatrix atw = incidenceGpuT.multiply(weightGpu);// .multiply(incidenceGpu);
-    incidenceGpuT.free();
-    weightGpu.free();
-    IMatrix lap = atw.multiply(incidenceGpu);
+    IMatrix atw = incidenceT.multiply(weight);// .multiply(incidenceGpu);
+    incidenceT.free();
+    weight.free();
+    this.lap = (ISparseMatrix) atw.multiply(incidence);
     atw.free();
-    incidenceGpu.free();
+    incidence.free();
     timer.stop();
     LOGGER.info("Laplacian computed in " + timer.toString());
-    return (ISparseMatrix) lap;
+    return this.lap;
   }
 
   /**
@@ -128,11 +139,10 @@ public class RandomWalkAlgorithm {
    * <p>Source and sink can be swapped to get background oriented segmentation. B vector is computed
    * always from source.
    * 
-   * @param lap square matrix where columns are rows are removed from
    * @param source list of indices to remove - sources
    * @param sink second list of indices to remove, merged with the first one
    */
-  public void computeReducedLaplacian(ISparseMatrix lap, int[] source, int[] sink) {
+  public void computeReducedLaplacian(int[] source, int[] sink) {
     if (lap.getColNumber() != lap.getRowNumber()) {
       throw new IllegalArgumentException("Matrix should be square");
     }
@@ -241,6 +251,47 @@ public class RandomWalkAlgorithm {
     LOGGER.info("Stack normalised in " + timer.toString());
   }
 
+  public void solve(ImageStack seed) {
+    computeLaplacian();
+    int[] seedIndices = getSourceIndices(seed);
+    computeReducedLaplacian(seedIndices, getImg().getSinkBox());
+    double[] solved = getReducedLap().luSolve(b, true);
+    double[] solvedSeeds = incorporateSeeds(solved, seedIndices);
+  }
+
+  /**
+   * 
+   * @param x
+   * @param seeds
+   * @return
+   */
+  public double[] incorporateSeeds(double[] x, int[] seeds) {
+
+    double[] ret = Arrays.copyOf(x, x.length);
+    for (int i = 0; i < seeds.length; i++) {
+      ret[seeds[i]] = 1.0;
+    }
+    return ret;
+  }
+
+  /**
+   * Get computed reduced Laplacian.
+   * 
+   * @return the reducedLap
+   */
+  public ISparseMatrix getReducedLap() {
+    return reducedLap;
+  }
+
+  /**
+   * Get computed B vector.
+   * 
+   * @return the b
+   */
+  public IDenseVector getB() {
+    return b;
+  }
+
   /**
    * Obtain indices of seed pixels from stack. Indices are computed in column-ordered manner.
    * 
@@ -278,6 +329,15 @@ public class RandomWalkAlgorithm {
     timer.stop();
     LOGGER.info("Seeds processed in " + timer.toString());
     return ret;
+  }
+
+  /**
+   * Return {@link IncidenceMatrixGenerator} object.
+   * 
+   * @return the img
+   */
+  public IncidenceMatrixGenerator getImg() {
+    return img;
   }
 
   /**

@@ -12,6 +12,7 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.apache.commons.lang3.time.StopWatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,14 +28,14 @@ import ij.ImageStack;
 public class JcuRandomWalk {
   static final Logger LOGGER = LoggerFactory.getLogger(JcuRandomWalk.class.getName());
   private int cliErrorStatus = 0; // returned to main
-  private RandomWalkOptions rwo;
-  private Options options = null;
+  private RandomWalkOptions rwOptions;
+  private Options cliOptions = null;
 
   /**
    * Default constructor using default options.
    */
   public JcuRandomWalk() {
-    rwo = new RandomWalkOptions();
+    rwOptions = new RandomWalkOptions();
   }
 
   /**
@@ -50,19 +51,23 @@ public class JcuRandomWalk {
 
     Option verOption = Option.builder("v").desc("Show version").longOpt("version").build();
 
-    Option saveIncOption = Option.builder().desc("Save incdence matrix for this size of the stack")
-            .longOpt("saveincidence").build();
+    Option saveIncOption =
+            Option.builder().desc("Save incdence matrix for this size of the stack. Default is "
+                    + rwOptions.ifSaveIncidence).longOpt("saveincidence").build();
 
     Option loadIncOption = Option.builder()
             .desc("Load incidence matrix for this size of stack or compute new one and save it"
-                    + " if relevant file has not been found.")
+                    + " if relevant file has not been found. Default is "
+                    + !rwOptions.ifComputeIncidence)
             .longOpt("loadincidence").build();
 
-    Option defProcessOption = Option.builder().desc("Apply default processing to stack.")
+    Option defProcessOption = Option.builder()
+            .desc("Apply default processing to stack. Default is " + rwOptions.ifApplyProcessing)
             .longOpt("defaultprocessing").build();
 
-    Option deviceOption = Option.builder("d").argName("device").hasArg().desc("Select CUDA device")
-            .type(Integer.class).longOpt("device").build();
+    Option deviceOption = Option.builder("d").argName("device").hasArg()
+            .desc("Select CUDA device. Default is " + rwOptions.device).type(Integer.class)
+            .longOpt("device").build();
 
     Option imageOption = Option.builder("i").argName("image").hasArg().required()
             .desc("Stack to process").longOpt("image").build();
@@ -70,15 +75,15 @@ public class JcuRandomWalk {
     Option seedOption = Option.builder("s").argName("seeds").hasArg().required()
             .desc("Seeds as binary image of size of \"image\"").longOpt("seed").build();
 
-    options = new Options();
-    options.addOption(seedOption);
-    options.addOption(loadIncOption);
-    options.addOption(defProcessOption);
-    options.addOption(deviceOption);
-    options.addOption(saveIncOption);
-    options.addOption(imageOption);
-    options.addOption(verOption);
-    options.addOption(helpOption);
+    cliOptions = new Options();
+    cliOptions.addOption(seedOption);
+    cliOptions.addOption(loadIncOption);
+    cliOptions.addOption(defProcessOption);
+    cliOptions.addOption(deviceOption);
+    cliOptions.addOption(saveIncOption);
+    cliOptions.addOption(imageOption);
+    cliOptions.addOption(verOption);
+    cliOptions.addOption(helpOption);
 
     Options helpOptions = new Options(); // 2nd group of options
     helpOptions.addOption(verOption); // these are repeated here to have showHelp working
@@ -88,16 +93,25 @@ public class JcuRandomWalk {
         return; // and finish
       }
       // process all but do not handle those from 2nd group
-      CommandLine cmd = parser.parse(options, args);
+      CommandLine cmd = parser.parse(cliOptions, args);
 
       if (cmd.hasOption("device")) {
-        rwo.device = Integer.parseInt(cmd.getOptionValue("device").trim());
+        rwOptions.device = Integer.parseInt(cmd.getOptionValue("device").trim());
       }
       if (cmd.hasOption('i')) {
-        rwo.stack = Paths.get(cmd.getOptionValue('i'));
+        rwOptions.stack = Paths.get(cmd.getOptionValue('i'));
       }
       if (cmd.hasOption('s')) {
-        rwo.seeds = Paths.get(cmd.getOptionValue('s'));
+        rwOptions.seeds = Paths.get(cmd.getOptionValue('s'));
+      }
+      if (cmd.hasOption("loadincidence")) {
+        rwOptions.ifComputeIncidence = false;
+      }
+      if (cmd.hasOption("saveincidence")) {
+        rwOptions.ifSaveIncidence = true;
+      }
+      if (cmd.hasOption("defaultprocessing")) {
+        rwOptions.ifApplyProcessing = true;
       }
       selectGpu(); // initilaise gpu (if selected)
 
@@ -128,24 +142,49 @@ public class JcuRandomWalk {
     String header = "\nRandom Walk segemntaion on GPU.\n";
     header = header.concat(tv.getToolversion(authors));
     String footer = "\n\n";
-    formatter.printHelp("JcuRandomWalk", header, options, footer, true);
+    formatter.printHelp("JcuRandomWalk", header, cliOptions, footer, true);
   }
 
   /**
+   * @throws Exception
    * 
    */
-  public void run() {
+  public void run() throws Exception {
     selectGpu();
-    ImageStack stack = IJ.openImage(rwo.stack.toString()).getImageStack();
+    StopWatch timer = StopWatch.createStarted();
+    ImageStack stack = IJ.openImage(rwOptions.stack.toString()).getImageStack();
+    ImageStack seed = IJ.openImage(rwOptions.seeds.toString()).getImageStack();
+    timer.stop();
+    LOGGER.info("Stacks loaded in " + timer.toString());
+    // create main object
+    RandomWalkAlgorithm rwa = new RandomWalkAlgorithm(stack, rwOptions);
+    // compute or load incidence
+    rwa.computeIncidence(rwOptions.ifComputeIncidence);
+    if (rwOptions.ifApplyProcessing) {
+      rwa.processStack();
+    }
+
+    rwa.solve(seed);
+
+    // TODO finish
+    RandomWalkAlgorithm.finish();
   }
 
+  /**
+   * Pick GPU selected in {@link RandomWalkOptions}.
+   */
   private void selectGpu() {
-    if (rwo.useGPU) {
-      RandomWalkAlgorithm.initilizeGpu();
-      int[] devicecount = new int[1];
-      cudaGetDeviceCount(devicecount);
-      cudaSetDevice(rwo.device);
-      LOGGER.info(String.format("Using device %d/%d", rwo.device, devicecount[0]));
+    try {
+      if (rwOptions.useGPU) {
+        RandomWalkAlgorithm.initilizeGpu();
+        int[] devicecount = new int[1];
+        cudaGetDeviceCount(devicecount);
+        cudaSetDevice(rwOptions.device);
+        RandomWalkAlgorithm.initilizeGpu();
+        LOGGER.info(String.format("Using device %d/%d", rwOptions.device, devicecount[0]));
+      }
+    } catch (UnsatisfiedLinkError | NoClassDefFoundError e) {
+      LOGGER.error(e.getMessage());
     }
   }
 

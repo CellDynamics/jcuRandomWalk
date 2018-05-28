@@ -17,7 +17,7 @@ public class JcuRandomWalkTest {
    */
   @Test
   public void testJcuRandomWalk() throws Exception {
-    String[] args = new String[] { "app", "-g" };
+    String[] args = new String[] { "app", "-h" };
     JcuRandomWalk app = new JcuRandomWalk(args);
   }
 
