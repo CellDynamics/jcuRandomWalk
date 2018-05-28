@@ -1,6 +1,7 @@
 package com.github.celldynamics.jcudarandomwalk.matrices.sparse;
 
 import com.github.celldynamics.jcudarandomwalk.matrices.IMatrix;
+import com.github.celldynamics.jcudarandomwalk.matrices.dense.IDenseVector;
 
 /**
  * General interface representing sparse matrix.
@@ -57,4 +58,5 @@ public interface ISparseMatrix extends IMatrix {
    */
   public double[][] full();
 
+  public double[] luSolve(IDenseVector b_gpuPtr, boolean iLuBiCGStabSolve);
 }

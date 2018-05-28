@@ -226,7 +226,7 @@ public class RandomWalkAlgorithmTest {
 
   /**
    * Test method for
-   * {@link RandomWalkAlgorithm#computeReducedLaplacian(com.github.celldynamics.jcudarandomwalk.matrices.sparse.ISparseMatrix, int[], int[])}.
+   * {@link RandomWalkAlgorithm#computeReducedLaplacian(int[], int[])}.
    *
    * @throws Exception the exception
    */
@@ -244,7 +244,7 @@ public class RandomWalkAlgorithmTest {
     int[] source = new int[] { 1, 3 };
     int[] sink = new int[] { 1, 2 };
 
-    obj.computeReducedLaplacian(testL, source, sink);
+    obj.computeReducedLaplacian(source, sink);
     ISparseMatrix ret = obj.reducedLap.convert2coo();
     LOGGER.debug("Reduced" + ret.toString());
     assertThat(ret.getColNumber(), is(3));

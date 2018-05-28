@@ -44,4 +44,16 @@ public class RandomWalkOptions {
    * Path to seeds.
    */
   public Path seeds;
+  /**
+   * Compute incidence always.
+   */
+  boolean ifComputeIncidence = true;
+  /**
+   * Save incidence ?.
+   */
+  boolean ifSaveIncidence = false;
+  /**
+   * Apply stack processing ?.
+   */
+  boolean ifApplyProcessing = false;
 }
