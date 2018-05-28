@@ -157,6 +157,7 @@ public class JcuRandomWalk {
     timer.stop();
     LOGGER.info("Stacks loaded in " + timer.toString());
     // create main object
+    timer = StopWatch.createStarted();
     RandomWalkAlgorithm rwa = new RandomWalkAlgorithm(stack, rwOptions);
     // compute or load incidence
     rwa.computeIncidence(rwOptions.ifComputeIncidence);
@@ -164,10 +165,12 @@ public class JcuRandomWalk {
       rwa.processStack();
     }
 
-    rwa.solve(seed);
+    ImageStack segmented = rwa.solve(seed);
 
     // TODO finish
-    RandomWalkAlgorithm.finish();
+    timer.stop();
+    LOGGER.info("Solved in " + timer.toString());
+    rwa.free();
   }
 
   /**

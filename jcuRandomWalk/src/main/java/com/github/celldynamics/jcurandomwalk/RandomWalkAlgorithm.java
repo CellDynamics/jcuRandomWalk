@@ -251,12 +251,19 @@ public class RandomWalkAlgorithm {
     LOGGER.info("Stack normalised in " + timer.toString());
   }
 
-  public void solve(ImageStack seed) {
+  /**
+   * Main routine.
+   * 
+   * @param seed
+   */
+  public ImageStack solve(ImageStack seed) {
     computeLaplacian();
     int[] seedIndices = getSourceIndices(seed);
     computeReducedLaplacian(seedIndices, getImg().getSinkBox());
     double[] solved = getReducedLap().luSolve(b, true);
     double[] solvedSeeds = incorporateSeeds(solved, seedIndices);
+
+    return null;
   }
 
   /**
@@ -265,7 +272,7 @@ public class RandomWalkAlgorithm {
    * @param seeds
    * @return
    */
-  public double[] incorporateSeeds(double[] x, int[] seeds) {
+  double[] incorporateSeeds(double[] x, int[] seeds) {
 
     double[] ret = Arrays.copyOf(x, x.length);
     for (int i = 0; i < seeds.length; i++) {
@@ -303,7 +310,7 @@ public class RandomWalkAlgorithm {
    * @param seedStack Pixels with intensity >0 are considered as seed. Expect 8-bit binary stacks.
    * @return array of indices.
    */
-  public int[] getSourceIndices(ImageStack seedStack) {
+  int[] getSourceIndices(ImageStack seedStack) {
     if (!seedStack.getProcessor(1).isBinary()) {
       throw new IllegalArgumentException("Seed stack is not binary");
     }
@@ -338,6 +345,21 @@ public class RandomWalkAlgorithm {
    */
   public IncidenceMatrixGenerator getImg() {
     return img;
+  }
+
+  /**
+   * Destroy all private CUDA objects.
+   */
+  public void free() {
+    if (reducedLap != null) {
+      reducedLap.free();
+    }
+    if (lap != null) {
+      lap.free();
+    }
+    if (b != null) {
+      b.free();
+    }
   }
 
   /**
