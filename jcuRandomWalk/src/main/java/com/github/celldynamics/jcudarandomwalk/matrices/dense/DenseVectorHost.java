@@ -20,7 +20,7 @@ public class DenseVectorHost extends DenseVector {
    */
   public DenseVectorHost() {
     super(0, 0);
-    val = new double[0];
+    val = new float[0];
   }
 
   /**
@@ -31,7 +31,7 @@ public class DenseVectorHost extends DenseVector {
    * @param cols number of columns, rows or cols should be 1
    * @param val values
    */
-  public DenseVectorHost(int rows, int cols, double[] val) {
+  public DenseVectorHost(int rows, int cols, float[] val) {
     super(rows, cols);
     this.val = val;
   }

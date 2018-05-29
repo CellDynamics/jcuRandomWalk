@@ -13,7 +13,7 @@ public interface IMatrix {
    * 
    * @return Row ordered elements of matrix
    */
-  public double[] getVal();
+  public float[] getVal();
 
   /**
    * Get number of rows. Note that this operation can be time consuming for sparse matrices.

@@ -92,7 +92,7 @@ public class SparseMatrixDeviceTest {
   public void testSparseMatrixDeviceIntArrayIntArrayDoubleArray() throws Exception {
     @SuppressWarnings("unused")
     SparseMatrixDevice spd = new SparseMatrixDevice(new int[] { 1, 2 }, new int[] { 1, 2, 3 },
-            new double[] { 1, 2 }, SparseMatrixType.MATRIX_FORMAT_COO);
+            new float[] { 1, 2 }, SparseMatrixType.MATRIX_FORMAT_COO);
   }
 
   /**
@@ -107,7 +107,7 @@ public class SparseMatrixDeviceTest {
   public void testSparseMatrixDeviceIntArrayIntArrayDoubleArray_1() throws Exception {
     @SuppressWarnings("unused")
     SparseMatrixDevice spd = new SparseMatrixDevice(new int[] { 1, 2, 4 }, new int[] { 1, 2, 3 },
-            new double[] { 1, 2 }, SparseMatrixType.MATRIX_FORMAT_COO);
+            new float[] { 1, 2 }, SparseMatrixType.MATRIX_FORMAT_COO);
   }
 
   /**
@@ -122,7 +122,7 @@ public class SparseMatrixDeviceTest {
   public void testSparseMatrixDeviceIntArrayIntArrayDoubleArray_2() throws Exception {
     @SuppressWarnings("unused")
     SparseMatrixDevice spd = new SparseMatrixDevice(new int[] { 1, 2 }, new int[] { 1, 2, 3 },
-            new double[] { 1, 2, 3 }, SparseMatrixType.MATRIX_FORMAT_COO);
+            new float[] { 1, 2, 3 }, SparseMatrixType.MATRIX_FORMAT_COO);
   }
 
   /**
@@ -154,7 +154,7 @@ public class SparseMatrixDeviceTest {
    */
   @Test
   public void testgetVal() throws Exception {
-    double[] v = obj.getVal();
+    float[] v = obj.getVal();
     assertThat(Arrays.asList(v), contains(gen.val));
   }
 
@@ -221,12 +221,12 @@ public class SparseMatrixDeviceTest {
     ISparseMatrix retcoo = ret.convert2coo();
     int[] r = retcoo.getRowInd();
     int[] c = retcoo.getColInd();
-    double[] v = retcoo.getVal();
+    float[] v = retcoo.getVal();
     // result of obj*obj in matlab
     assertThat(Arrays.asList(r), contains(new int[] { 0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3 }));
     assertThat(Arrays.asList(c), contains(new int[] { 0, 1, 2, 0, 1, 3, 0, 2, 3, 1, 2, 3 }));
-    assertThat(Arrays.asList(v), contains(
-            new double[] { 17.0, 8.0, 5.0, 8.0, 13.0, 27.0, 5.0, 138.0, 48.0, 27.0, 48.0, 117.0 }));
+    assertThat(Arrays.asList(v), contains(new float[] { 17.0f, 8.0f, 5.0f, 8.0f, 13.0f, 27.0f, 5.0f,
+        138.0f, 48.0f, 27.0f, 48.0f, 117.0f }));
     assertThat(ret.getElementNumber(), is(12));
     // ((SparseMatrixDevice) objcsr).free(); // already freed
     // ((SparseMatrixDevice) obj1csr).free();

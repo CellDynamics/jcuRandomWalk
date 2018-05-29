@@ -242,7 +242,7 @@ public class RandomWalkAlgorithmTest {
     // Laplacian is square, assume diagonal only
     int[] ri = new int[] { 0, 0, 0, 1, 2, 3, 4, 4, 5 };
     int[] ci = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
-    double[] v = new double[] { 10, 101, 102, 11, 12, 13, 131, 14, 15 };
+    float[] v = new float[] { 10, 101, 102, 11, 12, 13, 131, 14, 15 };
     ISparseMatrix testL = new SparseMatrixHost(ri, ci, v, SparseMatrixType.MATRIX_FORMAT_COO);
     LOGGER.debug("Laplacean" + testL.toString());
     RandomWalkAlgorithm obj = new RandomWalkAlgorithm();
@@ -250,7 +250,7 @@ public class RandomWalkAlgorithmTest {
     // remove row/co 1,2,3
     int[] source = new int[] { 1, 3 };
     int[] sink = new int[] { 1, 2 };
-
+    obj.lap = testL;
     obj.computeReducedLaplacian(source, sink);
     ISparseMatrix ret = obj.reducedLap.convert2coo();
     LOGGER.debug("Reduced" + ret.toString());
@@ -258,7 +258,7 @@ public class RandomWalkAlgorithmTest {
     assertThat(ret.getRowNumber(), is(3));
     assertThat(ret.getElementNumber(), is(5));
     assertThat(Arrays.asList(ret.getVal()),
-            contains(new double[] { 10.0, 102.0, 131.0, 14.0, 15.0 }));
+            contains(new float[] { 10.0f, 102.0f, 131.0f, 14.0f, 15.0f }));
 
   }
 
@@ -289,10 +289,11 @@ public class RandomWalkAlgorithmTest {
     RandomWalkAlgorithm obj = new RandomWalkAlgorithm();
     int[] ri = new int[] { 0, 0, 0, 1, 2, 3, 4, 4, 5 };
     int[] ci = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
-    double[] v = new double[] { 10, 101, 102, 11, 12, 13, 131, 14, 15 };
+    float[] v = new float[] { 10, 101, 102, 11, 12, 13, 131, 14, 15 };
     ISparseMatrix testL = new SparseMatrixHost(ri, ci, v, SparseMatrixType.MATRIX_FORMAT_COO);
     IMatrix ret = obj.computeB(testL, new int[] { 0, 1 });
-    assertThat(Arrays.asList(ret.getVal()), contains(new double[] { -111.0, -11.0, -131.0 }));
+    assertThat(Arrays.asList(ret.getVal()),
+            contains(new float[] { -111.0f, -11.0f, -0f, -0f, -131.0f }));
   }
 
   /**

@@ -21,7 +21,7 @@ public abstract class DenseVector implements IDenseVector, Serializable {
    */
   private static final long serialVersionUID = 371179784126818370L;
 
-  protected double[] val; // value
+  protected float[] val; // value
   protected int rowNumber; // number of rows
   protected int colNumber; // number of cols
 
@@ -45,7 +45,7 @@ public abstract class DenseVector implements IDenseVector, Serializable {
    * @see com.github.celldynamics.jcudarandomwalk.matrices.IMatrix#getVal()
    */
   @Override
-  public double[] getVal() {
+  public float[] getVal() {
     if (val == null && this instanceof DenseVectorDevice) {
       ((DenseVectorDevice) this).retrieveFromDevice();
     }
@@ -146,7 +146,7 @@ public abstract class DenseVector implements IDenseVector, Serializable {
    * @return matrix of type 'type' from above arrays
    */
   public static IDenseVector denseVectorFactory(IDenseVector type, int rows, int cols,
-          double[] val) {
+          float[] val) {
     if (val.length == 0) {
       throw new IllegalArgumentException(
               "One or more arrays passed to sparseMatrixFactory are 0-sized");
@@ -155,7 +155,7 @@ public abstract class DenseVector implements IDenseVector, Serializable {
     Class<?>[] carg = new Class[3]; // Our constructor has 3 arguments
     carg[0] = int.class;
     carg[1] = int.class;
-    carg[2] = double[].class;
+    carg[2] = float[].class;
     try {
       return (IDenseVector) classToLoad.getDeclaredConstructor(carg).newInstance(rows, cols, val);
     } catch (InstantiationException | IllegalAccessException | IllegalArgumentException

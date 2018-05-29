@@ -44,7 +44,7 @@ public class SparseMatrixHost extends SparseMatrix {
     this.nnz = size;
     rowInd = new int[size];
     colInd = new int[size];
-    val = new double[size];
+    val = new float[size];
     matrixFormat = SparseMatrixType.MATRIX_FORMAT_COO;
   }
 
@@ -60,7 +60,7 @@ public class SparseMatrixHost extends SparseMatrix {
    * @param val values
    * @param type type of sparse matrix
    */
-  public SparseMatrixHost(int[] rowInd, int[] colInd, double[] val, SparseMatrixType type) {
+  public SparseMatrixHost(int[] rowInd, int[] colInd, float[] val, SparseMatrixType type) {
     switch (type) {
       case MATRIX_FORMAT_COO:
         if ((rowInd.length != colInd.length) || (rowInd.length != val.length)) {
@@ -89,7 +89,7 @@ public class SparseMatrixHost extends SparseMatrix {
    * @param colNumber number of columns
    * @param type type of sparse matrix
    */
-  public SparseMatrixHost(int[] rowInd, int[] colInd, double[] val, int rowNumber, int colNumber,
+  public SparseMatrixHost(int[] rowInd, int[] colInd, float[] val, int rowNumber, int colNumber,
           SparseMatrixType type) {
     switch (type) {
       case MATRIX_FORMAT_COO:
@@ -120,7 +120,7 @@ public class SparseMatrixHost extends SparseMatrix {
    * @param c column coordinate
    * @param v value stored under [r,c]
    */
-  public void add(int r, int c, double v) {
+  public void add(int r, int c, float v) {
     rowInd[counter] = r;
     colInd[counter] = c;
     val[counter] = v;
@@ -203,7 +203,7 @@ public class SparseMatrixHost extends SparseMatrix {
     }
     int[] newRowInd = new int[remainingRow];
     int[] newColInd = new int[remainingRow];
-    double[] newVal = new double[remainingRow];
+    float[] newVal = new float[remainingRow];
     int l = 0;
     for (int i = 0; i < this.getElementNumber(); i++) {
       if (rowInd[i] < 0) {
@@ -271,7 +271,7 @@ public class SparseMatrixHost extends SparseMatrix {
     }
     int[] newRowInd = new int[remainingCol];
     int[] newColInd = new int[remainingCol];
-    double[] newVal = new double[remainingCol];
+    float[] newVal = new float[remainingCol];
     int l = 0;
     for (int i = 0; i < this.getElementNumber(); i++) {
       if (colInd[i] < 0) {
@@ -315,7 +315,7 @@ public class SparseMatrixHost extends SparseMatrix {
   public void compressSparseIndices() {
     int[] ri = this.getRowInd();
     int[] ci = this.getColInd();
-    double[] v = this.getVal();
+    float[] v = this.getVal();
     int[] rsum = new int[this.getRowNumber()];
     int[] csum = new int[this.getColNumber()];
 
@@ -404,8 +404,8 @@ public class SparseMatrixHost extends SparseMatrix {
   @Override
   public IMatrix sumAlongRows() {
     int[] ri = this.getRowInd();
-    double[] v = this.getVal();
-    double[] ret = new double[this.getRowNumber()];
+    float[] v = this.getVal();
+    float[] ret = new float[this.getRowNumber()];
     for (int i = 0; i < ri.length; i++) { // along all row indices
       ret[ri[i]] += v[i]; // sum all elements from the same row
     }

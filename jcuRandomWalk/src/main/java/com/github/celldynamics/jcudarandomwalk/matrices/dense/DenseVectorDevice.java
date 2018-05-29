@@ -35,11 +35,11 @@ public class DenseVectorDevice extends DenseVector implements ICudaLibHandles {
    * @param cols number of columns, rows or cols should be 1
    * @param val values
    */
-  public DenseVectorDevice(int rows, int cols, double[] val) {
+  public DenseVectorDevice(int rows, int cols, float[] val) {
     super(rows, cols);
     this.val = val;
-    cudaMalloc(valPtr, getElementNumber() * Sizeof.DOUBLE);
-    cudaMemcpy(valPtr, Pointer.to(val), getElementNumber() * Sizeof.DOUBLE, cudaMemcpyHostToDevice);
+    cudaMalloc(valPtr, getElementNumber() * Sizeof.FLOAT);
+    cudaMemcpy(valPtr, Pointer.to(val), getElementNumber() * Sizeof.FLOAT, cudaMemcpyHostToDevice);
   }
 
   /**
@@ -55,8 +55,8 @@ public class DenseVectorDevice extends DenseVector implements ICudaLibHandles {
    * Copy indices from device to host.
    */
   public void retrieveFromDevice() {
-    val = new double[getElementNumber()];
-    cudaMemcpy(Pointer.to(val), getValPtr(), getElementNumber() * Sizeof.DOUBLE,
+    val = new float[getElementNumber()];
+    cudaMemcpy(Pointer.to(val), getValPtr(), getElementNumber() * Sizeof.FLOAT,
             cudaMemcpyDeviceToHost);
   }
 

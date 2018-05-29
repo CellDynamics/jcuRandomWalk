@@ -10,12 +10,12 @@ import static jcuda.jcusparse.JCusparse.cusparseCreateCsrilu02Info;
 import static jcuda.jcusparse.JCusparse.cusparseCreateCsrsv2Info;
 import static jcuda.jcusparse.JCusparse.cusparseCreateMatDescr;
 import static jcuda.jcusparse.JCusparse.cusparseCreateSolveAnalysisInfo;
-import static jcuda.jcusparse.JCusparse.cusparseDcsr2csc;
-import static jcuda.jcusparse.JCusparse.cusparseDcsrgemm;
 import static jcuda.jcusparse.JCusparse.cusparseDestroyCsrilu02Info;
 import static jcuda.jcusparse.JCusparse.cusparseDestroyCsrsv2Info;
 import static jcuda.jcusparse.JCusparse.cusparseDestroyMatDescr;
 import static jcuda.jcusparse.JCusparse.cusparseDestroySolveAnalysisInfo;
+import static jcuda.jcusparse.JCusparse.cusparseScsr2csc;
+import static jcuda.jcusparse.JCusparse.cusparseScsrgemm;
 import static jcuda.jcusparse.JCusparse.cusparseScsrilu02;
 import static jcuda.jcusparse.JCusparse.cusparseScsrilu02_analysis;
 import static jcuda.jcusparse.JCusparse.cusparseScsrilu02_bufferSize;
@@ -110,7 +110,7 @@ public class SparseMatrixDevice extends SparseMatrix implements ICudaLibHandles 
    * @param val values
    * @param matrixInputFormat format of input arrays
    */
-  public SparseMatrixDevice(int[] rowInd, int[] colInd, double[] val,
+  public SparseMatrixDevice(int[] rowInd, int[] colInd, float[] val,
           SparseMatrixType matrixInputFormat) {
     this();
     if (matrixInputFormat == SparseMatrixType.MATRIX_FORMAT_COO
@@ -130,7 +130,7 @@ public class SparseMatrixDevice extends SparseMatrix implements ICudaLibHandles 
             cudaMemcpyHostToDevice);
     cudaMemcpy(colIndPtr, Pointer.to(colInd), getElementNumber() * Sizeof.INT,
             cudaMemcpyHostToDevice);
-    cudaMemcpy(valPtr, Pointer.to(val), getElementNumber() * Sizeof.DOUBLE, cudaMemcpyHostToDevice);
+    cudaMemcpy(valPtr, Pointer.to(val), getElementNumber() * Sizeof.FLOAT, cudaMemcpyHostToDevice);
   }
 
   /**
@@ -145,7 +145,7 @@ public class SparseMatrixDevice extends SparseMatrix implements ICudaLibHandles 
    * @param colNumber number of columns
    * @param matrixInputFormat format of input arrays
    */
-  public SparseMatrixDevice(int[] rowInd, int[] colInd, double[] val, int rowNumber, int colNumber,
+  public SparseMatrixDevice(int[] rowInd, int[] colInd, float[] val, int rowNumber, int colNumber,
           SparseMatrixType matrixInputFormat) {
     this();
     if (matrixInputFormat == SparseMatrixType.MATRIX_FORMAT_COO
@@ -161,12 +161,12 @@ public class SparseMatrixDevice extends SparseMatrix implements ICudaLibHandles 
     this.colNumber = colNumber;
     cudaMalloc(colIndPtr, colInd.length * Sizeof.INT);
     cudaMalloc(rowIndPtr, rowInd.length * Sizeof.INT);
-    cudaMalloc(valPtr, val.length * Sizeof.DOUBLE);
+    cudaMalloc(valPtr, val.length * Sizeof.FLOAT);
     cudaMemcpy(rowIndPtr, Pointer.to(rowInd), getElementNumber() * Sizeof.INT,
             cudaMemcpyHostToDevice);
     cudaMemcpy(colIndPtr, Pointer.to(colInd), getElementNumber() * Sizeof.INT,
             cudaMemcpyHostToDevice);
-    cudaMemcpy(valPtr, Pointer.to(val), getElementNumber() * Sizeof.DOUBLE, cudaMemcpyHostToDevice);
+    cudaMemcpy(valPtr, Pointer.to(val), getElementNumber() * Sizeof.FLOAT, cudaMemcpyHostToDevice);
   }
 
   /**
@@ -229,11 +229,11 @@ public class SparseMatrixDevice extends SparseMatrix implements ICudaLibHandles 
     int indRowSize = computeIndicesLength();
     rowInd = new int[indRowSize];
     colInd = new int[getElementNumber()];
-    val = new double[getElementNumber()];
+    val = new float[getElementNumber()];
     cudaMemcpy(Pointer.to(rowInd), getRowIndPtr(), indRowSize * Sizeof.INT, cudaMemcpyDeviceToHost);
     cudaMemcpy(Pointer.to(colInd), getColIndPtr(), getElementNumber() * Sizeof.INT,
             cudaMemcpyDeviceToHost);
-    cudaMemcpy(Pointer.to(val), getValPtr(), getElementNumber() * Sizeof.DOUBLE,
+    cudaMemcpy(Pointer.to(val), getValPtr(), getElementNumber() * Sizeof.FLOAT,
             cudaMemcpyDeviceToHost);
   }
 
@@ -398,8 +398,8 @@ public class SparseMatrixDevice extends SparseMatrix implements ICudaLibHandles 
     Pointer valOutPtr = new Pointer();
     cudaMemcpy(Pointer.to(nnzOut), nnzOutPtr, Sizeof.INT, cudaMemcpyDeviceToHost);
     cudaMalloc(colIndOutPtr, nnzOut[0] * Sizeof.INT);
-    cudaMalloc(valOutPtr, nnzOut[0] * Sizeof.DOUBLE);
-    cusparseDcsrgemm(handle, nt, nt, m, n, k, this.getDescr(), this.getElementNumber(),
+    cudaMalloc(valOutPtr, nnzOut[0] * Sizeof.FLOAT);
+    cusparseScsrgemm(handle, nt, nt, m, n, k, this.getDescr(), this.getElementNumber(),
             this.getValPtr(), this.getRowIndPtr(), this.getColIndPtr(), m2.getDescr(),
             m2.getElementNumber(), m2.getValPtr(), m2.getRowIndPtr(), m2.getColIndPtr(), descrOut,
             valOutPtr, rowIndOutPtr, colIndOutPtr);
@@ -435,9 +435,9 @@ public class SparseMatrixDevice extends SparseMatrix implements ICudaLibHandles 
     Pointer rowIndPtr = new Pointer();
     cudaMalloc(rowIndPtr, csrm.getElementNumber() * Sizeof.INT);
     Pointer valPtr = new Pointer();
-    cudaMalloc(valPtr, csrm.getElementNumber() * Sizeof.DOUBLE);
+    cudaMalloc(valPtr, csrm.getElementNumber() * Sizeof.FLOAT);
 
-    cusparseDcsr2csc(handle, csrm.getRowNumber(), csrm.getColNumber(), csrm.getElementNumber(),
+    cusparseScsr2csc(handle, csrm.getRowNumber(), csrm.getColNumber(), csrm.getElementNumber(),
             csrm.getValPtr(), csrm.getRowIndPtr(), csrm.getColIndPtr(), valPtr, rowIndPtr,
             colIndPtr, CUSPARSE_ACTION_NUMERIC, CUSPARSE_INDEX_BASE_ZERO);
 
