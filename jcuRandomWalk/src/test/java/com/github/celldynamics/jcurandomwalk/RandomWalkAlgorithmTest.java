@@ -7,6 +7,7 @@ import static org.hamcrest.Matchers.contains;
 
 import java.io.File;
 import java.util.Arrays;
+import java.util.stream.IntStream;
 
 import org.apache.commons.lang3.ArrayUtils;
 import org.junit.After;
@@ -43,6 +44,12 @@ import ij.process.StackStatistics;
  * @author p.baniukiewicz
  */
 public class RandomWalkAlgorithmTest {
+
+  static {
+    LoggerContext loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
+    Logger rootLogger = loggerContext.getLogger("com.github.celldynamics.jcurandomwalk");
+    ((ch.qos.logback.classic.Logger) rootLogger).setLevel(Level.TRACE);
+  }
 
   /** The Constant LOGGER. */
   static final Logger LOGGER = LoggerFactory.getLogger(RandomWalkAlgorithmTest.class.getName());
@@ -268,6 +275,7 @@ public class RandomWalkAlgorithmTest {
     int[] a2 = new int[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 };
     int[] ret = obj.mergeSeeds(a1, a2);
     LOGGER.debug("CS: " + ArrayUtils.toString(ret));
+    assertThat(Arrays.asList(ret), contains(new int[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 }));
 
   }
 
@@ -285,6 +293,54 @@ public class RandomWalkAlgorithmTest {
     ISparseMatrix testL = new SparseMatrixHost(ri, ci, v, SparseMatrixType.MATRIX_FORMAT_COO);
     IMatrix ret = obj.computeB(testL, new int[] { 0, 1 });
     assertThat(Arrays.asList(ret.getVal()), contains(new double[] { -111.0, -11.0, -131.0 }));
+  }
+
+  /**
+   * Test method for
+   * {@link com.github.celldynamics.jcurandomwalk.RandomWalkAlgorithm#getSegmentedStack(double[])}.
+   * 
+   * <p>Check if output stack converted from linear solution has proper orientation - column wise.
+   * 
+   * @throws Exception
+   */
+  @Test
+  public void testGetSegmentedStack() throws Exception {
+    RandomWalkAlgorithm obj = new RandomWalkAlgorithm();
+    ImageStack mockStack = Mockito.mock(ImageStack.class);
+    obj.stack = mockStack;
+    Mockito.doReturn(5).when(mockStack).getWidth();
+    Mockito.doReturn(4).when(mockStack).getHeight();
+    Mockito.doReturn(2).when(mockStack).getSize();
+    double[] solution = IntStream.range(0, 5 * 4 * 2).mapToDouble(x -> x).toArray();
+    ImageStack ret = obj.getSegmentedStack(solution);
+    LOGGER.debug("Segmented stack: " + ret.toString());
+    LOGGER.trace("S1: "
+            + ArrayTools.printArray(ArrayTools.array2Object(ret.getProcessor(2).getFloatArray())));
+    // check column order
+    assertThat(ret.getVoxel(0, 0, 0), closeTo(0.0, 1e-6));
+    assertThat(ret.getVoxel(0, 1, 0), closeTo(1.0, 1e-6));
+    assertThat(ret.getVoxel(1, 0, 0), closeTo(4.0, 1e-6));
+
+    assertThat(ret.getVoxel(0, 0, 1), closeTo(20.0, 1e-6));
+    assertThat(ret.getVoxel(0, 1, 1), closeTo(21.0, 1e-6));
+    assertThat(ret.getVoxel(1, 0, 1), closeTo(24.0, 1e-6));
+
+  }
+
+  /**
+   * Test method for
+   * {@link com.github.celldynamics.jcurandomwalk.RandomWalkAlgorithm#solve(ij.ImageStack)}.
+   */
+  @Test
+  public void testSolve() throws Exception {
+    RandomWalkOptions options = new RandomWalkOptions();
+    ImageStack org = IJ.openImage("src/test/test_data/segment_test_normalised.tif").getImageStack();
+    ImageStack seeds = IJ.openImage("src/test/test_data/segment_test_seeds.tif").getImageStack();
+    RandomWalkAlgorithm obj = new RandomWalkAlgorithm(org, options);
+    obj.computeIncidence(options.ifComputeIncidence);
+    ImageStack segmented = obj.solve(seeds);
+    ImagePlus tmp = new ImagePlus("", segmented);
+    IJ.saveAsTiff(tmp, "/tmp/solution.tif");
   }
 
 }

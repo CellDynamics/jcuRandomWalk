@@ -37,6 +37,7 @@ public class DenseVectorDevice extends DenseVector implements ICudaLibHandles {
    */
   public DenseVectorDevice(int rows, int cols, double[] val) {
     super(rows, cols);
+    this.val = val;
     cudaMalloc(valPtr, getElementNumber() * Sizeof.DOUBLE);
     cudaMemcpy(valPtr, Pointer.to(val), getElementNumber() * Sizeof.DOUBLE, cudaMemcpyHostToDevice);
   }

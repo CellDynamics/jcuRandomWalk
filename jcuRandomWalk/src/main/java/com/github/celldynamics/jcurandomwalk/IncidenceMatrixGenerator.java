@@ -71,6 +71,10 @@ public class IncidenceMatrixGenerator implements Serializable {
    */
   public IncidenceMatrixGenerator(ImageStack stack) {
     this.stack = stack;
+    if (stack.getSize() < 3) {
+      throw new IllegalArgumentException(
+              "Stack should have more than 3 slices due to how the sink box is computed.");
+    }
     LOGGER.debug("Got stack: " + stack.toString());
     StopWatch timer = new StopWatch();
     nrows = stack.getHeight();

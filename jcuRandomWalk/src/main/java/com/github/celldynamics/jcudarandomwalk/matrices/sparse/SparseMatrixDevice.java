@@ -98,9 +98,12 @@ public class SparseMatrixDevice extends SparseMatrix implements ICudaLibHandles 
   }
 
   /**
-   * Create sparse matrix on GPU.
+   * Create sparse matrix on GPU. Number of rows and columns
+   * is computed automatically.
    * 
-   * <p>Specified arrays must have proper size depending on <tt>SparseMatrixType</tt>.
+   * <p>Specified arrays must have proper size depending on <tt>SparseMatrixType</tt>. Note that
+   * this constructor will remove any 0 filled rows or columns which might not be
+   * correct.
    * 
    * @param rowInd indices of rows in matrixInputFormat
    * @param colInd indices of cols in matrixInputFormat
@@ -120,6 +123,42 @@ public class SparseMatrixDevice extends SparseMatrix implements ICudaLibHandles 
     this.colInd = colInd;
     this.val = val;
     updateDimension();
+    cudaMalloc(colIndPtr, colInd.length * Sizeof.INT);
+    cudaMalloc(rowIndPtr, rowInd.length * Sizeof.INT);
+    cudaMalloc(valPtr, val.length * Sizeof.FLOAT);
+    cudaMemcpy(rowIndPtr, Pointer.to(rowInd), getElementNumber() * Sizeof.INT,
+            cudaMemcpyHostToDevice);
+    cudaMemcpy(colIndPtr, Pointer.to(colInd), getElementNumber() * Sizeof.INT,
+            cudaMemcpyHostToDevice);
+    cudaMemcpy(valPtr, Pointer.to(val), getElementNumber() * Sizeof.DOUBLE, cudaMemcpyHostToDevice);
+  }
+
+  /**
+   * Create sparse matrix on GPU.
+   * 
+   * <p>Specified arrays must have proper size depending on <tt>SparseMatrixType</tt>.
+   * 
+   * @param rowInd indices of rows in matrixInputFormat
+   * @param colInd indices of cols in matrixInputFormat
+   * @param val values
+   * @param rowNumber number of rows
+   * @param colNumber number of columns
+   * @param matrixInputFormat format of input arrays
+   */
+  public SparseMatrixDevice(int[] rowInd, int[] colInd, double[] val, int rowNumber, int colNumber,
+          SparseMatrixType matrixInputFormat) {
+    this();
+    if (matrixInputFormat == SparseMatrixType.MATRIX_FORMAT_COO
+            && ((rowInd.length != colInd.length) || (rowInd.length != val.length))) {
+      throw new IllegalArgumentException("Input arrays should have the same length in COO format");
+    }
+    this.matrixFormat = matrixInputFormat;
+    nnz = rowInd.length;
+    this.rowInd = rowInd;
+    this.colInd = colInd;
+    this.val = val;
+    this.rowNumber = rowNumber;
+    this.colNumber = colNumber;
     cudaMalloc(colIndPtr, colInd.length * Sizeof.INT);
     cudaMalloc(rowIndPtr, rowInd.length * Sizeof.INT);
     cudaMalloc(valPtr, val.length * Sizeof.DOUBLE);
@@ -429,7 +468,13 @@ public class SparseMatrixDevice extends SparseMatrix implements ICudaLibHandles 
    */
   @Override
   public IMatrix removeRows(int[] rows) {
-    throw new NotImplementedException("Not implemented");
+    LOGGER.warn("RemoveRows run on CPU");
+    ISparseMatrix tmp = this.convert2coo();
+    IMatrix tmpCpu = tmp.toCpu();
+    IMatrix removed = tmpCpu.removeRows(rows);
+    tmp.free();
+    tmpCpu.free();
+    return removed; // return CPU version!
   }
 
   /*
@@ -439,7 +484,13 @@ public class SparseMatrixDevice extends SparseMatrix implements ICudaLibHandles 
    */
   @Override
   public IMatrix removeCols(int[] cols) {
-    throw new NotImplementedException("Not implemented");
+    LOGGER.warn("removeCols run on CPU");
+    ISparseMatrix tmp = this.convert2coo();
+    IMatrix tmpCpu = tmp.toCpu();
+    IMatrix removed = tmpCpu.removeCols(cols);
+    tmp.free();
+    tmpCpu.free();
+    return removed; // return CPU version!
   }
 
   /*
@@ -463,6 +514,9 @@ public class SparseMatrixDevice extends SparseMatrix implements ICudaLibHandles 
     if (getColNumber() != getRowNumber()) {
       throw new IllegalArgumentException("Left matrix must be square");
     }
+    // if (this.matrixFormat != SparseMatrixType.MATRIX_FORMAT_CSR) {
+    // throw new IllegalArgumentException("Left matrix should be in CSR");
+    // }
     DenseVectorDevice b_gpuPtr = (DenseVectorDevice) b_gpuPtrAny.toGpu();
     int m = getRowNumber();
     int n = m;
@@ -488,8 +542,8 @@ public class SparseMatrixDevice extends SparseMatrix implements ICudaLibHandles 
     // setup solution vector and intermediate vector
     Pointer x_gpuPtr = new Pointer();
     Pointer z_gpuPtr = new Pointer();
-    cudaMalloc(x_gpuPtr, m * Sizeof.FLOAT);
-    cudaMalloc(z_gpuPtr, m * Sizeof.FLOAT);
+    cudaMalloc(x_gpuPtr, m * Sizeof.FLOAT); // changed to DOUBLE
+    cudaMalloc(z_gpuPtr, m * Sizeof.FLOAT); // changed to DOUBLE
 
     // setting up pointers for the sparse iLU matrix, which contains L and U
     // Nvidia's original example overwrites matrix A, which is not ideal
@@ -537,12 +591,14 @@ public class SparseMatrixDevice extends SparseMatrix implements ICudaLibHandles 
     // copy matrix A into iLU
     cudaMalloc(iLUcsrRowIndex_gpuPtr, (m + 1) * Sizeof.INT);
     cudaMalloc(iLUcooColIndex_gpuPtr, nnz * Sizeof.INT);
-    cudaMalloc(iLUcooVal_gpuPtr, nnz * Sizeof.FLOAT);
+    cudaMalloc(iLUcooVal_gpuPtr, nnz * Sizeof.FLOAT); // changed to DOUBLE
     cudaMemcpy(iLUcsrRowIndex_gpuPtr, AcsrRowIndex_gpuPtr, (m + 1) * Sizeof.INT,
             cudaMemcpyDeviceToDevice);
     cudaMemcpy(iLUcooColIndex_gpuPtr, AcooColIndex_gpuPtr, nnz * Sizeof.INT,
             cudaMemcpyDeviceToDevice);
-    cudaMemcpy(iLUcooVal_gpuPtr, AcooVal_gpuPtr, nnz * Sizeof.FLOAT, cudaMemcpyDeviceToDevice);
+    cudaMemcpy(iLUcooVal_gpuPtr, AcooVal_gpuPtr, nnz * Sizeof.FLOAT, cudaMemcpyDeviceToDevice); // changed
+                                                                                                // to
+                                                                                                // DOUBLE
 
     // set up buffer
     int[] pBufferSize_iLU = new int[1];
@@ -668,13 +724,13 @@ public class SparseMatrixDevice extends SparseMatrix implements ICudaLibHandles 
       Pointer s = new Pointer();
       Pointer t = new Pointer();
 
-      cudaMalloc(p, m * Sizeof.FLOAT);
-      cudaMalloc(ph, m * Sizeof.FLOAT);
-      cudaMalloc(q, m * Sizeof.FLOAT);
-      cudaMalloc(r, m * Sizeof.FLOAT);
-      cudaMalloc(rw, m * Sizeof.FLOAT);
-      cudaMalloc(s, m * Sizeof.FLOAT);
-      cudaMalloc(t, m * Sizeof.FLOAT);
+      cudaMalloc(p, m * Sizeof.FLOAT); // changed to DOUBLE
+      cudaMalloc(ph, m * Sizeof.FLOAT); // changed to DOUBLE
+      cudaMalloc(q, m * Sizeof.FLOAT); // changed to DOUBLE
+      cudaMalloc(r, m * Sizeof.FLOAT); // changed to DOUBLE
+      cudaMalloc(rw, m * Sizeof.FLOAT); // changed to DOUBLE
+      cudaMalloc(s, m * Sizeof.FLOAT); // changed to DOUBLE
+      cudaMalloc(t, m * Sizeof.FLOAT); // changed to DOUBLE
 
       // BiCGStab parameters (all on host)
       float[] nrmr0 = new float[1];
@@ -692,7 +748,7 @@ public class SparseMatrixDevice extends SparseMatrix implements ICudaLibHandles 
       // pass floats
 
       // BiCGStab numerical parameters
-      int maxit = 200; // maximum number of iterations
+      int maxit = 10; // maximum number of iterations
       float tol = 1e-3f; // tolerance nrmr / nrmr0[0], which is size of
       // current errors divided by initial error
 
