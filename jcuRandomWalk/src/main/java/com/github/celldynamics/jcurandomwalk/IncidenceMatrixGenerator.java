@@ -72,8 +72,7 @@ public class IncidenceMatrixGenerator implements Serializable {
   public IncidenceMatrixGenerator(ImageStack stack) {
     this.stack = stack;
     if (stack.getSize() < 3) {
-      throw new IllegalArgumentException(
-              "Stack should have more than 3 slices due to how the sink box is computed.");
+      LOGGER.warn("Stack should have more than 3 slices due to how the sink box is computed.");
     }
     LOGGER.debug("Got stack: " + stack.toString());
     StopWatch timer = new StopWatch();
@@ -218,8 +217,8 @@ public class IncidenceMatrixGenerator implements Serializable {
       //
       // edge from current pixel to right
       if (right < ncols) { // if no BC this can be larger or equal than ncols and then it is skipped
-        incidence.add(in, i, 1.0);
-        incidence.add(in, rightLin, -1.0);
+        incidence.add(in, i, 1.0f);
+        incidence.add(in, rightLin, -1.0f);
         // weights.add(in, in, computeWeight(stack, rczR, rcz, sigmaGrad, sigmaMean, meanSource));
         coords[cl++] = rczR[0];
         coords[cl++] = rczR[1];
@@ -232,8 +231,8 @@ public class IncidenceMatrixGenerator implements Serializable {
       }
       // edge from current pixel to lower
       if (lower < nrows) {
-        incidence.add(in, i, 1.0);
-        incidence.add(in, lowerLin, -1.0);
+        incidence.add(in, i, 1.0f);
+        incidence.add(in, lowerLin, -1.0f);
         // weights.add(in, in, computeWeight(stack, rczL, rcz, sigmaGrad, sigmaMean, meanSource));
         coords[cl++] = rczL[0];
         coords[cl++] = rczL[1];
@@ -245,8 +244,8 @@ public class IncidenceMatrixGenerator implements Serializable {
       }
       // edge from current pixel to bottom
       if (nz > 1 && bottom < nz) {
-        incidence.add(in, i, 1.0);
-        incidence.add(in, bottomLin, -1.0);
+        incidence.add(in, i, 1.0f);
+        incidence.add(in, bottomLin, -1.0f);
         // weights.add(in, in, computeWeight(stack, rczB, rcz, sigmaGrad, sigmaMean, meanSource));
         coords[cl++] = rczB[0];
         coords[cl++] = rczB[1];
@@ -279,7 +278,7 @@ public class IncidenceMatrixGenerator implements Serializable {
       rc[1] = coords[i + 4];
       rc[2] = coords[i + 5];
       double w = computeWeight(stack, rcz, rc, sigmaGrad, sigmaMean, meanSource);
-      weights.add(l, l, w);
+      weights.add(l, l, (float) w);
       l++;
     }
     weights.updateDimension();

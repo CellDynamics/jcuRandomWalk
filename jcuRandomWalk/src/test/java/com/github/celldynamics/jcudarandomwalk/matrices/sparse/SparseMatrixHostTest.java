@@ -55,7 +55,7 @@ public class SparseMatrixHostTest {
     assertThat(f[0].length, is(4));
     assertThat(test.getColInd().length, is(9));
     assertThat(Arrays.asList(ArrayUtils.toObject(test.getVal())),
-            contains(1.0, 4.0, 2.0, 3.0, 5.0, 7.0, 8.0, 9.0, 6.0)); // order from page 16
+            contains(1.0f, 4.0f, 2.0f, 3.0f, 5.0f, 7.0f, 8.0f, 9.0f, 6.0f)); // order from page 16
 
   }
 
@@ -128,7 +128,7 @@ public class SparseMatrixHostTest {
   public void testToSparseMatrixDevice() throws Exception {
     int[] rowInd = new int[] { 0, 0, 1, 1, 2, 2, 2, 3, 3 };
     int[] colInd = new int[] { 0, 1, 1, 2, 0, 3, 4, 2, 4 };
-    double[] val = new double[] { 1, 4, 2, 3, 5, 7, 8, 9, 6 };
+    float[] val = new float[] { 1, 4, 2, 3, 5, 7, 8, 9, 6 };
     SparseMatrixHost test =
             new SparseMatrixHost(rowInd, colInd, val, SparseMatrixType.MATRIX_FORMAT_COO);
     SparseMatrixDevice spd = (SparseMatrixDevice) test.toGpu();
@@ -150,7 +150,7 @@ public class SparseMatrixHostTest {
     // Laplacian is square, assume diagonal only
     int[] ri = new int[] { 0, 0, 0, 1, 2, 3, 4, 4, 5 };
     int[] ci = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
-    double[] v = new double[] { 10, 101, 102, 11, 12, 13, 131, 14, 15 };
+    float[] v = new float[] { 10, 101, 102, 11, 12, 13, 131, 14, 15 };
     ISparseMatrix testL = new SparseMatrixHost(ri, ci, v, SparseMatrixType.MATRIX_FORMAT_COO);
     LOGGER.debug("Laplacean" + testL.toString());
 
@@ -164,7 +164,7 @@ public class SparseMatrixHostTest {
     assertThat(ret.getRowNumber(), is(3));
     assertThat(ret.getElementNumber(), is(5));
     assertThat(Arrays.asList(ret.getVal()),
-            contains(new double[] { 10.0, 101.0, 102.0, 12.0, 15.0 }));
+            contains(new float[] { 10.0f, 101.0f, 102.0f, 12.0f, 15.0f }));
     LOGGER.trace(
             "Red" + ArrayTools.printArray(ArrayTools.array2Object(((ISparseMatrix) ret).full())));
   }
@@ -180,7 +180,7 @@ public class SparseMatrixHostTest {
     // Laplacian is square, assume diagonal only
     int[] ri = new int[] { 0, 0, 0, 1, 2, 3, 4, 4, 5 };
     int[] ci = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
-    double[] v = new double[] { 10, 101, 102, 11, 12, 13, 131, 14, 15 };
+    float[] v = new float[] { 10, 101, 102, 11, 12, 13, 131, 14, 15 };
     ISparseMatrix testL = new SparseMatrixHost(ri, ci, v, SparseMatrixType.MATRIX_FORMAT_COO);
     LOGGER.debug("Laplacean" + testL.toString());
 
@@ -194,7 +194,7 @@ public class SparseMatrixHostTest {
     assertThat(ret.getRowNumber(), is(5));
     assertThat(ret.getElementNumber(), is(8));
     assertThat(Arrays.asList(ret.getVal()),
-            contains(new double[] { 10.0, 101.0, 102.0, 11.0, 13.0, 131.0, 14.0, 15.0 }));
+            contains(new float[] { 10.0f, 101.0f, 102.0f, 11.0f, 13.0f, 131.0f, 14.0f, 15.0f }));
     LOGGER.debug(
             "Red" + ArrayTools.printArray(ArrayTools.array2Object(((ISparseMatrix) ret).full())));
   }
@@ -212,7 +212,7 @@ public class SparseMatrixHostTest {
     // Laplacian is square, assume diagonal only
     int[] ri = new int[] { 0, 0, 0, 1, 2, 3, 4, 4, 5 };
     int[] ci = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
-    double[] v = new double[] { 10, 101, 102, 11, 12, 13, 131, 14, 15 };
+    float[] v = new float[] { 10, 101, 102, 11, 12, 13, 131, 14, 15 };
     ISparseMatrix testL = new SparseMatrixHost(ri, ci, v, SparseMatrixType.MATRIX_FORMAT_COO);
     LOGGER.debug("Laplacean" + testL.toString());
 
@@ -225,7 +225,7 @@ public class SparseMatrixHostTest {
     assertThat(ret.getRowNumber(), is(5));
     assertThat(ret.getElementNumber(), is(8));
     assertThat(Arrays.asList(ret.getVal()),
-            contains(new double[] { 10.0, 101.0, 102.0, 11.0, 13.0, 131.0, 14.0, 15.0 }));
+            contains(new float[] { 10.0f, 101.0f, 102.0f, 11.0f, 13.0f, 131.0f, 14.0f, 15.0f }));
     assertThat(Arrays.asList(((ISparseMatrix) ret).getRowInd()),
             contains(new int[] { 0, 0, 0, 1, 2, 3, 3, 4 }));
     assertThat(Arrays.asList(((ISparseMatrix) ret).getColInd()),
@@ -245,7 +245,7 @@ public class SparseMatrixHostTest {
     // Laplacian is square, assume diagonal only
     int[] ri = new int[] { 0, 0, 0, 1, 2, 3, 4, 4, 5 };
     int[] ci = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
-    double[] v = new double[] { 10, 101, 102, 11, 12, 13, 131, 14, 15 };
+    float[] v = new float[] { 10, 101, 102, 11, 12, 13, 131, 14, 15 };
     ISparseMatrix testL = new SparseMatrixHost(ri, ci, v, SparseMatrixType.MATRIX_FORMAT_COO);
     LOGGER.debug("Laplacean" + testL.toString());
 
@@ -258,7 +258,7 @@ public class SparseMatrixHostTest {
     assertThat(ret.getRowNumber(), is(4));
     assertThat(ret.getElementNumber(), is(6));
     assertThat(Arrays.asList(ret.getVal()),
-            contains(new double[] { 10.0, 101.0, 102.0, 11.0, 13.0, 15.0 }));
+            contains(new float[] { 10.0f, 101.0f, 102.0f, 11.0f, 13.0f, 15.0f }));
     assertThat(Arrays.asList(((ISparseMatrix) ret).getRowInd()),
             contains(new int[] { 0, 0, 0, 1, 2, 3 }));
     assertThat(Arrays.asList(((ISparseMatrix) ret).getColInd()),
@@ -276,7 +276,7 @@ public class SparseMatrixHostTest {
     // Laplacian is square, assume diagonal only
     int[] ri = new int[] { 0, 0, 0, 1, 2, 3, 4, 4, 5 };
     int[] ci = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
-    double[] v = new double[] { 10, 101, 102, 11, 12, 13, 131, 14, 15 };
+    float[] v = new float[] { 10, 101, 102, 11, 12, 13, 131, 14, 15 };
     ISparseMatrix testL = new SparseMatrixHost(ri, ci, v, SparseMatrixType.MATRIX_FORMAT_COO);
     LOGGER.debug("Laplacean" + testL.toString());
 
@@ -290,7 +290,7 @@ public class SparseMatrixHostTest {
     assertThat(ret.getRowNumber(), is(4));
     assertThat(ret.getElementNumber(), is(5));
     assertThat(Arrays.asList(ret.getVal()),
-            contains(new double[] { 10.0, 102.0, 12.0, 131.0, 15.0 }));
+            contains(new float[] { 10.0f, 102.0f, 12.0f, 131.0f, 15.0f }));
     LOGGER.trace(
             "Red" + ArrayTools.printArray(ArrayTools.array2Object(((ISparseMatrix) ret).full())));
   }
@@ -306,7 +306,7 @@ public class SparseMatrixHostTest {
     // Laplacian is square, assume diagonal only
     int[] ri = new int[] { 0, 0, 0, 1, 2, 3, 4, 4, 5 };
     int[] ci = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
-    double[] v = new double[] { 10, 101, 102, 11, 12, 13, 131, 14, 15 };
+    float[] v = new float[] { 10, 101, 102, 11, 12, 13, 131, 14, 15 };
     ISparseMatrix testL = new SparseMatrixHost(ri, ci, v, SparseMatrixType.MATRIX_FORMAT_COO);
     LOGGER.debug("Laplacean" + testL.toString());
 
@@ -320,7 +320,7 @@ public class SparseMatrixHostTest {
     assertThat(ret.getRowNumber(), is(5));
     assertThat(ret.getElementNumber(), is(8));
     assertThat(Arrays.asList(ret.getVal()),
-            contains(new double[] { 10.0, 101.0, 102.0, 11.0, 13.0, 131.0, 14.0, 15.0 }));
+            contains(new float[] { 10.0f, 101.0f, 102.0f, 11.0f, 13.0f, 131.0f, 14.0f, 15.0f }));
     LOGGER.trace(
             "Red" + ArrayTools.printArray(ArrayTools.array2Object(((ISparseMatrix) ret).full())));
   }
@@ -338,7 +338,7 @@ public class SparseMatrixHostTest {
     // Laplacian is square, assume diagonal only
     int[] ri = new int[] { 0, 0, 0, 1, 2, 3, 4, 4, 5 };
     int[] ci = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
-    double[] v = new double[] { 10, 101, 102, 11, 12, 13, 131, 14, 15 };
+    float[] v = new float[] { 10, 101, 102, 11, 12, 13, 131, 14, 15 };
     ISparseMatrix testL = new SparseMatrixHost(ri, ci, v, SparseMatrixType.MATRIX_FORMAT_COO);
     LOGGER.debug("Laplacean" + testL.toString());
 
@@ -351,7 +351,7 @@ public class SparseMatrixHostTest {
     assertThat(ret.getRowNumber(), is(6));
     assertThat(ret.getElementNumber(), is(8));
     assertThat(Arrays.asList(ret.getVal()),
-            contains(new double[] { 10.0, 101.0, 102.0, 11.0, 13.0, 131.0, 14.0, 15.0 }));
+            contains(new float[] { 10.0f, 101.0f, 102.0f, 11.0f, 13.0f, 131.0f, 14.0f, 15.0f }));
     assertThat(Arrays.asList(((ISparseMatrix) ret).getRowInd()),
             contains(new int[] { 0, 0, 0, 1, 3, 4, 4, 5 }));
     assertThat(Arrays.asList(((ISparseMatrix) ret).getColInd()),
@@ -371,7 +371,7 @@ public class SparseMatrixHostTest {
     // Laplacian is square, assume diagonal only
     int[] ri = new int[] { 0, 0, 0, 1, 2, 3, 4, 4, 5 };
     int[] ci = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
-    double[] v = new double[] { 10, 101, 102, 11, 12, 13, 131, 14, 15 };
+    float[] v = new float[] { 10, 101, 102, 11, 12, 13, 131, 14, 15 };
     ISparseMatrix testL = new SparseMatrixHost(ri, ci, v, SparseMatrixType.MATRIX_FORMAT_COO);
     LOGGER.debug("Laplacean" + testL.toString());
 
@@ -384,7 +384,7 @@ public class SparseMatrixHostTest {
     assertThat(ret.getRowNumber(), is(6));
     assertThat(ret.getElementNumber(), is(6));
     assertThat(Arrays.asList(ret.getVal()),
-            contains(new double[] { 101.0, 102.0, 11.0, 13.0, 14.0, 15.0 }));
+            contains(new float[] { 101.0f, 102.0f, 11.0f, 13.0f, 14.0f, 15.0f }));
     assertThat(Arrays.asList(((ISparseMatrix) ret).getRowInd()),
             contains(new int[] { 0, 0, 1, 3, 4, 5 }));
     assertThat(Arrays.asList(((ISparseMatrix) ret).getColInd()),
@@ -400,12 +400,12 @@ public class SparseMatrixHostTest {
   public void testSumAlongRows() throws Exception {
     int[] ri = new int[] { 0, 0, 0, 1, 2, 3, 4, 4, 5 };
     int[] ci = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
-    double[] v = new double[] { 10, 101, 102, 11, 12, 13, 131, 14, 15 };
+    float[] v = new float[] { 10, 101, 102, 11, 12, 13, 131, 14, 15 };
     ISparseMatrix testL = new SparseMatrixHost(ri, ci, v, SparseMatrixType.MATRIX_FORMAT_COO);
 
     IMatrix ret = testL.sumAlongRows();
     assertThat(Arrays.asList(ret.getVal()),
-            contains(new double[] { 213.0, 11.0, 12.0, 13.0, 145.0, 15.0 }));
+            contains(new float[] { 213.0f, 11.0f, 12.0f, 13.0f, 145.0f, 15.0f }));
     LOGGER.trace(
             "Sum" + ArrayTools.printArray(ArrayTools.array2Object(((ISparseMatrix) ret).full())));
   }
@@ -422,12 +422,12 @@ public class SparseMatrixHostTest {
     // like output from testRemoveCols_3
     int[] ri = new int[] { 0, 0, 1, 3, 4, 5 };
     int[] ci = new int[] { 0, 3, 0, 1, 2, 3 };
-    double[] v = new double[] { 101.0, 102.0, 11.0, 13.0, 14.0, 15.0 };
+    float[] v = new float[] { 101.0f, 102.0f, 11.0f, 13.0f, 14.0f, 15.0f };
     ISparseMatrix testL = new SparseMatrixHost(ri, ci, v, SparseMatrixType.MATRIX_FORMAT_COO);
 
     IMatrix ret = testL.sumAlongRows();
     assertThat(Arrays.asList(ret.getVal()),
-            contains(new double[] { 203.0, 11.0, 0.0, 13.0, 14.0, 15.0 }));
+            contains(new float[] { 203.0f, 11.0f, 0.0f, 13.0f, 14.0f, 15.0f }));
   }
 
 }

@@ -31,7 +31,7 @@ public abstract class SparseMatrix implements ISparseMatrix, Serializable {
 
   protected int[] rowInd; // rows
   protected int[] colInd; // cols
-  protected double[] val; // value
+  protected float[] val; // value
   protected int rowNumber; // number of rows
   protected int colNumber; // number of cols
 
@@ -67,7 +67,7 @@ public abstract class SparseMatrix implements ISparseMatrix, Serializable {
    * @see com.github.celldynamics.jcudarandomwalk.matrices.IMatrix#getVal()
    */
   @Override
-  public double[] getVal() {
+  public float[] getVal() {
     if (val == null && this instanceof SparseMatrixDevice) {
       ((SparseMatrixDevice) this).retrieveFromDevice();
     }
@@ -173,7 +173,7 @@ public abstract class SparseMatrix implements ISparseMatrix, Serializable {
    * @return matrix of type 'type' from above arrays
    */
   public static ISparseMatrix sparseMatrixFactory(ISparseMatrix type, int[] rowInd, int[] colInd,
-          double[] val, SparseMatrixType matrixInputFormat) {
+          float[] val, SparseMatrixType matrixInputFormat) {
     if (rowInd.length == 0 || colInd.length == 0 || val.length == 0) {
       throw new IllegalArgumentException(
               "One or more arrays passed to sparseMatrixFactory are 0-sized");
@@ -182,7 +182,7 @@ public abstract class SparseMatrix implements ISparseMatrix, Serializable {
     Class<?>[] carg = new Class[4]; // Our constructor has 4 arguments
     carg[0] = int[].class;
     carg[1] = int[].class;
-    carg[2] = double[].class;
+    carg[2] = float[].class;
     carg[3] = SparseMatrixType.class;
     try {
       return (ISparseMatrix) classToLoad.getDeclaredConstructor(carg).newInstance(rowInd, colInd,
@@ -206,7 +206,7 @@ public abstract class SparseMatrix implements ISparseMatrix, Serializable {
    * @return matrix of type 'type' from above arrays
    */
   public static ISparseMatrix sparseMatrixFactory(ISparseMatrix type, int[] rowInd, int[] colInd,
-          double[] val, int rowNumber, int colNumber, SparseMatrixType matrixInputFormat) {
+          float[] val, int rowNumber, int colNumber, SparseMatrixType matrixInputFormat) {
     if (rowInd.length == 0 || colInd.length == 0 || val.length == 0) {
       throw new IllegalArgumentException(
               "One or more arrays passed to sparseMatrixFactory are 0-sized");
@@ -215,7 +215,7 @@ public abstract class SparseMatrix implements ISparseMatrix, Serializable {
     Class<?>[] carg = new Class[6]; // Our constructor has 4 arguments
     carg[0] = int[].class;
     carg[1] = int[].class;
-    carg[2] = double[].class;
+    carg[2] = float[].class;
     carg[3] = int.class;
     carg[4] = int.class;
     carg[5] = SparseMatrixType.class;
@@ -237,8 +237,7 @@ public abstract class SparseMatrix implements ISparseMatrix, Serializable {
    * @param val values
    * @param matrixInputFormat type of matrix
    */
-  public SparseMatrix(int[] rowInd, int[] colInd, double[] val,
-          SparseMatrixType matrixInputFormat) {
+  public SparseMatrix(int[] rowInd, int[] colInd, float[] val, SparseMatrixType matrixInputFormat) {
     throw new NotImplementedException("This constructor must be implemented in concrete classes.");
   }
 
@@ -253,7 +252,7 @@ public abstract class SparseMatrix implements ISparseMatrix, Serializable {
    * @param colNumber number of columns
    * @param matrixInputFormat type of matrix
    */
-  public SparseMatrix(int[] rowInd, int[] colInd, double[] val, int rowNumber, int colNumber,
+  public SparseMatrix(int[] rowInd, int[] colInd, float[] val, int rowNumber, int colNumber,
           SparseMatrixType matrixInputFormat) {
     throw new NotImplementedException("This constructor must be implemented in concrete classes.");
   }
