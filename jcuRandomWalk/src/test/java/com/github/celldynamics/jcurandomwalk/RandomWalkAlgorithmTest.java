@@ -281,7 +281,15 @@ public class RandomWalkAlgorithmTest {
 
   /**
    * Test compute B.
-   *
+   * 
+   * <p>Matrix:
+   * 10 101 0 0 0 102
+   * 0 11 0 0 0 0
+   * 0 0 12 0 0 0
+   * 0 0 0 13 0 0
+   * 131 0 0 0 14 0
+   * 0 0 0 0 0 15
+   * 
    * @throws Exception the exception
    */
   @Test
@@ -293,7 +301,7 @@ public class RandomWalkAlgorithmTest {
     ISparseMatrix testL = new SparseMatrixHost(ri, ci, v, SparseMatrixType.MATRIX_FORMAT_COO);
     IMatrix ret = obj.computeB(testL, new int[] { 0, 1 });
     assertThat(Arrays.asList(ret.getVal()),
-            contains(new float[] { -111.0f, -11.0f, -0f, -0f, -131.0f }));
+            contains(new float[] { -111.0f, -11.0f, -0f, -0f, -131.0f, -0.0f }));
   }
 
   /**
