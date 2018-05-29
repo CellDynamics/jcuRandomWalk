@@ -20,6 +20,7 @@ import com.github.celldynamics.versioning.ToolVersion;
 import com.github.celldynamics.versioning.ToolVersionStruct;
 
 import ij.IJ;
+import ij.ImagePlus;
 import ij.ImageStack;
 
 /**
@@ -113,7 +114,8 @@ public class JcuRandomWalk {
       if (cmd.hasOption("defaultprocessing")) {
         rwOptions.ifApplyProcessing = true;
       }
-      selectGpu(); // initilaise gpu (if selected)
+
+      // run();
 
     } catch (org.apache.commons.cli.ParseException pe) {
       System.err.println("Parsing failed: " + pe.getMessage());
@@ -166,6 +168,8 @@ public class JcuRandomWalk {
     }
 
     ImageStack segmented = rwa.solve(seed);
+    ImagePlus tmp = new ImagePlus("", segmented);
+    IJ.saveAsTiff(tmp, "/tmp/solution.tif");
 
     // TODO finish
     timer.stop();

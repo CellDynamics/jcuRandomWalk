@@ -19,7 +19,6 @@ import com.github.celldynamics.jcudarandomwalk.matrices.dense.DenseVectorHost;
 import com.github.celldynamics.jcudarandomwalk.matrices.dense.IDenseVector;
 import com.github.celldynamics.jcudarandomwalk.matrices.sparse.ISparseMatrix;
 import com.github.celldynamics.jcudarandomwalk.matrices.sparse.SparseMatrixDevice;
-import com.github.celldynamics.jcudarandomwalk.matrices.sparse.SparseMatrixHost;
 
 import ij.ImagePlus;
 import ij.ImageStack;
@@ -153,13 +152,14 @@ public class RandomWalkAlgorithm {
     // cpuL = (ISparseMatrix) lapCoo.toCpu();
     // lapCoo.free();
     int[] merged = mergeSeeds(source, sink);
-    IMatrix lapRowsRem = lap.removeRows(merged);
+    LOGGER.trace("Rows to be removed: " + merged.length);
+    IMatrix lapRowsRem = lap.removeRows(merged); // return is on cpu
 
     this.b = computeB(lapRowsRem, source);
     ISparseMatrix reducedL = (ISparseMatrix) lapRowsRem.removeCols(merged);
-    if (reducedL instanceof SparseMatrixHost) {
-      ((SparseMatrixHost) reducedL).compressSparseIndices(); // FIXME is necessary?
-    }
+    // if (reducedL instanceof SparseMatrixHost) {
+    // ((SparseMatrixHost) reducedL).compressSparseIndices(); // FIXME is necessary?
+    // }
     lapRowsRem.free();
     timer.stop();
     LOGGER.info("Laplacian reduced in " + timer.toString());
@@ -185,9 +185,9 @@ public class RandomWalkAlgorithm {
       int[] colsRemove =
               IntStream.range(0, lap.getColNumber()).filter(x -> !ilist.contains(x)).toArray();
       IMatrix tmp = lap.removeCols(colsRemove);
-      if (tmp instanceof SparseMatrixHost) {
-        ((SparseMatrixHost) tmp).compressSparseIndices(); // FIXME is necessary?
-      }
+      // if (tmp instanceof SparseMatrixHost) {
+      // ((SparseMatrixHost) tmp).compressSparseIndices(); // FIXME is necessary?
+      // }
       ISparseMatrix ret = (ISparseMatrix) tmp.sumAlongRows();
       for (int i = 0; i < ret.getVal().length; i++) {
         ret.getVal()[i] *= -1;
@@ -255,28 +255,39 @@ public class RandomWalkAlgorithm {
    * Main routine.
    * 
    * @param seed
+   * @return Segmented stack
    */
   public ImageStack solve(ImageStack seed) {
     computeLaplacian();
     int[] seedIndices = getSourceIndices(seed);
     computeReducedLaplacian(seedIndices, getImg().getSinkBox());
-    double[] solved = getReducedLap().luSolve(b, true);
-    double[] solvedSeeds = incorporateSeeds(solved, seedIndices);
+    ISparseMatrix reducedLapGpu = (ISparseMatrix) getReducedLap().toGpu();
+    ISparseMatrix reducedLapGpuCsr = reducedLapGpu.convert2csr();
+    reducedLapGpu.free();
+    double[] solved = reducedLapGpuCsr.luSolve(b, true);
+    double[] solvedSeeds = incorporateSeeds(solved, seedIndices, getImg().getSinkBox());
 
-    return null;
+    ImageStack ret = getSegmentedStack(solvedSeeds);
+    reducedLapGpuCsr.free();
+    return ret;
   }
 
   /**
+   * Set 1.0 in vector x at positions from seeds and 0 at positions from sink.
    * 
-   * @param x
-   * @param seeds
-   * @return
+   * @param x vector of solution
+   * @param seeds indices of seeds (column ordered, got from {@link #getSourceIndices(ImageStack)}
+   * @param sink sink indices, taken from e.g {@link IncidenceMatrixGenerator#computeSinkBox()}
+   * @return copy of vector x with incorporated seeds (1.0 set on positions from seeds)
    */
-  double[] incorporateSeeds(double[] x, int[] seeds) {
+  double[] incorporateSeeds(double[] x, int[] seeds, int[] sink) {
 
     double[] ret = Arrays.copyOf(x, x.length);
     for (int i = 0; i < seeds.length; i++) {
       ret[seeds[i]] = 1.0;
+    }
+    for (int i = 0; i < sink.length; i++) {
+      ret[sink[i]] = 0.0;
     }
     return ret;
   }
@@ -300,12 +311,44 @@ public class RandomWalkAlgorithm {
   }
 
   /**
+   * Change solution of the problem into ImageStack.
+   * 
+   * @param solution Solution vector, must
+   * @return Stack
+   */
+  ImageStack getSegmentedStack(double[] solution) {
+    int nrows = stack.getHeight();
+    int ncols = stack.getWidth();
+    int nz = stack.getSize();
+
+    StopWatch timer = StopWatch.createStarted();
+    if (solution.length != IncidenceMatrixGenerator.getNodesNumber(nrows, ncols, nz)) {
+      throw new IllegalArgumentException(
+              "length of sulution different than number of expected pixels.");
+    }
+    ImageStack ret = ImageStack.create(ncols, nrows, nz, 32);
+    int[] ind = new int[3];
+    for (int lin = 0; lin < solution.length; lin++) {
+      IncidenceMatrixGenerator.lin20ind(lin, nrows, ncols, nz, ind);
+      int y = ind[0]; // row
+      int x = ind[1];
+      int z = ind[2];
+      ret.setVoxel(x, y, z, solution[lin]);
+    }
+    timer.stop();
+    LOGGER.info("Result converted to stack in " + timer.toString());
+    return ret;
+  }
+
+  /**
    * Obtain indices of seed pixels from stack. Indices are computed in column-ordered manner.
    * 
    * <p>Ordering:
    * 0 3
    * 1 4
    * 2 5
+   * 
+   * <p>It is possible to use this method for obtaining sink indices by reversing stack.
    * 
    * @param seedStack Pixels with intensity >0 are considered as seed. Expect 8-bit binary stacks.
    * @return array of indices.

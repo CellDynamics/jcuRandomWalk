@@ -67,3 +67,18 @@ for k=[1,Z] %all vertices in bottom and top layer of image volume
 end
 
 Sink-1
+%% remove rows
+c=[0,1,5,1,2,3,0,4,5]+1;
+r=[0,0,0,1,2,3,4,4,5]+1;
+v=[10,101,102,11,12,13,131,14,15];
+
+s=sparse(r,c,v);
+full(s)
+s' % to see order like in Java
+% (col, row) in java
+sr = s;
+sr([3],:)=[]
+full(sr)
+
+sc = s;
+sc(:,[1,3])=[]

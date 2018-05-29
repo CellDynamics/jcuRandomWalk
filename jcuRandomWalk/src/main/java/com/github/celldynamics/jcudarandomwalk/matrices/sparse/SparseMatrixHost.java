@@ -49,7 +49,11 @@ public class SparseMatrixHost extends SparseMatrix {
   }
 
   /**
-   * Create sparse matrix from indices. Note that arrays are not copied.
+   * Create sparse matrix from indices. Note that arrays are not copied. Number of rows and columns
+   * is computed automatically.
+   * 
+   * <p>Note that this constructor will remove any 0 filled rows or columns which might not be
+   * correct.
    * 
    * @param rowInd rows
    * @param colInd columns
@@ -73,6 +77,37 @@ public class SparseMatrixHost extends SparseMatrix {
         throw new NotImplementedException("This format is not implemented yet");
     }
     updateDimension();
+  }
+
+  /**
+   * Create sparse matrix from indices. Note that arrays are not copied.
+   * 
+   * @param rowInd rows
+   * @param colInd columns
+   * @param val values
+   * @param rowNumber number of rows
+   * @param colNumber number of columns
+   * @param type type of sparse matrix
+   */
+  public SparseMatrixHost(int[] rowInd, int[] colInd, double[] val, int rowNumber, int colNumber,
+          SparseMatrixType type) {
+    switch (type) {
+      case MATRIX_FORMAT_COO:
+        if ((rowInd.length != colInd.length) || (rowInd.length != val.length)) {
+          throw new IllegalArgumentException(
+                  "Input arrays should have the same length in COO format");
+        }
+        this.rowInd = rowInd;
+        this.colInd = colInd;
+        this.val = val;
+        this.nnz = rowInd.length;
+        this.counter = this.nnz; // to block adding
+        this.rowNumber = rowNumber;
+        this.colNumber = colNumber;
+        break;
+      default:
+        throw new NotImplementedException("This format is not implemented yet");
+    }
   }
 
   /**
@@ -119,7 +154,8 @@ public class SparseMatrixHost extends SparseMatrix {
    */
   @Override
   public ISparseMatrix toGpu() {
-    return new SparseMatrixDevice(getRowInd(), getColInd(), getVal(), matrixFormat);
+    return new SparseMatrixDevice(getRowInd(), getColInd(), getVal(), getRowNumber(),
+            getColNumber(), matrixFormat);
   }
 
   @Override
@@ -194,6 +230,7 @@ public class SparseMatrixHost extends SparseMatrix {
 
     ISparseMatrix reducedL;
     reducedL = SparseMatrix.sparseMatrixFactory(this, newRowIndcp, newColInd, newVal,
+            this.getRowNumber() - rows.length, this.getColNumber(),
             SparseMatrixType.MATRIX_FORMAT_COO);
 
     return reducedL;
@@ -376,13 +413,17 @@ public class SparseMatrixHost extends SparseMatrix {
     int[] riret = IntStream.range(0, ret.length).toArray();
     Arrays.fill(ciret, 0);
 
-    return SparseMatrix.sparseMatrixFactory(this, riret, ciret, ret,
+    return SparseMatrix.sparseMatrixFactory(this, riret, ciret, ret, this.getRowNumber(), 1,
             SparseMatrixType.MATRIX_FORMAT_COO);
   }
 
   @Override
   public double[] luSolve(IDenseVector b_gpuPtr, boolean iLuBiCGStabSolve) {
-    throw new NotImplementedException("this is not supported");
+    LOGGER.warn("luSolve run on GPU");
+    ISparseMatrix gp = this.toGpu();
+    double[] ret = gp.luSolve(b_gpuPtr, iLuBiCGStabSolve);
+    gp.free();
+    return ret;
   }
 
 }

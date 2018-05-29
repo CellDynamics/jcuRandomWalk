@@ -157,9 +157,9 @@ public abstract class SparseMatrix implements ISparseMatrix, Serializable {
    */
   @Override
   public String toString() {
-    return "SparseMatrix [matrixFormat=" + matrixFormat + ", nnz=" + nnz + ", rowInd="
-            + Arrays.toString(rowInd) + ", colInd=" + Arrays.toString(colInd) + ", val="
-            + Arrays.toString(val) + ", rowNumber=" + rowNumber + ", colNumber=" + colNumber + "]";
+    return "SparseMatrix [matrixFormat=" + matrixFormat + ", rowNumber=" + rowNumber
+            + ", colNumber=" + colNumber + ", nnz=" + nnz + ", rowInd=" + Arrays.toString(rowInd)
+            + ", colInd=" + Arrays.toString(colInd) + ", val=" + Arrays.toString(val) + "]";
   }
 
   /**
@@ -174,6 +174,10 @@ public abstract class SparseMatrix implements ISparseMatrix, Serializable {
    */
   public static ISparseMatrix sparseMatrixFactory(ISparseMatrix type, int[] rowInd, int[] colInd,
           double[] val, SparseMatrixType matrixInputFormat) {
+    if (rowInd.length == 0 || colInd.length == 0 || val.length == 0) {
+      throw new IllegalArgumentException(
+              "One or more arrays passed to sparseMatrixFactory are 0-sized");
+    }
     Class<? extends ISparseMatrix> classToLoad = type.getClass();
     Class<?>[] carg = new Class[4]; // Our constructor has 4 arguments
     carg[0] = int[].class;
@@ -190,6 +194,41 @@ public abstract class SparseMatrix implements ISparseMatrix, Serializable {
   }
 
   /**
+   * Produce sparse matrix of the same type as specified from raw data.
+   * 
+   * @param type type of output matrix, can be even empty dummy object
+   * @param rowInd indices of rows
+   * @param colInd indices of columns
+   * @param val values
+   * @param rowNumber number of rows
+   * @param colNumber number of columns
+   * @param matrixInputFormat matrix format
+   * @return matrix of type 'type' from above arrays
+   */
+  public static ISparseMatrix sparseMatrixFactory(ISparseMatrix type, int[] rowInd, int[] colInd,
+          double[] val, int rowNumber, int colNumber, SparseMatrixType matrixInputFormat) {
+    if (rowInd.length == 0 || colInd.length == 0 || val.length == 0) {
+      throw new IllegalArgumentException(
+              "One or more arrays passed to sparseMatrixFactory are 0-sized");
+    }
+    Class<? extends ISparseMatrix> classToLoad = type.getClass();
+    Class<?>[] carg = new Class[6]; // Our constructor has 4 arguments
+    carg[0] = int[].class;
+    carg[1] = int[].class;
+    carg[2] = double[].class;
+    carg[3] = int.class;
+    carg[4] = int.class;
+    carg[5] = SparseMatrixType.class;
+    try {
+      return (ISparseMatrix) classToLoad.getDeclaredConstructor(carg).newInstance(rowInd, colInd,
+              val, rowNumber, colNumber, matrixInputFormat);
+    } catch (InstantiationException | IllegalAccessException | IllegalArgumentException
+            | InvocationTargetException | NoSuchMethodException | SecurityException e) {
+      throw new IllegalArgumentException("Can not create object instance: " + e.getMessage());
+    }
+  }
+
+  /**
    * Default constructor for building sparse matrix from list of indices. Must be implemented in
    * concrete classes.
    * 
@@ -199,6 +238,22 @@ public abstract class SparseMatrix implements ISparseMatrix, Serializable {
    * @param matrixInputFormat type of matrix
    */
   public SparseMatrix(int[] rowInd, int[] colInd, double[] val,
+          SparseMatrixType matrixInputFormat) {
+    throw new NotImplementedException("This constructor must be implemented in concrete classes.");
+  }
+
+  /**
+   * Default constructor for building sparse matrix from list of indices. Must be implemented in
+   * concrete classes.
+   * 
+   * @param rowInd rows
+   * @param colInd columns
+   * @param val values
+   * @param rowNumber number of rows
+   * @param colNumber number of columns
+   * @param matrixInputFormat type of matrix
+   */
+  public SparseMatrix(int[] rowInd, int[] colInd, double[] val, int rowNumber, int colNumber,
           SparseMatrixType matrixInputFormat) {
     throw new NotImplementedException("This constructor must be implemented in concrete classes.");
   }

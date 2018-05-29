@@ -2,6 +2,7 @@ package com.github.celldynamics.jcudarandomwalk.matrices.dense;
 
 import java.io.Serializable;
 import java.lang.reflect.InvocationTargetException;
+import java.util.Arrays;
 
 import org.apache.commons.lang3.NotImplementedException;
 
@@ -146,6 +147,10 @@ public abstract class DenseVector implements IDenseVector, Serializable {
    */
   public static IDenseVector denseVectorFactory(IDenseVector type, int rows, int cols,
           double[] val) {
+    if (val.length == 0) {
+      throw new IllegalArgumentException(
+              "One or more arrays passed to sparseMatrixFactory are 0-sized");
+    }
     Class<? extends IDenseVector> classToLoad = type.getClass();
     Class<?>[] carg = new Class[3]; // Our constructor has 3 arguments
     carg[0] = int.class;
@@ -157,6 +162,17 @@ public abstract class DenseVector implements IDenseVector, Serializable {
             | InvocationTargetException | NoSuchMethodException | SecurityException e) {
       throw new IllegalArgumentException("Can not create object instance: " + e.getMessage());
     }
+  }
+
+  /*
+   * (non-Javadoc)
+   * 
+   * @see java.lang.Object#toString()
+   */
+  @Override
+  public String toString() {
+    return "DenseVector [rowNumber=" + rowNumber + ", colNumber=" + colNumber + ", val="
+            + Arrays.toString(val) + "]";
   }
 
   /**
