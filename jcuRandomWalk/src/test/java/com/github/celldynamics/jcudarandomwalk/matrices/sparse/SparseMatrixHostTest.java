@@ -237,6 +237,12 @@ public class SparseMatrixHostTest {
    * {@link SparseMatrixHost#removeRows(int[])}.
    *
    * <p>Like matlab without compressing 0 columns.
+   * 10 101 0 0 0 102
+   * 0 11 0 0 0 0
+   * 0 0 12 0 0 0
+   * 0 0 0 13 0 0
+   * 131 0 0 0 14 0
+   * 0 0 0 0 0 15
    * 
    * @throws Exception the exception
    */
@@ -263,6 +269,45 @@ public class SparseMatrixHostTest {
             contains(new int[] { 0, 0, 0, 1, 2, 3 }));
     assertThat(Arrays.asList(((ISparseMatrix) ret).getColInd()),
             contains(new int[] { 0, 1, 5, 1, 3, 5 }));
+  }
+
+  /**
+   * Test method for
+   * {@link SparseMatrixHost#removeRows(int[])}.
+   *
+   * <p>Like matlab without compressing 0 columns.
+   * 10 101 0 0 0 102
+   * 0 11 0 0 0 0
+   * 0 0 12 0 0 0
+   * 0 0 0 13 0 0
+   * 131 0 0 0 14 0
+   * 0 0 0 0 0 15
+   * 
+   * @throws Exception the exception
+   */
+  @Test
+  public void testRemoveRows_4() throws Exception {
+    // Laplacian is square, assume diagonal only
+    int[] ri = new int[] { 0, 0, 0, 1, 2, 3, 4, 4, 5 };
+    int[] ci = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
+    float[] v = new float[] { 10, 101, 102, 11, 12, 13, 131, 14, 15 };
+    ISparseMatrix testL = new SparseMatrixHost(ri, ci, v, SparseMatrixType.MATRIX_FORMAT_COO);
+    LOGGER.debug("Laplacean" + testL.toString());
+
+    // remove row/co 1,2,3
+    int[] toRem = new int[] { 5 };
+
+    IMatrix ret = testL.removeRows(toRem);
+    LOGGER.debug("Reduced: " + ret.toString());
+    assertThat(ret.getColNumber(), is(6));
+    assertThat(ret.getRowNumber(), is(5));
+    assertThat(ret.getElementNumber(), is(8));
+    assertThat(Arrays.asList(ret.getVal()),
+            contains(new float[] { 10.0f, 101.0f, 102.0f, 11.0f, 12.0f, 13.0f, 131.0f, 14.0f }));
+    assertThat(Arrays.asList(((ISparseMatrix) ret).getRowInd()),
+            contains(new int[] { 0, 0, 0, 1, 2, 3, 4, 4 }));
+    assertThat(Arrays.asList(((ISparseMatrix) ret).getColInd()),
+            contains(new int[] { 0, 1, 5, 1, 2, 3, 0, 4 }));
   }
 
   /**
@@ -363,6 +408,12 @@ public class SparseMatrixHostTest {
    * {@link SparseMatrixHost#removeCols(int[])}.
    *
    * <p>Like matlab without compressing 0 columns.
+   * 10 101 0 0 0 102
+   * 0 11 0 0 0 0
+   * 0 0 12 0 0 0
+   * 0 0 0 13 0 0
+   * 131 0 0 0 14 0
+   * 0 0 0 0 0 15
    * 
    * @throws Exception the exception
    */
@@ -389,6 +440,45 @@ public class SparseMatrixHostTest {
             contains(new int[] { 0, 0, 1, 3, 4, 5 }));
     assertThat(Arrays.asList(((ISparseMatrix) ret).getColInd()),
             contains(new int[] { 0, 3, 0, 1, 2, 3 }));
+  }
+
+  /**
+   * Test method for
+   * {@link SparseMatrixHost#removeCols(int[])}.
+   *
+   * <p>Like matlab without compressing 0 columns.
+   * 10 101 0 0 0 102
+   * 0 11 0 0 0 0
+   * 0 0 12 0 0 0
+   * 0 0 0 13 0 0
+   * 131 0 0 0 14 0
+   * 0 0 0 0 0 15
+   * 
+   * @throws Exception the exception
+   */
+  @Test
+  public void testRemoveCols_4() throws Exception {
+    // Laplacian is square, assume diagonal only
+    int[] ri = new int[] { 0, 0, 0, 1, 2, 3, 4, 4, 5 };
+    int[] ci = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
+    float[] v = new float[] { 10, 101, 102, 11, 12, 13, 131, 14, 15 };
+    ISparseMatrix testL = new SparseMatrixHost(ri, ci, v, SparseMatrixType.MATRIX_FORMAT_COO);
+    LOGGER.debug("Laplacean" + testL.toString());
+
+    // remove row/co 1,2,3
+    int[] toRem = new int[] { 5 };
+
+    IMatrix ret = testL.removeCols(toRem);
+    LOGGER.debug("Reduced" + ret.toString());
+    assertThat(ret.getColNumber(), is(5));
+    assertThat(ret.getRowNumber(), is(6));
+    assertThat(ret.getElementNumber(), is(7));
+    assertThat(Arrays.asList(ret.getVal()),
+            contains(new float[] { 10.0f, 101.0f, 11.0f, 12.0f, 13.0f, 131.0f, 14.0f }));
+    assertThat(Arrays.asList(((ISparseMatrix) ret).getRowInd()),
+            contains(new int[] { 0, 0, 1, 2, 3, 4, 4 }));
+    assertThat(Arrays.asList(((ISparseMatrix) ret).getColInd()),
+            contains(new int[] { 0, 1, 1, 2, 3, 0, 4 }));
   }
 
   /**

@@ -300,6 +300,7 @@ public class SparseMatrixHost extends SparseMatrix {
 
     ISparseMatrix reducedL;
     reducedL = SparseMatrix.sparseMatrixFactory(this, newRowInd, newColIndcp, newVal,
+            this.getRowNumber(), this.getColNumber() - cols.length,
             SparseMatrixType.MATRIX_FORMAT_COO);
 
     return reducedL;
