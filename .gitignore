@@ -67,4 +67,4 @@ target/
 
 *.m~
 
-data/
+dependency-reduced-pom.xml

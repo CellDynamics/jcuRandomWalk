@@ -58,5 +58,14 @@ public interface ISparseMatrix extends IMatrix {
    */
   public double[][] full();
 
-  public float[] luSolve(IDenseVector b_gpuPtr, boolean iLuBiCGStabSolve);
+  /**
+   * Solver.
+   * 
+   * @param b_gpuPtr right side of equation
+   * @param iLuBiCGStabSolve
+   * @param iter max iteration number
+   * @param tol tolerance
+   * @return solution vector
+   */
+  public float[] luSolve(IDenseVector b_gpuPtr, boolean iLuBiCGStabSolve, int iter, float tol);
 }

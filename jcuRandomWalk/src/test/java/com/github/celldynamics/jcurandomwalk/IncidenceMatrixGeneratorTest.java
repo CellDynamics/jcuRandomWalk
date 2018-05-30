@@ -35,7 +35,7 @@ public class IncidenceMatrixGeneratorTest {
   static {
     LoggerContext loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
     Logger rootLogger = loggerContext.getLogger(IncidenceMatrixGeneratorTest.class.getName());
-    ((ch.qos.logback.classic.Logger) rootLogger).setLevel(Level.TRACE);
+    ((ch.qos.logback.classic.Logger) rootLogger).setLevel(Level.DEBUG);
   }
 
   /**
@@ -90,11 +90,12 @@ public class IncidenceMatrixGeneratorTest {
    */
   @Test
   public void testIncidenceMatrix() throws Exception {
+    RandomWalkOptions options = new RandomWalkOptions();
     LOGGER.debug(
             ArrayTools.printArray(ArrayTools.array2Object(stack.getProcessor(1).getFloatArray())));
     LOGGER.debug(
             ArrayTools.printArray(ArrayTools.array2Object(stack.getProcessor(2).getFloatArray())));
-    IncidenceMatrixGenerator obj = new IncidenceMatrixGenerator(stack);
+    IncidenceMatrixGenerator obj = new IncidenceMatrixGenerator(stack, options.getAlgOptions());
     // check sizes
     ISparseMatrix incid = obj.getIncidence();
     assertThat(incid.getRowNumber(), is(46)); // numbers for tes stack
@@ -174,13 +175,14 @@ public class IncidenceMatrixGeneratorTest {
    */
   @Test
   public void testSaveObject() throws Exception {
-    IncidenceMatrixGenerator obj = new IncidenceMatrixGenerator(stack);
+    RandomWalkOptions options = new RandomWalkOptions();
+    IncidenceMatrixGenerator obj = new IncidenceMatrixGenerator(stack, options.getAlgOptions());
     double[][] objFull = obj.getIncidence().full();
     File filename = folder.newFile();
     obj.saveObject(filename.toString());
     // restore
-    IncidenceMatrixGenerator restored =
-            IncidenceMatrixGenerator.restoreObject(filename.toString(), stack);
+    IncidenceMatrixGenerator restored = IncidenceMatrixGenerator.restoreObject(filename.toString(),
+            stack, options.getAlgOptions());
     double[][] resFull = restored.getIncidence().full();
     for (int c = 0; c < resFull.length; c++) {
       assertThat(Arrays.asList(resFull[c]), contains(objFull[c]));
@@ -264,8 +266,9 @@ public class IncidenceMatrixGeneratorTest {
     int width = 4;
     int height = 3;
     int nz = 3;
+    RandomWalkOptions options = new RandomWalkOptions();
     stack = TestDataGenerators.getTestStack(width, height, nz, "double");
-    IncidenceMatrixGenerator obj = new IncidenceMatrixGenerator(stack);
+    IncidenceMatrixGenerator obj = new IncidenceMatrixGenerator(stack, options.getAlgOptions());
     obj.computeSinkBox();
     int[] b = obj.getSinkBox();
     // Arrays.sort(b);
@@ -307,8 +310,9 @@ public class IncidenceMatrixGeneratorTest {
    */
   @Test
   public void testAssignStack() throws Exception {
+    RandomWalkOptions options = new RandomWalkOptions();
     ImageStack ts = TestDataGenerators.getTestStack_1();
-    IncidenceMatrixGenerator inc = new IncidenceMatrixGenerator(ts);
+    IncidenceMatrixGenerator inc = new IncidenceMatrixGenerator(ts, options.getAlgOptions());
     inc.assignStack(ts);
     LOGGER.trace("Slice 1: "
             + ArrayTools.printArray(ArrayTools.array2Object(ts.getProcessor(1).getFloatArray())));

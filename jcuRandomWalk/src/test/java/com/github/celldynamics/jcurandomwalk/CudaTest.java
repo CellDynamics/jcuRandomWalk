@@ -34,7 +34,6 @@ public class CudaTest {
     JCuda.cudaMalloc(pointer, 4);
     LOGGER.debug("Pointer: " + pointer);
     JCuda.cudaFree(pointer);
-    JCuda.cudaFree(pointer);
   }
 
 }

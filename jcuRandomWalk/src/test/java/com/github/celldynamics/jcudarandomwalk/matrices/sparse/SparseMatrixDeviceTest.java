@@ -82,7 +82,7 @@ public class SparseMatrixDeviceTest {
 
   /**
    * Test method for
-   * {@link com.github.celldynamics.jcudarandomwalk.matrices.sparse.SparseMatrixDevice#SparseMatrixDevice(int[], int[], double[],SparseMatrixType)}.
+   * {@link com.github.celldynamics.jcudarandomwalk.matrices.sparse.SparseMatrixDevice#SparseMatrixDevice(int[], int[], float[], SparseMatrixType)}.
    * 
    * <p>Check array sizes in COO mode.
    * 
@@ -97,7 +97,7 @@ public class SparseMatrixDeviceTest {
 
   /**
    * Test method for
-   * {@link com.github.celldynamics.jcudarandomwalk.matrices.sparse.SparseMatrixDevice#SparseMatrixDevice(int[], int[], double[],SparseMatrixType)}.
+   * {@link com.github.celldynamics.jcudarandomwalk.matrices.sparse.SparseMatrixDevice#SparseMatrixDevice(int[], int[], float[], SparseMatrixType)}.
    * 
    * <p>Check array sizes in COO mode.
    * 
@@ -112,7 +112,7 @@ public class SparseMatrixDeviceTest {
 
   /**
    * Test method for
-   * {@link com.github.celldynamics.jcudarandomwalk.matrices.sparse.SparseMatrixDevice#SparseMatrixDevice(int[], int[], double[],SparseMatrixType)}.
+   * {@link com.github.celldynamics.jcudarandomwalk.matrices.sparse.SparseMatrixDevice#SparseMatrixDevice(int[], int[], float[], SparseMatrixType)}.
    * 
    * <p>Check array sizes in COO mode.
    * 

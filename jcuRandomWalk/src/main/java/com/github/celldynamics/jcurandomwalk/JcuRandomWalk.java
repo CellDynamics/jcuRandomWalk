@@ -10,6 +10,7 @@ import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
+import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.lang3.time.StopWatch;
@@ -19,6 +20,11 @@ import org.slf4j.LoggerFactory;
 import com.github.celldynamics.versioning.ToolVersion;
 import com.github.celldynamics.versioning.ToolVersionStruct;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.LoggerContext;
+import ch.qos.logback.classic.encoder.PatternLayoutEncoder;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.ConsoleAppender;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.ImageStack;
@@ -49,13 +55,11 @@ public class JcuRandomWalk {
     CommandLineParser parser = new DefaultParser();
 
     Option helpOption = Option.builder("h").desc("print this message").longOpt("help").build();
-
     Option verOption = Option.builder("v").desc("Show version").longOpt("version").build();
 
     Option saveIncOption =
             Option.builder().desc("Save incdence matrix for this size of the stack. Default is "
                     + rwOptions.ifSaveIncidence).longOpt("saveincidence").build();
-
     Option loadIncOption = Option.builder()
             .desc("Load incidence matrix for this size of stack or compute new one and save it"
                     + " if relevant file has not been found. Default is "
@@ -66,15 +70,41 @@ public class JcuRandomWalk {
             .desc("Apply default processing to stack. Default is " + rwOptions.ifApplyProcessing)
             .longOpt("defaultprocessing").build();
 
-    Option deviceOption = Option.builder("d").argName("device").hasArg()
+    Option deviceOption = Option.builder().argName("device").hasArg()
             .desc("Select CUDA device. Default is " + rwOptions.device).type(Integer.class)
             .longOpt("device").build();
 
     Option imageOption = Option.builder("i").argName("image").hasArg().required()
             .desc("Stack to process").longOpt("image").build();
-
     Option seedOption = Option.builder("s").argName("seeds").hasArg().required()
             .desc("Seeds as binary image of size of \"image\"").longOpt("seed").build();
+    Option outputOption = Option.builder("o").argName("output").hasArg().required()
+            .desc("Output image").longOpt("output").build();
+
+    Option quietOption = Option.builder("q").desc("Mute output").longOpt("quiet").build();
+    Option debugOption = Option.builder("d").desc("Debug stream").longOpt("debug").build();
+    Option ddebugOption =
+            Option.builder("dd").desc("Even more debug streams").longOpt("superdebug").build();
+    OptionGroup qd = new OptionGroup();
+    qd.addOption(debugOption);
+    qd.addOption(quietOption);
+    qd.addOption(ddebugOption);
+
+    // alg options
+    Option maxitOption = Option.builder().argName("iter").hasArg()
+            .desc("Maximum number of iterations. Default is " + rwOptions.getAlgOptions().maxit)
+            .longOpt("maxit").build();
+    Option tolOption = Option.builder().argName("tol").hasArg()
+            .desc("Tolerance. Default is " + rwOptions.getAlgOptions().tol).longOpt("tol").build();
+    Option sigmaGradOption = Option.builder().argName("num").hasArg()
+            .desc("sigmaGrad. Default is " + rwOptions.getAlgOptions().sigmaGrad)
+            .longOpt("sigmaGrad").build();
+    Option sigmaMeanOption = Option.builder().argName("num").hasArg()
+            .desc("sigmaMean. Default is " + rwOptions.getAlgOptions().sigmaMean)
+            .longOpt("sigmaMean").build();
+    Option meanSourceOption = Option.builder().argName("num").hasArg()
+            .desc("meanSource. Default is " + rwOptions.getAlgOptions().meanSource)
+            .longOpt("meanSource").build();
 
     cliOptions = new Options();
     cliOptions.addOption(seedOption);
@@ -85,6 +115,14 @@ public class JcuRandomWalk {
     cliOptions.addOption(imageOption);
     cliOptions.addOption(verOption);
     cliOptions.addOption(helpOption);
+    cliOptions.addOption(outputOption);
+    cliOptions.addOptionGroup(qd);
+
+    cliOptions.addOption(maxitOption);
+    cliOptions.addOption(tolOption);
+    cliOptions.addOption(sigmaGradOption);
+    cliOptions.addOption(sigmaMeanOption);
+    cliOptions.addOption(meanSourceOption);
 
     Options helpOptions = new Options(); // 2nd group of options
     helpOptions.addOption(verOption); // these are repeated here to have showHelp working
@@ -105,6 +143,9 @@ public class JcuRandomWalk {
       if (cmd.hasOption('s')) {
         rwOptions.seeds = Paths.get(cmd.getOptionValue('s'));
       }
+      if (cmd.hasOption('o')) {
+        rwOptions.output = Paths.get(cmd.getOptionValue('o'));
+      }
       if (cmd.hasOption("loadincidence")) {
         rwOptions.ifComputeIncidence = false;
       }
@@ -114,8 +155,18 @@ public class JcuRandomWalk {
       if (cmd.hasOption("defaultprocessing")) {
         rwOptions.ifApplyProcessing = true;
       }
+      if (cmd.hasOption("q")) {
+        rwOptions.debugLevel = Level.WARN;
+      }
+      if (cmd.hasOption("d")) {
+        rwOptions.debugLevel = Level.DEBUG;
+      }
+      if (cmd.hasOption("dd")) {
+        rwOptions.debugLevel = Level.TRACE;
+      }
 
-      // run();
+      setLogging();
+      run();
 
     } catch (org.apache.commons.cli.ParseException pe) {
       System.err.println("Parsing failed: " + pe.getMessage());
@@ -125,9 +176,36 @@ public class JcuRandomWalk {
     } catch (NumberFormatException ne) {
       System.err.println("One of numeric parameters could not be parsed: " + ne.getMessage());
     } catch (Exception e) {
-      System.err.println("Other error: " + e.getMessage());
-    } finally { // TODO any from cuda, add better handling
+      System.err.println("Program failed with exception: " + e.getClass() + " : " + e.getMessage());
+      if (rwOptions.debugLevel.toInt() < Level.INFO_INT) {
+        e.printStackTrace();
+      }
+    } finally {
       RandomWalkAlgorithm.finish();
+    }
+  }
+
+  /**
+   * Set debug level for com.github.celldynamics.jcurandomwalk.
+   */
+  private void setLogging() {
+    LoggerContext loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
+    PatternLayoutEncoder logEncoder = new PatternLayoutEncoder();
+    logEncoder.setContext(loggerContext);
+    logEncoder.setPattern("%highlight([%-5level]) %gray(%-25logger{0}) - %msg%n");
+    logEncoder.start();
+    ConsoleAppender<ILoggingEvent> logConsoleAppender = new ConsoleAppender<ILoggingEvent>();
+    logConsoleAppender.setContext(loggerContext);
+    logConsoleAppender.setName("stdout");
+    logConsoleAppender.setEncoder(logEncoder);
+    logConsoleAppender.setTarget("System.out");
+    logConsoleAppender.start();
+
+    Logger rootLogger = loggerContext.getLogger("com.github.celldynamics");
+    ((ch.qos.logback.classic.Logger) rootLogger).setLevel(rwOptions.debugLevel);
+    if (rwOptions.debugLevel.toInt() >= Level.INFO_INT) {
+      ((ch.qos.logback.classic.Logger) rootLogger).setAdditive(false);
+      ((ch.qos.logback.classic.Logger) rootLogger).addAppender(logConsoleAppender);
     }
   }
 
@@ -148,6 +226,8 @@ public class JcuRandomWalk {
   }
 
   /**
+   * Run segmentation.
+   * 
    * @throws Exception
    * 
    */
@@ -168,10 +248,8 @@ public class JcuRandomWalk {
     }
 
     ImageStack segmented = rwa.solve(seed);
-    ImagePlus tmp = new ImagePlus("", segmented);
-    IJ.saveAsTiff(tmp, "/tmp/solution.tif");
-
-    // TODO finish
+    ImagePlus segmentedImage = new ImagePlus("", segmented);
+    IJ.saveAsTiff(segmentedImage, rwOptions.output.toString());
     timer.stop();
     LOGGER.info("Solved in " + timer.toString());
     rwa.free();
@@ -181,18 +259,18 @@ public class JcuRandomWalk {
    * Pick GPU selected in {@link RandomWalkOptions}.
    */
   private void selectGpu() {
-    try {
-      if (rwOptions.useGPU) {
-        RandomWalkAlgorithm.initilizeGpu();
-        int[] devicecount = new int[1];
-        cudaGetDeviceCount(devicecount);
-        cudaSetDevice(rwOptions.device);
-        RandomWalkAlgorithm.initilizeGpu();
-        LOGGER.info(String.format("Using device %d/%d", rwOptions.device, devicecount[0]));
-      }
-    } catch (UnsatisfiedLinkError | NoClassDefFoundError e) {
-      LOGGER.error(e.getMessage());
+    // try {
+    if (rwOptions.useGPU) {
+      RandomWalkAlgorithm.initilizeGpu();
+      int[] devicecount = new int[1];
+      cudaGetDeviceCount(devicecount);
+      cudaSetDevice(rwOptions.device);
+      RandomWalkAlgorithm.initilizeGpu();
+      LOGGER.info(String.format("Using device %d/%d", rwOptions.device, devicecount[0]));
     }
+    // } catch (UnsatisfiedLinkError | NoClassDefFoundError e) {
+    // LOGGER.error(e.getMessage());
+    // }
   }
 
   /**
