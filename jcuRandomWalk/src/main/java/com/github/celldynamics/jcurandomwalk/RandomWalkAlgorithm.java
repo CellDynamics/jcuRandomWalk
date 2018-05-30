@@ -72,13 +72,14 @@ public class RandomWalkAlgorithm {
   public void computeIncidence(boolean always) throws Exception {
     if (always) {
       LOGGER.info("Computing new incidence matrix");
-      img = new IncidenceMatrixGenerator(stack);
+      img = new IncidenceMatrixGenerator(stack, options.getAlgOptions());
     } else {
       String filename = options.configBaseName + "_" + stack.toString() + options.configBaseExt;
       Path fullToFilename = options.configFolder.resolve(filename);
       if (fullToFilename.toFile().exists()) { // try to load if exists
         try {
-          img = IncidenceMatrixGenerator.restoreObject(fullToFilename.toString(), stack); // load
+          img = IncidenceMatrixGenerator.restoreObject(fullToFilename.toString(), stack,
+                  options.getAlgOptions()); // load
         } catch (Exception e) {
           LOGGER.error(
                   "Incidence file could not be restored (" + filename + "): " + e.getMessage());
@@ -87,7 +88,7 @@ public class RandomWalkAlgorithm {
         }
       } else { // if does not exist generate new one and save
         LOGGER.info("Computing new incidence matrix");
-        img = new IncidenceMatrixGenerator(stack);
+        img = new IncidenceMatrixGenerator(stack, options.getAlgOptions());
         img.saveObject(fullToFilename.toString());
       }
     }
@@ -256,17 +257,23 @@ public class RandomWalkAlgorithm {
   /**
    * Main routine.
    * 
-   * @param seed
+   * <p>Require incidence matrix computed by {@link #computeIncidence(boolean)}.
+   * 
+   * @param seed stack of size of segmented stack with pixel>0 for seeds.
    * @return Segmented stack
    */
   public ImageStack solve(ImageStack seed) {
+    if (getImg() == null) {
+      throw new IllegalStateException("Incidence matrix should be computed first");
+    }
     computeLaplacian();
     int[] seedIndices = getSourceIndices(seed);
     computeReducedLaplacian(seedIndices, getImg().getSinkBox());
     ISparseMatrix reducedLapGpu = (ISparseMatrix) getReducedLap().toGpu();
     ISparseMatrix reducedLapGpuCsr = reducedLapGpu.convert2csr();
     // reducedLapGpu.free();
-    float[] solved = reducedLapGpuCsr.luSolve(b, true);
+    float[] solved = reducedLapGpuCsr.luSolve(b, true, options.getAlgOptions().maxit,
+            options.getAlgOptions().tol);
     float[] solvedSeeds =
             incorporateSeeds(solved, seedIndices, getImg().getSinkBox(), lap.getColNumber());
 
@@ -280,7 +287,7 @@ public class RandomWalkAlgorithm {
    * Set 1.0 in vector x at positions from seeds and 0 at positions from sink. Extend reduces
    * solution to full.
    * 
-   * <p>Seeds are always marked by 1.0, sinks by 0.0. Both vectors can be swapped.
+   * <p>Source is always 1.0, sink 0.0. Both vectors can be swapped.
    * 
    * @param x vector of solution
    * @param source indices of seeds (column ordered, got from {@link #getSourceIndices(ImageStack)}

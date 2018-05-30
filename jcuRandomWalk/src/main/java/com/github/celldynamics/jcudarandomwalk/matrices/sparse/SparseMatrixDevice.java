@@ -79,6 +79,31 @@ import jcuda.runtime.JCuda;
 public class SparseMatrixDevice extends SparseMatrix implements ICudaLibHandles {
 
   /**
+   * Reasons of stopping diffusion process.
+   * 
+   * @author p.baniukiewicz
+   *
+   */
+  private enum StoppedBy {
+    /**
+     * Maximum number of iterations reached.
+     */
+    ITERATIONS,
+    /**
+     * Found NaN in solution.
+     */
+    NANS,
+    /**
+     * Found Inf in solution.
+     */
+    INFS,
+    /**
+     * Relative error smaller than limit.
+     */
+    RELERR
+  }
+
+  /**
    * Default UID.
    */
   private static final long serialVersionUID = 2760825038592785223L;
@@ -524,14 +549,15 @@ public class SparseMatrixDevice extends SparseMatrix implements ICudaLibHandles 
   }
 
   @Override
-  public float[] luSolve(IDenseVector b_gpuPtrAny, boolean iLuBiCGStabSolve) {
+  public float[] luSolve(IDenseVector b_gpuPtrAny, boolean iLuBiCGStabSolve, int iter, float tol) {
 
     if (getColNumber() != getRowNumber()) {
       throw new IllegalArgumentException("Left matrix must be square");
     }
-    // if (this.matrixFormat != SparseMatrixType.MATRIX_FORMAT_CSR) {
-    // throw new IllegalArgumentException("Left matrix should be in CSR");
-    // }
+    if (this.matrixFormat != SparseMatrixType.MATRIX_FORMAT_CSR) {
+      throw new IllegalArgumentException("Left matrix should be in CSR");
+    }
+    StoppedBy stoppedReason = StoppedBy.ITERATIONS; // default assumption
     DenseVectorDevice b_gpuPtr = (DenseVectorDevice) b_gpuPtrAny.toGpu();
     int m = getRowNumber();
     int n = m;
@@ -761,8 +787,6 @@ public class SparseMatrixDevice extends SparseMatrix implements ICudaLibHandles 
       // pass floats
 
       // BiCGStab numerical parameters
-      int maxit = 10; // maximum number of iterations
-      float tol = 1e-3f; // tolerance nrmr / nrmr0[0], which is size of
       // current errors divided by initial error
 
       // create the info and analyse the lower and upper triangular
@@ -793,7 +817,7 @@ public class SparseMatrixDevice extends SparseMatrix implements ICudaLibHandles 
       // 3 : repeat until convergence (based on maximum number of
       // iterations and relative residual)
 
-      for (int i = 0; i < maxit; i++) {
+      for (int i = 0; i < iter; i++) {
 
         System.out.println("Iteration " + i);
 
@@ -850,6 +874,7 @@ public class SparseMatrixDevice extends SparseMatrix implements ICudaLibHandles 
         cublasSnrm2(cublashandle, n, r, 1, Pointer.to(nrmr));
 
         if (nrmr[0] / nrmr0[0] < tol) {
+          stoppedReason = StoppedBy.RELERR;
           break;
         }
         // 2 3 : M \ hat{ s } = r ( sparse lower and upper triangular
@@ -896,14 +921,16 @@ public class SparseMatrixDevice extends SparseMatrix implements ICudaLibHandles 
         cublasSnrm2(cublashandle, n, r, 1, Pointer.to(nrmr));
 
         if (nrmr[0] / nrmr0[0] < tol) {
+          stoppedReason = StoppedBy.RELERR;
           break;
         }
 
-        System.out.println("nrmr: " + nrmr[0] + " nrmr0: " + nrmr0[0] + " alpha: " + alpha[0]
-                + " beta: " + beta[0] + " rho: " + rho[0] + " temp: " + temp[0] + " temp2: "
-                + temp2[0] + " omega: " + omega[0]);
+        LOGGER.debug("nrmr: " + nrmr[0] + " nrmr0: " + nrmr0[0] + " alpha: " + alpha[0] + " beta: "
+                + beta[0] + " rho: " + rho[0] + " temp: " + temp[0] + " temp2: " + temp2[0]
+                + " omega: " + omega[0]);
 
       }
+      LOGGER.info("Solver stopped by " + stoppedReason);
 
       cudaFree(p);
       cudaFree(ph);

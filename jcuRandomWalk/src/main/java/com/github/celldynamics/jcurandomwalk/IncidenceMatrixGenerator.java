@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 
 import com.github.celldynamics.jcudarandomwalk.matrices.sparse.ISparseMatrix;
 import com.github.celldynamics.jcudarandomwalk.matrices.sparse.SparseMatrixHost;
+import com.github.celldynamics.jcurandomwalk.RandomWalkOptions.AlgOptions;
 
 import ij.ImageStack;
 
@@ -39,9 +40,6 @@ public class IncidenceMatrixGenerator implements Serializable {
    * Internally IP keeps image in 1D array, see
    * com.github.celldynamics.quimp.utils.QuimPArrayUtils.castToNumber(ImageProcessor)
    */
-  final double sigmaGrad = 0.1; // TODO expose
-  final double sigmaMean = 1e6;
-  final double meanSource = 0.6;
 
   private transient ImageStack stack; // original image for segmentation
   private int nrows; // number of rows of stack
@@ -56,6 +54,7 @@ public class IncidenceMatrixGenerator implements Serializable {
   // Array is serialised and allows for restoring the whole structure and compute new weights
   // for any stack with the same dimensions like that the object was serialised.
   private int[] coords;
+  transient private AlgOptions rwOptions = null;
 
   /**
    * For mocked tests. Do not use.
@@ -69,8 +68,9 @@ public class IncidenceMatrixGenerator implements Serializable {
    * 
    * @param stack stack of images to be segmented
    */
-  public IncidenceMatrixGenerator(ImageStack stack) {
+  public IncidenceMatrixGenerator(ImageStack stack, AlgOptions options) {
     this.stack = stack;
+    this.rwOptions = options;
     if (stack.getSize() < 3) {
       LOGGER.warn("Stack should have more than 3 slices due to how the sink box is computed.");
     }
@@ -277,7 +277,8 @@ public class IncidenceMatrixGenerator implements Serializable {
       rc[0] = coords[i + 3];
       rc[1] = coords[i + 4];
       rc[2] = coords[i + 5];
-      double w = computeWeight(stack, rcz, rc, sigmaGrad, sigmaMean, meanSource);
+      double w = computeWeight(stack, rcz, rc, rwOptions.sigmaGrad, rwOptions.sigmaMean,
+              rwOptions.meanSource);
       weights.add(l, l, (float) w);
       l++;
     }
@@ -431,21 +432,23 @@ public class IncidenceMatrixGenerator implements Serializable {
    * 
    * @param filename name of the file
    * @param stack stack of the same size as that used for constructing the object.
+   * @param options Options used for generating weights
    * @return Instance of loaded object
    * @throws IOException when file can not be read or deserialised
    * @throws ClassNotFoundException when file can not be read or
    *         deserialised
    */
-  public static IncidenceMatrixGenerator restoreObject(String filename, ImageStack stack)
-          throws IOException, ClassNotFoundException {
+  public static IncidenceMatrixGenerator restoreObject(String filename, ImageStack stack,
+          AlgOptions options) throws IOException, ClassNotFoundException {
     FileInputStream file = new FileInputStream(filename);
     ObjectInputStream in = new ObjectInputStream(file);
     try {
       StopWatch timer = new StopWatch();
       timer.start();
       IncidenceMatrixGenerator ret = (IncidenceMatrixGenerator) in.readObject();
-      ret.stack = stack; // stack is not serialised, assign here
-      ret.assignStack(stack);
+      ret.rwOptions = options; // assign here
+      ret.stack = stack; // assign stack will require this
+      ret.assignStack(stack); // stack is not serialised, assign here
       timer.stop();
       LOGGER.info("Incidence matrix restored from " + filename + " in " + timer.toString());
       return ret;

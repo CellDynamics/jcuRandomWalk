@@ -39,7 +39,6 @@ import ij.ImagePlus;
 import ij.ImageStack;
 import ij.process.StackStatistics;
 
-// TODO: Auto-generated Javadoc
 /**
  * The Class RandomWalkAlgorithmTest.
  *
@@ -87,9 +86,6 @@ public class RandomWalkAlgorithmTest {
   /** The stack. */
   private ImageStack stack;
 
-  /** The tdg. */
-  private TestDataGenerators tdg;
-
   /**
    * Sets the up.
    *
@@ -99,7 +95,6 @@ public class RandomWalkAlgorithmTest {
   public void setUp() throws Exception {
     MockitoAnnotations.initMocks(this);
     stack = TestDataGenerators.getTestStack(width, height, nz, "double");
-    tdg = new TestDataGenerators();
   }
 
   /**
@@ -164,7 +159,8 @@ public class RandomWalkAlgorithmTest {
     RandomWalkOptions options = new RandomWalkOptions();
     options.configFolder = folder.newFolder().toPath();
     // mocked IncidenceMatrixGenerator that return fixed weights
-    IncidenceMatrixGenerator img = Mockito.spy(Mockito.spy(new IncidenceMatrixGenerator(stack)));
+    IncidenceMatrixGenerator img =
+            Mockito.spy(Mockito.spy(new IncidenceMatrixGenerator(stack, options.getAlgOptions())));
     // return 2.0 for each weight
     Mockito.doReturn(2.0).when(img).computeWeight(Mockito.any(ImageStack.class),
             Mockito.any(int[].class), Mockito.any(int[].class), Mockito.anyDouble(),
@@ -302,7 +298,7 @@ public class RandomWalkAlgorithmTest {
 
   /**
    * Test method for
-   * {@link com.github.celldynamics.jcurandomwalk.RandomWalkAlgorithm#getSegmentedStack(double[])}.
+   * {@link com.github.celldynamics.jcurandomwalk.RandomWalkAlgorithm#getSegmentedStack(float[])}.
    * 
    * <p>Check if output stack converted from linear solution has proper orientation - column wise.
    * 
@@ -336,6 +332,8 @@ public class RandomWalkAlgorithmTest {
   /**
    * Test method for
    * {@link com.github.celldynamics.jcurandomwalk.RandomWalkAlgorithm#solve(ij.ImageStack)}.
+   * 
+   * @throws Exception
    */
   @Test
   public void testSolve() throws Exception {
@@ -352,6 +350,8 @@ public class RandomWalkAlgorithmTest {
   /**
    * Test method for
    * {@link com.github.celldynamics.jcurandomwalk.RandomWalkAlgorithm#incorporateSeeds(float[], int[], int[], int)}.
+   * 
+   * @throws Exception
    */
   @Test
   public void testIncorporateSeeds() throws Exception {
