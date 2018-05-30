@@ -264,11 +264,26 @@ public class SparseMatrixDevice extends SparseMatrix implements ICudaLibHandles 
    */
   @Override
   public void free() {
-    // TODO protect against freeing already fried
-    cudaFree(rowIndPtr);
-    cudaFree(colIndPtr);
-    cudaFree(valPtr);
-    cusparseDestroyMatDescr(descr);
+    try {
+      cudaFree(rowIndPtr);
+    } catch (Exception e) {
+      LOGGER.debug("rowIndPtr already freed? " + e.getMessage());
+    }
+    try {
+      cudaFree(colIndPtr);
+    } catch (Exception e) {
+      LOGGER.debug("colIndPtr already freed? " + e.getMessage());
+    }
+    try {
+      cudaFree(valPtr);
+    } catch (Exception e) {
+      LOGGER.debug("valPtr already freed? " + e.getMessage());
+    }
+    try {
+      cusparseDestroyMatDescr(descr);
+    } catch (Exception e) {
+      LOGGER.debug("descr already freed? " + e.getMessage());
+    }
   }
 
   /**
@@ -509,7 +524,7 @@ public class SparseMatrixDevice extends SparseMatrix implements ICudaLibHandles 
   }
 
   @Override
-  public double[] luSolve(IDenseVector b_gpuPtrAny, boolean iLuBiCGStabSolve) {
+  public float[] luSolve(IDenseVector b_gpuPtrAny, boolean iLuBiCGStabSolve) {
 
     if (getColNumber() != getRowNumber()) {
       throw new IllegalArgumentException("Left matrix must be square");
@@ -596,9 +611,7 @@ public class SparseMatrixDevice extends SparseMatrix implements ICudaLibHandles 
             cudaMemcpyDeviceToDevice);
     cudaMemcpy(iLUcooColIndex_gpuPtr, AcooColIndex_gpuPtr, nnz * Sizeof.INT,
             cudaMemcpyDeviceToDevice);
-    cudaMemcpy(iLUcooVal_gpuPtr, AcooVal_gpuPtr, nnz * Sizeof.FLOAT, cudaMemcpyDeviceToDevice); // changed
-                                                                                                // to
-                                                                                                // DOUBLE
+    cudaMemcpy(iLUcooVal_gpuPtr, AcooVal_gpuPtr, nnz * Sizeof.FLOAT, cudaMemcpyDeviceToDevice);
 
     // set up buffer
     int[] pBufferSize_iLU = new int[1];
@@ -907,11 +920,11 @@ public class SparseMatrixDevice extends SparseMatrix implements ICudaLibHandles 
 
     } // CG routine
       // /needs changing
-    double result_host[] = new double[m]; // array to hold results
+    float result_host[] = new float[m]; // array to hold results
 
     // JCuda.cudaDeviceSynchronize();
     // copy results back
-    cudaMemcpy(Pointer.to(result_host), x_gpuPtr, m * Sizeof.DOUBLE, cudaMemcpyDeviceToHost);
+    cudaMemcpy(Pointer.to(result_host), x_gpuPtr, m * Sizeof.FLOAT, cudaMemcpyDeviceToHost);
 
     cudaFree(x_gpuPtr);
     cudaFree(z_gpuPtr);
