@@ -260,16 +260,15 @@ public class RandomWalkAlgorithmTest {
    *
    * @throws Exception the exception
    */
-  @Test
-  public void testMergeSeeds() throws Exception {
-    RandomWalkAlgorithm obj = new RandomWalkAlgorithm();
-    int[] a1 = new int[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
-    int[] a2 = new int[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 };
-    int[] ret = obj.mergeSeeds(a1, a2);
-    LOGGER.debug("CS: " + ArrayUtils.toString(ret));
-    assertThat(Arrays.asList(ret), contains(new int[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 }));
-
-  }
+  // @Test
+  // public void testMergeSeeds() throws Exception {
+  // RandomWalkAlgorithm obj = new RandomWalkAlgorithm();
+  // int[] a1 = new int[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+  // int[] a2 = new int[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 };
+  // int[] ret = obj.mergeSeeds(a1, a2);
+  // LOGGER.debug("CS: " + ArrayUtils.toString(ret));
+  // assertThat(Arrays.asList(ret), contains(new int[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 }));
+  // }
 
   /**
    * Test compute B.

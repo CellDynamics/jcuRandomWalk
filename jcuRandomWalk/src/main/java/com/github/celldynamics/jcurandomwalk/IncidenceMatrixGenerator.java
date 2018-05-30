@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
+import java.util.Arrays;
 
 import org.apache.commons.lang3.time.StopWatch;
 import org.slf4j.Logger;
@@ -102,14 +103,14 @@ public class IncidenceMatrixGenerator implements Serializable {
   }
 
   /**
-   * Compute indexes of points on bounding box.
+   * Compute indexes of points on bounding box. Return sorted array
    */
   void computeSinkBox() {
     // TODO consider use one loop and parallelism
     int verticesInLayer = nrows * ncols;
     // taken from Till's code
     int numBoxEl = (nrows * 2 + (ncols - 2) * 2) * (nz - 2) + 2 * nrows * ncols;
-    this.sink = new int[numBoxEl];
+    sink = new int[numBoxEl];
     int l = 0;
     for (int k = 1; k < nz - 1; k++) {
       for (int i = 0; i < nrows; i++) {
@@ -129,7 +130,7 @@ public class IncidenceMatrixGenerator implements Serializable {
         }
       }
     }
-
+    Arrays.sort(sink);
   }
 
   /**
@@ -461,7 +462,7 @@ public class IncidenceMatrixGenerator implements Serializable {
   }
 
   /**
-   * Get sink bounding box - pixels on edges.
+   * Get sink bounding box - pixels on edges. Array is sorted.
    * 
    * @return indexes of pixels on edges.
    */

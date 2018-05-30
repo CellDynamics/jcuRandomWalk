@@ -55,6 +55,7 @@ import static jcuda.runtime.cudaMemcpyKind.cudaMemcpyDeviceToHost;
 import static jcuda.runtime.cudaMemcpyKind.cudaMemcpyHostToDevice;
 
 import org.apache.commons.lang3.NotImplementedException;
+import org.apache.commons.lang3.time.StopWatch;
 
 import com.github.celldynamics.jcudarandomwalk.matrices.ICudaLibHandles;
 import com.github.celldynamics.jcudarandomwalk.matrices.IMatrix;
@@ -550,7 +551,8 @@ public class SparseMatrixDevice extends SparseMatrix implements ICudaLibHandles 
 
   @Override
   public float[] luSolve(IDenseVector b_gpuPtrAny, boolean iLuBiCGStabSolve, int iter, float tol) {
-
+    LOGGER.info("Starting LU solver");
+    StopWatch timer = StopWatch.createStarted();
     if (getColNumber() != getRowNumber()) {
       throw new IllegalArgumentException("Left matrix must be square");
     }
@@ -968,7 +970,8 @@ public class SparseMatrixDevice extends SparseMatrix implements ICudaLibHandles 
     cusparseDestroyCsrilu02Info(info_iLU);
     cusparseDestroyCsrsv2Info(info_L);
     cusparseDestroyCsrsv2Info(info_U);
-
+    timer.stop();
+    LOGGER.info("LU solver finished in " + timer.toString());
     return result_host;
   }
 

@@ -1,10 +1,9 @@
 package com.github.celldynamics.jcurandomwalk;
 
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -46,6 +45,8 @@ public class RandomWalkAlgorithm {
   ISparseMatrix reducedLap; // reduced laplacian
   ISparseMatrix lap; // full laplacian
   IDenseVector b; // right vector
+
+  private int[] mergedseeds;
 
   RandomWalkAlgorithm() {
 
@@ -103,6 +104,7 @@ public class RandomWalkAlgorithm {
     IMatrix incidence;
     IMatrix incidenceT;
     IMatrix weight;
+    LOGGER.info("Computing Laplacian");
     StopWatch timer = new StopWatch();
     timer.start();
     if (options.useGPU) {
@@ -148,21 +150,20 @@ public class RandomWalkAlgorithm {
     if (lap.getColNumber() != lap.getRowNumber()) {
       throw new IllegalArgumentException("Matrix should be square");
     }
+    LOGGER.info("Reducing Laplacian");
     StopWatch timer = new StopWatch();
     timer.start();
     // ISparseMatrix lapCoo = lap.convert2coo();
     // ISparseMatrix cpuL;
     // cpuL = (ISparseMatrix) lapCoo.toCpu();
     // lapCoo.free();
-    int[] merged = mergeSeeds(source, sink);
-    LOGGER.trace("Rows to be removed: " + merged.length);
-    IMatrix lapRowsRem = lap.removeRows(merged); // return is on cpu
+    this.mergedseeds = mergeSeeds(source, sink);
+    LOGGER.trace("Rows to be removed: " + this.mergedseeds.length);
+    IMatrix lapRowsRem = lap.removeRows(this.mergedseeds); // return is on cpu
 
     this.b = computeB(lapRowsRem, source);
-    ISparseMatrix reducedL = (ISparseMatrix) lapRowsRem.removeCols(merged);
-    // if (reducedL instanceof SparseMatrixHost) {
-    // ((SparseMatrixHost) reducedL).compressSparseIndices(); // FIXME is necessary?
-    // }
+    ISparseMatrix reducedL = (ISparseMatrix) lapRowsRem.removeCols(this.mergedseeds);
+
     lapRowsRem.free();
     timer.stop();
     LOGGER.info("Laplacian reduced in " + timer.toString());
@@ -173,24 +174,35 @@ public class RandomWalkAlgorithm {
    * Compute B.
    * 
    * @param lap Laplacian with removed edges (rows).
-   * @param indexes indexes of either source or sink
+   * @param indexes indexes of either source or sink, sorted
    * @return B vector
    */
   IDenseVector computeB(IMatrix lap, int[] indexes) {
+    LOGGER.info("Computing B");
     StopWatch timer = StopWatch.createStarted();
     if (lap instanceof SparseMatrixDevice) {
       // on gpu it could be completely different
       timer.stop();
       throw new NotImplementedException("not implemented");
     } else {
-      List<Integer> ilist = Arrays.asList(ArrayUtils.toObject(indexes));
-      // all cols except indexes
-      int[] colsRemove =
-              IntStream.range(0, lap.getColNumber()).filter(x -> !ilist.contains(x)).toArray();
+      // 49sec
+      // List<Integer> ilist = Arrays.asList(ArrayUtils.toObject(indexes));
+      // // all cols except indexes
+      // int[] colsRemove = IntStream.range(0, lap.getColNumber()).parallel()
+      // .filter(x -> !ilist.contains(x)).toArray();
+
+      int[] indexescp = Arrays.copyOf(indexes, indexes.length);
+      Arrays.sort(indexescp); // TODO sort on output and remove copy
+      List<Integer> colsRemovea = new ArrayList<Integer>(lap.getColNumber());
+      for (int i = 0; i < lap.getColNumber(); i++) {
+        int a = Arrays.binarySearch(indexescp, i); // assuming indexes sorted
+        if (a < 0) { // not found
+          colsRemovea.add(i);
+        }
+      }
+      int[] colsRemove = ArrayUtils.toPrimitive(colsRemovea.toArray(new Integer[0]));
+
       IMatrix tmp = lap.removeCols(colsRemove);
-      // if (tmp instanceof SparseMatrixHost) {
-      // ((SparseMatrixHost) tmp).compressSparseIndices(); // FIXME is necessary?
-      // }
       ISparseMatrix ret = (ISparseMatrix) tmp.sumAlongRows();
       for (int i = 0; i < ret.getVal().length; i++) {
         ret.getVal()[i] *= -1;
@@ -210,12 +222,13 @@ public class RandomWalkAlgorithm {
    * @param sink indexes (column ordered) of pixels that are the sink
    * @return merged two input arrays without duplicates.
    */
-  public int[] mergeSeeds(int[] source, int[] sink) {
-    int[] ret = Stream
+  private int[] mergeSeeds(int[] source, int[] sink) {
+    LOGGER.debug("Merging seeds");
+    int[] mergedseeds = Stream
             .concat(IntStream.of(source).parallel().boxed(), IntStream.of(sink).parallel().boxed())
             .distinct().mapToInt(i -> i).toArray();
-    Arrays.sort(ret);
-    return ret;
+    Arrays.sort(mergedseeds);
+    return mergedseeds;
   }
 
   /**
@@ -227,6 +240,7 @@ public class RandomWalkAlgorithm {
   public void processStack() {
     StopWatch timer = new StopWatch();
     timer.start();
+    LOGGER.info("Processing stack");
     ImageStack filterOut =
             ImageStack.create(stack.getWidth(), stack.getHeight(), stack.getSize(), 8);
     new StackProcessor(this.stack).filter3D(filterOut, 1, 1, 1, 0, stack.getSize(),
@@ -297,6 +311,7 @@ public class RandomWalkAlgorithm {
    *         indexes from sink)
    */
   float[] incorporateSeeds(float[] x, int[] source, int[] sink, int verNumber) {
+    LOGGER.info("Incorporating seeds into solution");
     final float valSeed = 1.0f;
     final float valSink = 0.0f;
     // sanity check
@@ -305,18 +320,31 @@ public class RandomWalkAlgorithm {
               "Number of vertices does not match. Maybe seeds and sink cotntain the same indices?");
     }
     StopWatch timer = StopWatch.createStarted();
+
+    // all indices that are not in seed or sink, merged source and sink (1:27)
+    // List<Integer> listSeedSink = Arrays.asList(ArrayUtils.toObject(this.mergedseeds));
     // all indices that are not in seed or sink
-    List<Integer> listSeedSink = Stream
-            .concat(IntStream.of(source).parallel().boxed(), IntStream.of(sink).parallel().boxed())
-            .distinct().collect(Collectors.toList()); // merged source and sink
-    // all indices that are not in seed or sink
-    IntStream botSeedSink = IntStream.range(0, verNumber).filter(i -> !listSeedSink.contains(i));
+    // int[] ar = IntStream.range(0, verNumber).parallel().filter(i -> !listSeedSink.contains(i))
+    // .toArray();
+
+    List<Integer> ara = new ArrayList<Integer>(verNumber);
+    for (int i = 0; i < verNumber; i++) {
+      int a = Arrays.binarySearch(this.mergedseeds, i); // assuming mergeseed sorted
+      if (a < 0) { // not found
+        ara.add(i);
+      }
+    }
+    int[] ar = ArrayUtils.toPrimitive(ara.toArray(new Integer[0]));
 
     float[] ret = new float[verNumber];
-    IntStream.of(source).forEach(i -> ret[i] = valSeed);
-    IntStream.of(sink).forEach(i -> ret[i] = valSink);
-    AtomicInteger counter = new AtomicInteger(0);
-    botSeedSink.forEach(i -> ret[i] = x[counter.getAndIncrement()]);
+    IntStream.of(source).parallel().forEach(i -> ret[i] = valSeed);
+    IntStream.of(sink).parallel().forEach(i -> ret[i] = valSink);
+
+    // fill missing place in out array with our solution (seeds and sink filled already)
+    int l = 0;
+    for (int i = 0; i < ar.length; i++) {
+      ret[ar[i]] = x[l++];
+    }
     timer.stop();
     LOGGER.info("Seeds incorporated into solution in " + timer.toString());
     return ret;
@@ -387,6 +415,7 @@ public class RandomWalkAlgorithm {
     if (!seedStack.getProcessor(1).isBinary()) {
       throw new IllegalArgumentException("Seed stack is not binary");
     }
+    LOGGER.info("Converting seed stack to indices");
     StopWatch timer = new StopWatch();
     timer.start();
     int l = 0;
