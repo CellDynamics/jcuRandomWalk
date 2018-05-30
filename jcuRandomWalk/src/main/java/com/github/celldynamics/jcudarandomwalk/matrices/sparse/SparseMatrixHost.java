@@ -181,7 +181,6 @@ public class SparseMatrixHost extends SparseMatrix {
               "This matrix must be in COO format. Perform explicit conversion.");
     }
     // any 1 at index i in this array stand for index i to remove from Lap
-    // merge two arrays in one because they can point the same row/column
     int[] toRem = new int[this.getRowNumber()];
     for (int s = 0; s < rows.length; s++) {
       toRem[rows[s]] = 1;
@@ -215,22 +214,10 @@ public class SparseMatrixHost extends SparseMatrix {
       newVal[l] = this.getVal()[i];
       l++;
     }
-    int[] newRowIndcp = compressIndices(toRem, newRowInd);
-
-    // // now compress also rows that can be empty
-    // List<Integer> ilist = Arrays.asList(ArrayUtils.toObject(newColInd));
-    // // will contain 1 at index to remove
-    // int[] toRemCol = new int[newColInd.length];
-    // // find those rows that are not in new row indexes (indexes must be continous)
-    // int max = IntStream.of(newColInd).max().getAsInt() + 1;
-    // int[] colsRemove = IntStream.range(0, max).parallel().filter(x ->
-    // !ilist.contains(x)).toArray();
-    // IntStream.of(colsRemove).forEach(x -> toRemCol[x] = 1); // build toRem
-    // // compress rows
-    // int[] newColIndcp = compressIndices(toRemCol, newColInd);
+    compressIndices(toRem, newRowInd);
 
     ISparseMatrix reducedL;
-    reducedL = SparseMatrix.sparseMatrixFactory(this, newRowIndcp, newColInd, newVal,
+    reducedL = SparseMatrix.sparseMatrixFactory(this, newRowInd, newColInd, newVal,
             this.getRowNumber() - rows.length, this.getColNumber(),
             SparseMatrixType.MATRIX_FORMAT_COO);
     LOGGER.trace("Rows removed");
@@ -250,7 +237,6 @@ public class SparseMatrixHost extends SparseMatrix {
               "This matrix must be in COO format. Perform explicit conversion.");
     }
     // any 1 at index i in this array stand for index i to remove from Lap
-    // merge two arrays in one because they can point the same row/column
     int[] toRem = new int[this.getColNumber()];
     for (int s = 0; s < cols.length; s++) {
       toRem[cols[s]] = 1;
@@ -284,24 +270,10 @@ public class SparseMatrixHost extends SparseMatrix {
       newVal[l] = this.getVal()[i];
       l++;
     }
-    int[] newColIndcp = compressIndices(toRem, newColInd);
-
-    // // now compress also rows that can be empty
-    // // TODO Check conversion to set first:
-    // // https://stackoverflow.com/questions/36246998/stream-filter-of-1-list-based-on-another-list
-    // List<Integer> ilist = Arrays.asList(ArrayUtils.toObject(newRowInd));
-    // // will contain 1 at index to remove
-    // int[] toRemRow = new int[newRowInd.length];
-    // // find those rows that are not in new row indexes (indexes must be continous)
-    // int max = IntStream.of(newRowInd).max().getAsInt() + 1;
-    // int[] rowsRemove = IntStream.range(0, max).parallel().filter(x ->
-    // !ilist.contains(x)).toArray();
-    // IntStream.of(rowsRemove).forEach(x -> toRemRow[x] = 1); // build toRem
-    // // compress rows
-    // int[] newRowIndcp = compressIndices(toRemRow, newRowInd);
+    compressIndices(toRem, newColInd);
 
     ISparseMatrix reducedL;
-    reducedL = SparseMatrix.sparseMatrixFactory(this, newRowInd, newColIndcp, newVal,
+    reducedL = SparseMatrix.sparseMatrixFactory(this, newRowInd, newColInd, newVal,
             this.getRowNumber(), this.getColNumber() - cols.length,
             SparseMatrixType.MATRIX_FORMAT_COO);
     LOGGER.trace("Cols removed");
@@ -314,6 +286,7 @@ public class SparseMatrixHost extends SparseMatrix {
    * 
    * @see SparseMatrixHost#removeCols(int[])
    * @see SparseMatrixHost#removeRows(int[])
+   * @deprecated Not fully tested and not used
    */
   public void compressSparseIndices() {
     int[] ri = this.getRowInd();
@@ -382,15 +355,54 @@ public class SparseMatrixHost extends SparseMatrix {
   // return newRowIndcp;
   // }
 
+  // /**
+  // * Compress sparse indices, removing gaps.
+  // *
+  // * @param toRem array with "1" at positions to be removed.
+  // * @param newRowInd array to be processed
+  // * @return Array with compressed indices
+  // */
+  // private int[] compressIndices(int[] toRem, int[] newRowInd) {
+  // LOGGER.trace("Compressing indices. Removing " + toRem.length + " from " + newRowInd.length);
+  // // compress
+  // // after removing indices from newColInd/RowInd it contains only valid nonzero elements
+  // // (without
+  // // those from deleted rows and
+  // // cols) but indexes contain gaps, e.g. if 2nd column was removed newColInd will keep next
+  // // column after as third whereas it should be moved to left and become the second
+  // // because we assumed square matrix we will go through toRem array and check which indexes were
+  // // removed (marked by 1 at index i - removed) and then decrease all indexes larger than those
+  // // removed in newColInd/newRowInd by one to shift them
+  // // These arrays need to be copied first otherwise next comparison would be wrong
+  // int[] newRowIndcp = Arrays.copyOf(newRowInd, newRowInd.length);
+  // int cluster = 0;
+  // for (int i = 0; i < toRem.length; i++) {
+  // if (toRem[i] > 0) {
+  // cluster++;
+  // continue;
+  // }
+  // if (toRem[i] == 0 && cluster > 0) { // something collected
+  // for (int k = 0; k < newRowInd.length; k++) { // go through sparse indexes
+  // if (newRowInd[k] >= i) { // the same for rows
+  // newRowIndcp[k] -= cluster;
+  // }
+  // }
+  // cluster = 0;
+  // }
+  // }
+  // LOGGER.trace("Indices compressed");
+  // return newRowIndcp;
+  // }
+
   /**
    * Compress sparse indices, removing gaps.
    *
-   * @param toRem array with "1" at positions to be removed.
-   * @param newRowInd array to be processed
+   * @param toRem array with "1" at positions to be removed. This array is modified.
+   * @param newRowInd array to be processed. This array is modified and stands like an output
    * @return Array with compressed indices
    */
   private int[] compressIndices(int[] toRem, int[] newRowInd) {
-    LOGGER.trace("Compressing indices. Removing " + toRem.length + " from " + newRowInd.length);
+    LOGGER.trace("Compressing indices. Removing from array of size of" + newRowInd.length);
     // compress
     // after removing indices from newColInd/RowInd it contains only valid nonzero elements
     // (without
@@ -400,25 +412,27 @@ public class SparseMatrixHost extends SparseMatrix {
     // because we assumed square matrix we will go through toRem array and check which indexes were
     // removed (marked by 1 at index i - removed) and then decrease all indexes larger than those
     // removed in newColInd/newRowInd by one to shift them
-    // These arrays need to be copied first otherwise next comparison would be wrong
-    int[] newRowIndcp = Arrays.copyOf(newRowInd, newRowInd.length);
-    int cluster = 0;
+
+    // cumSum over toRem
+    // from array like this 0 0 0 1 1 0 1 0 0 -> 0 0 0 1 2 2 3 3 3
+    int cumSum = 0;
     for (int i = 0; i < toRem.length; i++) {
       if (toRem[i] > 0) {
-        cluster++;
-        continue;
-      }
-      if (toRem[i] == 0 && cluster > 0) { // something collected
-        for (int k = 0; k < newRowInd.length; k++) { // go through sparse indexes
-          if (newRowInd[k] >= i) { // the same for rows
-            newRowIndcp[k] -= cluster;
-          }
-        }
-        cluster = 0;
+        toRem[i] += cumSum;
+        cumSum++;
+      } else {
+        toRem[i] = cumSum;
       }
     }
+    // int[] newRowIndcp = Arrays.copyOf(newRowInd, newRowInd.length);
+    // array newRowIndcp contains indexes, whose match indexes of toRem array.
+    // value over index i in toRem shows how much this index (as value in newRowIndcp should be
+    // shifted)
+    for (int i = 0; i < newRowInd.length; i++) {
+      newRowInd[i] -= toRem[newRowInd[i]];
+    }
     LOGGER.trace("Indices compressed");
-    return newRowIndcp;
+    return newRowInd;
   }
 
   /*

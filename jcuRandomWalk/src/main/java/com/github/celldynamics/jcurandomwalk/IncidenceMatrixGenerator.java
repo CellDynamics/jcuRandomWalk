@@ -55,7 +55,7 @@ public class IncidenceMatrixGenerator implements Serializable {
   // Array is serialised and allows for restoring the whole structure and compute new weights
   // for any stack with the same dimensions like that the object was serialised.
   private int[] coords;
-  transient private AlgOptions rwOptions = null;
+  private transient AlgOptions rwOptions = null;
 
   /**
    * For mocked tests. Do not use.

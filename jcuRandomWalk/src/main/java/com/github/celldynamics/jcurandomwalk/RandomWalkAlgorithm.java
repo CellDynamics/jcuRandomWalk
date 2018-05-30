@@ -100,7 +100,7 @@ public class RandomWalkAlgorithm {
    * 
    * @return Laplacian on GPU
    */
-  public ISparseMatrix computeLaplacian() {
+  ISparseMatrix computeLaplacian() {
     IMatrix incidence;
     IMatrix incidenceT;
     IMatrix weight;
@@ -146,7 +146,7 @@ public class RandomWalkAlgorithm {
    * @param source list of indices to remove - sources
    * @param sink second list of indices to remove, merged with the first one
    */
-  public void computeReducedLaplacian(int[] source, int[] sink) {
+  void computeReducedLaplacian(int[] source, int[] sink) {
     if (lap.getColNumber() != lap.getRowNumber()) {
       throw new IllegalArgumentException("Matrix should be square");
     }
