@@ -5,6 +5,8 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 
 import org.apache.commons.lang3.NotImplementedException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.github.celldynamics.jcudarandomwalk.matrices.IMatrix;
 
@@ -20,6 +22,11 @@ public abstract class DenseVector implements IDenseVector, Serializable {
    * Default UID.
    */
   private static final long serialVersionUID = 371179784126818370L;
+
+  /**
+   * The Constant LOGGER.
+   */
+  static final Logger LOGGER = LoggerFactory.getLogger(DenseVector.class.getName());
 
   protected float[] val; // value
   protected int rowNumber; // number of rows

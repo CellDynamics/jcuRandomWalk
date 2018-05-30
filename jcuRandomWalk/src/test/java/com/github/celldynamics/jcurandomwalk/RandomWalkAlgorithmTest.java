@@ -7,6 +7,8 @@ import static org.hamcrest.Matchers.contains;
 
 import java.io.File;
 import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.apache.commons.lang3.ArrayUtils;
@@ -48,7 +50,7 @@ public class RandomWalkAlgorithmTest {
   static {
     LoggerContext loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
     Logger rootLogger = loggerContext.getLogger("com.github.celldynamics.jcurandomwalk");
-    ((ch.qos.logback.classic.Logger) rootLogger).setLevel(Level.TRACE);
+    ((ch.qos.logback.classic.Logger) rootLogger).setLevel(Level.DEBUG);
   }
 
   /** The Constant LOGGER. */
@@ -71,12 +73,6 @@ public class RandomWalkAlgorithmTest {
   // IncidenceMatrixGenerator img;
   // @InjectMocks
   // private RandomWalkAlgorithm objMocked;
-
-  static {
-    LoggerContext loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
-    Logger rootLogger = loggerContext.getLogger(RandomWalkAlgorithmTest.class.getName());
-    ((ch.qos.logback.classic.Logger) rootLogger).setLevel(Level.DEBUG);
-  }
 
   /** The width. */
   // dimensions of test stack
@@ -320,8 +316,9 @@ public class RandomWalkAlgorithmTest {
     Mockito.doReturn(5).when(mockStack).getWidth();
     Mockito.doReturn(4).when(mockStack).getHeight();
     Mockito.doReturn(2).when(mockStack).getSize();
-    double[] solution = IntStream.range(0, 5 * 4 * 2).mapToDouble(x -> x).toArray();
-    ImageStack ret = obj.getSegmentedStack(solution);
+    List<Float> solution =
+            IntStream.range(0, 5 * 4 * 2).mapToObj(x -> new Float(x)).collect(Collectors.toList());
+    ImageStack ret = obj.getSegmentedStack(ArrayUtils.toPrimitive(solution.toArray(new Float[0])));
     LOGGER.debug("Segmented stack: " + ret.toString());
     LOGGER.trace("S1: "
             + ArrayTools.printArray(ArrayTools.array2Object(ret.getProcessor(2).getFloatArray())));
@@ -350,6 +347,36 @@ public class RandomWalkAlgorithmTest {
     ImageStack segmented = obj.solve(seeds);
     ImagePlus tmp = new ImagePlus("", segmented);
     IJ.saveAsTiff(tmp, "/tmp/solution.tif");
+  }
+
+  /**
+   * Test method for
+   * {@link com.github.celldynamics.jcurandomwalk.RandomWalkAlgorithm#incorporateSeeds(float[], int[], int[], int)}.
+   */
+  @Test
+  public void testIncorporateSeeds() throws Exception {
+    // full size is 10 elements
+    int[] source = new int[] { 0, 3, 4 }; // source pixels
+    int[] sink = new int[] { 1, 9 }; // sink pixels
+    // 5 pixels were given, 5 were calulated from reduced lap
+    float[] solution = new float[] { 10, 11, 12, 13, 14 };
+    RandomWalkAlgorithm obj = new RandomWalkAlgorithm();
+    float[] ret = obj.incorporateSeeds(solution, source, sink, 10);
+    // expected are 1.0 at positions from source
+    assertThat((double) ret[0], closeTo(1.0, 1e-6));
+    assertThat((double) ret[3], closeTo(1.0, 1e-6));
+    assertThat((double) ret[4], closeTo(1.0, 1e-6));
+
+    // expected are 0.0 at positions from source
+    assertThat((double) ret[1], closeTo(0.0, 1e-6));
+    assertThat((double) ret[9], closeTo(0.0, 1e-6));
+
+    // expected are solution values at remaining positions
+    assertThat((double) ret[2], closeTo(10.0, 1e-6));
+    assertThat((double) ret[5], closeTo(11.0, 1e-6));
+    assertThat((double) ret[6], closeTo(12.0, 1e-6));
+    assertThat((double) ret[7], closeTo(13.0, 1e-6));
+    assertThat((double) ret[8], closeTo(14.0, 1e-6));
   }
 
 }

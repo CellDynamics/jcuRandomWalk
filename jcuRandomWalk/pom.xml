@@ -6,7 +6,7 @@
     <version>21.0.0</version>
     <relativePath/>
   </parent>
-  <groupId>com.github.celldynamics</groupId>
+  <groupId>com.github.celldynamics.jcurandomwalk</groupId>
   <artifactId>jcuRandomWalk</artifactId>
   <version>0.0.1-SNAPSHOT</version>
   <packaging>jar</packaging>

@@ -80,7 +80,10 @@ public class DenseVectorDevice extends DenseVector implements ICudaLibHandles {
    */
   @Override
   public void free() {
-    // TODO protect against freeing already freed
-    cudaFree(valPtr);
+    try {
+      cudaFree(valPtr);
+    } catch (Exception e) {
+      LOGGER.debug("descr already freed? " + e.getMessage());
+    }
   }
 }

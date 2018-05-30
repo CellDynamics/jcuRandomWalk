@@ -262,7 +262,7 @@ public class SparseMatrixDeviceTest {
   @Test
   public void testConvert2csr() throws Exception {
     ISparseMatrix ret = obj.convert2csr();
-
+    // obj.free(); // can not be free here
     assertThat(ret.getRowNumber(), is(4));
     assertThat(ret.getColNumber(), is(5));
     assertThat(ret.getElementNumber(), is(obj.getElementNumber()));

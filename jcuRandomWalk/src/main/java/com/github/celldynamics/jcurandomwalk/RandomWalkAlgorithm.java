@@ -3,6 +3,8 @@ package com.github.celldynamics.jcurandomwalk;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -263,32 +265,53 @@ public class RandomWalkAlgorithm {
     computeReducedLaplacian(seedIndices, getImg().getSinkBox());
     ISparseMatrix reducedLapGpu = (ISparseMatrix) getReducedLap().toGpu();
     ISparseMatrix reducedLapGpuCsr = reducedLapGpu.convert2csr();
-    reducedLapGpu.free();
-    double[] solved = reducedLapGpuCsr.luSolve(b, true);
-    double[] solvedSeeds = incorporateSeeds(solved, seedIndices, getImg().getSinkBox());
+    // reducedLapGpu.free();
+    float[] solved = reducedLapGpuCsr.luSolve(b, true);
+    float[] solvedSeeds =
+            incorporateSeeds(solved, seedIndices, getImg().getSinkBox(), lap.getColNumber());
 
     ImageStack ret = getSegmentedStack(solvedSeeds);
     reducedLapGpuCsr.free();
+    reducedLapGpu.free();
     return ret;
   }
 
   /**
-   * Set 1.0 in vector x at positions from seeds and 0 at positions from sink.
+   * Set 1.0 in vector x at positions from seeds and 0 at positions from sink. Extend reduces
+   * solution to full.
+   * 
+   * <p>Seeds are always marked by 1.0, sinks by 0.0. Both vectors can be swapped.
    * 
    * @param x vector of solution
-   * @param seeds indices of seeds (column ordered, got from {@link #getSourceIndices(ImageStack)}
+   * @param source indices of seeds (column ordered, got from {@link #getSourceIndices(ImageStack)}
    * @param sink sink indices, taken from e.g {@link IncidenceMatrixGenerator#computeSinkBox()}
-   * @return copy of vector x with incorporated seeds (1.0 set on positions from seeds)
+   * @param verNumber
+   * @return copy of vector x with incorporated seeds (1.0 set on positions from seeds, 0.0 at
+   *         indexes from sink)
    */
-  double[] incorporateSeeds(double[] x, int[] seeds, int[] sink) {
+  float[] incorporateSeeds(float[] x, int[] source, int[] sink, int verNumber) {
+    final float valSeed = 1.0f;
+    final float valSink = 0.0f;
+    // sanity check
+    if (x.length + source.length + sink.length != verNumber) {
+      throw new IllegalArgumentException(
+              "Number of vertices does not match. Maybe seeds and sink cotntain the same indices?");
+    }
+    StopWatch timer = StopWatch.createStarted();
+    // all indices that are not in seed or sink
+    List<Integer> listSeedSink = Stream
+            .concat(IntStream.of(source).parallel().boxed(), IntStream.of(sink).parallel().boxed())
+            .distinct().collect(Collectors.toList()); // merged source and sink
+    // all indices that are not in seed or sink
+    IntStream botSeedSink = IntStream.range(0, verNumber).filter(i -> !listSeedSink.contains(i));
 
-    double[] ret = Arrays.copyOf(x, x.length);
-    for (int i = 0; i < seeds.length; i++) {
-      ret[seeds[i]] = 1.0;
-    }
-    for (int i = 0; i < sink.length; i++) {
-      ret[sink[i]] = 0.0;
-    }
+    float[] ret = new float[verNumber];
+    IntStream.of(source).forEach(i -> ret[i] = valSeed);
+    IntStream.of(sink).forEach(i -> ret[i] = valSink);
+    AtomicInteger counter = new AtomicInteger(0);
+    botSeedSink.forEach(i -> ret[i] = x[counter.getAndIncrement()]);
+    timer.stop();
+    LOGGER.info("Seeds incorporated into solution in " + timer.toString());
     return ret;
   }
 
@@ -316,7 +339,7 @@ public class RandomWalkAlgorithm {
    * @param solution Solution vector, must
    * @return Stack
    */
-  ImageStack getSegmentedStack(double[] solution) {
+  ImageStack getSegmentedStack(float[] solution) {
     int nrows = stack.getHeight();
     int ncols = stack.getWidth();
     int nz = stack.getSize();

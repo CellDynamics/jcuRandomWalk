@@ -419,10 +419,10 @@ public class SparseMatrixHost extends SparseMatrix {
   }
 
   @Override
-  public double[] luSolve(IDenseVector b_gpuPtr, boolean iLuBiCGStabSolve) {
+  public float[] luSolve(IDenseVector b_gpuPtr, boolean iLuBiCGStabSolve) {
     LOGGER.warn("luSolve run on GPU");
     ISparseMatrix gp = this.toGpu();
-    double[] ret = gp.luSolve(b_gpuPtr, iLuBiCGStabSolve);
+    float[] ret = gp.luSolve(b_gpuPtr, iLuBiCGStabSolve);
     gp.free();
     return ret;
   }
