@@ -168,6 +168,11 @@
     	<version>1.0.2</version>
     	<scope>test</scope>
     </dependency>
+    <dependency>
+    	<groupId>org.ojalgo</groupId>
+    	<artifactId>ojalgo</artifactId>
+    	<version>45.1.0</version>
+    </dependency>
   </dependencies>
   <build>
     <plugins>
