@@ -68,6 +68,9 @@ public class JcuRandomWalk {
                     + " if relevant file has not been found. Default is "
                     + !rwOptions.ifComputeIncidence)
             .longOpt("loadincidence").build();
+    OptionGroup gl = new OptionGroup();
+    gl.addOption(saveIncOption);
+    gl.addOption(loadIncOption);
 
     Option defProcessOption = Option.builder()
             .desc("Apply default processing to stack. Default is " + rwOptions.ifApplyProcessing)
@@ -114,8 +117,7 @@ public class JcuRandomWalk {
     cliOptions.addOption(loadIncOption);
     cliOptions.addOption(defProcessOption);
     cliOptions.addOption(deviceOption);
-    cliOptions.addOption(saveIncOption);
-    cliOptions.addOption(imageOption);
+    cliOptions.addOptionGroup(gl);
     cliOptions.addOption(verOption);
     cliOptions.addOption(helpOption);
     cliOptions.addOption(outputOption);
@@ -245,8 +247,8 @@ public class JcuRandomWalk {
     // create main object
     timer = StopWatch.createStarted();
     RandomWalkAlgorithm rwa = new RandomWalkAlgorithm(stack, rwOptions);
-    // compute or load incidence
-    rwa.computeIncidence(rwOptions.ifComputeIncidence);
+    // compute or load incidence or save, depending on options
+    rwa.computeIncidence();
     if (rwOptions.ifApplyProcessing) {
       rwa.processStack();
     }
