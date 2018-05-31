@@ -30,7 +30,10 @@ import ij.ImagePlus;
 import ij.ImageStack;
 
 /**
- * Main application class.
+ * Main application class. CLI frontend.
+ * 
+ * @author p.baniukiewicz
+ * @author t.bretschneider
  */
 public class JcuRandomWalk {
   static final Logger LOGGER = LoggerFactory.getLogger(JcuRandomWalk.class.getName());

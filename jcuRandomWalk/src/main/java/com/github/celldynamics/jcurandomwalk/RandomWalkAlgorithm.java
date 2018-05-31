@@ -32,6 +32,7 @@ import jcuda.runtime.JCuda;
  * Main routine for RW segmentation.
  * 
  * @author p.baniukiewicz
+ * @author t.bretschneider
  *
  */
 public class RandomWalkAlgorithm {

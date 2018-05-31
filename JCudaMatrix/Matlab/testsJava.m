@@ -82,3 +82,10 @@ full(sr)
 
 sc = s;
 sc(:,[1,3])=[]
+%% com.github.celldynamics.jcudarandomwalk.matrices.sparse.SparseMatrixDeviceTest.testLuSolve()
+
+a=round(10*rand(5,5))/10;
+
+a = [0.9, 0.4, 0.1, 0.9, 0.1;0.1, 0.9, 0.9, 0.6, 0.2;0.4, 0.2, 0.6, 0.4, 0.1;0.3, 0.3, 0.5, 0.5, 0.2;0.8, 0.1, 0.1, 0.4, 0.2]
+x=[1;2;3;4;5]
+b = a*x
