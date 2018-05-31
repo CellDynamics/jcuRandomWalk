@@ -34,7 +34,7 @@ public class RandomWalkOptions {
   /**
    * Default path to save incidence.
    */
-  public Path configFolder = Paths.get(tmpdir);
+  public Path configFolder = Paths.get(System.getProperty("user.dir"));
   /**
    * GPU device to use.
    */

@@ -67,19 +67,20 @@ public class RandomWalkAlgorithm {
   }
 
   /**
-   * Compute/reload incidence matrix for stack.
+   * Compute/reload incidence matrix for stack. Depending on options.
    * 
-   * @param always if true compute always if false try to load first. If file has not been found
-   *        compute new incidence matrix and save it.
    * @throws Exception file can not be read or deserialised
    */
-  public void computeIncidence(boolean always) throws Exception {
-    if (always) {
+  public void computeIncidence() throws Exception {
+    String filename = options.configBaseName + "_" + stack.toString() + options.configBaseExt;
+    Path fullToFilename = options.configFolder.resolve(filename);
+    if (options.ifComputeIncidence) {
       LOGGER.info("Computing new incidence matrix");
       img = new IncidenceMatrixGenerator(stack, options.getAlgOptions());
+      if (options.ifSaveIncidence) {
+        img.saveObject(fullToFilename.toString());
+      }
     } else {
-      String filename = options.configBaseName + "_" + stack.toString() + options.configBaseExt;
-      Path fullToFilename = options.configFolder.resolve(filename);
       if (fullToFilename.toFile().exists()) { // try to load if exists
         try {
           img = IncidenceMatrixGenerator.restoreObject(fullToFilename.toString(), stack,

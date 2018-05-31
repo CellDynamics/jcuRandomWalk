@@ -133,7 +133,7 @@ public class RandomWalkAlgorithmTest {
 
   /**
    * Test method for
-   * {@link com.github.celldynamics.jcurandomwalk.RandomWalkAlgorithm#computeIncidence(boolean)}.
+   * {@link com.github.celldynamics.jcurandomwalk.RandomWalkAlgorithm#computeIncidence()}.
    *
    * @throws Exception the exception
    */
@@ -141,8 +141,9 @@ public class RandomWalkAlgorithmTest {
   public void testComputeIncidence() throws Exception {
     RandomWalkOptions options = new RandomWalkOptions();
     options.configFolder = folder.newFolder().toPath();
+    options.ifComputeIncidence = false;
     RandomWalkAlgorithm obj = new RandomWalkAlgorithm(stack, options);
-    obj.computeIncidence(false);
+    obj.computeIncidence();
     assertThat(options.configFolder.resolve("incidence_stack[3x4x2].ser").toFile().exists(),
             is(true));
   }
@@ -345,7 +346,7 @@ public class RandomWalkAlgorithmTest {
     ImageStack org = IJ.openImage("src/test/test_data/segment_test_normalised.tif").getImageStack();
     ImageStack seeds = IJ.openImage("src/test/test_data/segment_test_seeds.tif").getImageStack();
     RandomWalkAlgorithm obj = new RandomWalkAlgorithm(org, options);
-    obj.computeIncidence(options.ifComputeIncidence);
+    obj.computeIncidence();
     ImageStack segmented = obj.solve(seeds, 255);
     ImagePlus tmp = new ImagePlus("", segmented);
     IJ.saveAsTiff(tmp, "/tmp/solution.tif");
