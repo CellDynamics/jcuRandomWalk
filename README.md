@@ -14,6 +14,7 @@ cd jcuRandomWalk
 mvn clean release:prepare -DpushChanges=false
 mvn release:perform
 mvn site
+git push 
 github_changelog_generator -t $(cat ~/.git-credentials | grep -Po '(?<=CellDynamics:).*(?=@)')
 git add CHANGELOG.md
 git commit -m "Added changelog"
