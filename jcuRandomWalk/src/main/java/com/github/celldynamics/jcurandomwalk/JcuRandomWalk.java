@@ -232,6 +232,7 @@ public class JcuRandomWalk {
    * 
    */
   public void run() throws Exception {
+    final int seedVal = 255;
     selectGpu();
     StopWatch timer = StopWatch.createStarted();
     ImageStack stack = IJ.openImage(rwOptions.stack.toString()).getImageStack();
@@ -247,7 +248,7 @@ public class JcuRandomWalk {
       rwa.processStack();
     }
 
-    ImageStack segmented = rwa.solve(seed);
+    ImageStack segmented = rwa.solve(seed, seedVal);
     ImagePlus segmentedImage = new ImagePlus("", segmented);
     IJ.saveAsTiff(segmentedImage, rwOptions.output.toString());
     timer.stop();
