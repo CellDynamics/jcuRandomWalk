@@ -4,6 +4,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.closeTo;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 
 import java.io.File;
 import java.util.Arrays;
@@ -171,7 +172,8 @@ public class RandomWalkAlgorithmTest {
     RandomWalkAlgorithm obj = Mockito.spy(new RandomWalkAlgorithm(stack, options));
     // assign mocked generator
     obj.img = img;
-    ISparseMatrix lap = obj.computeLaplacian();
+    obj.computeLaplacian();
+    ISparseMatrix lap = obj.getLap();
     // A' [24 46]
     // W [46 46]
     // A [46 24]
@@ -219,8 +221,11 @@ public class RandomWalkAlgorithmTest {
   public void testGetSourceIndices() throws Exception {
     ImageStack seed = TestDataGenerators.getSeedStack_1();
     RandomWalkAlgorithm obj = new RandomWalkAlgorithm();
-    int[] ret = obj.getSourceIndices(seed);
-    assertThat(Arrays.asList(ret), contains(new int[] { 0, 2, 13, 30, 47, 49, 59 }));
+    Integer[] ret = obj.getSourceIndices(seed, 255);
+    List<Integer> blist = Arrays.asList(ret);
+    boolean issorted = blist.stream().sorted().collect(Collectors.toList()).equals(blist);
+    assertThat(issorted, is(true));
+    assertThat(blist, containsInAnyOrder(new Integer[] { 0, 2, 13, 30, 47, 49, 59 }));
   }
 
   /**
@@ -240,8 +245,8 @@ public class RandomWalkAlgorithmTest {
     RandomWalkAlgorithm obj = new RandomWalkAlgorithm();
 
     // remove row/co 1,2,3
-    int[] source = new int[] { 1, 3 };
-    int[] sink = new int[] { 1, 2 };
+    Integer[] source = new Integer[] { 1, 3 };
+    Integer[] sink = new Integer[] { 1, 2 };
     obj.lap = testL;
     obj.computeReducedLaplacian(source, sink);
     ISparseMatrix ret = obj.reducedLap.convert2coo();
@@ -290,7 +295,8 @@ public class RandomWalkAlgorithmTest {
     int[] ci = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
     float[] v = new float[] { 10, 101, 102, 11, 12, 13, 131, 14, 15 };
     ISparseMatrix testL = new SparseMatrixHost(ri, ci, v, SparseMatrixType.MATRIX_FORMAT_COO);
-    IMatrix ret = obj.computeB(testL, new int[] { 0, 1 });
+    obj.computeB(testL, new Integer[] { 0, 1 });
+    IMatrix ret = obj.getB();
     assertThat(Arrays.asList(ret.getVal()),
             contains(new float[] { -111.0f, -11.0f, -0f, -0f, -131.0f, -0.0f }));
   }
@@ -341,7 +347,7 @@ public class RandomWalkAlgorithmTest {
     ImageStack seeds = IJ.openImage("src/test/test_data/segment_test_seeds.tif").getImageStack();
     RandomWalkAlgorithm obj = new RandomWalkAlgorithm(org, options);
     obj.computeIncidence(options.ifComputeIncidence);
-    ImageStack segmented = obj.solve(seeds);
+    ImageStack segmented = obj.solve(seeds, 255);
     ImagePlus tmp = new ImagePlus("", segmented);
     IJ.saveAsTiff(tmp, "/tmp/solution.tif");
   }
@@ -355,9 +361,9 @@ public class RandomWalkAlgorithmTest {
   @Test
   public void testIncorporateSeeds() throws Exception {
     // full size is 10 elements
-    int[] source = new int[] { 0, 3, 4 }; // source pixels
-    int[] sink = new int[] { 1, 9 }; // sink pixels
-    // 5 pixels were given, 5 were calulated from reduced lap
+    Integer[] source = new Integer[] { 0, 3, 4 }; // source pixels
+    Integer[] sink = new Integer[] { 1, 9 }; // sink pixels
+    // 5 pixels were given, 5 were calculated from reduced lap
     float[] solution = new float[] { 10, 11, 12, 13, 14 };
     RandomWalkAlgorithm obj = new RandomWalkAlgorithm();
     float[] ret = obj.incorporateSeeds(solution, source, sink, 10);

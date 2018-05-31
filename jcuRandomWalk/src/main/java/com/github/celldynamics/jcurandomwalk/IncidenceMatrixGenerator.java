@@ -48,7 +48,7 @@ public class IncidenceMatrixGenerator implements Serializable {
   private int nz; // number of slices of the stack
   private SparseMatrixHost incidence; // incidence matrix coords
   private transient SparseMatrixHost weights; // weights coords, depends on stack, not serialised
-  private int[] sink; // indexes of pixel on bounding box
+  private Integer[] sink; // indexes of pixel on bounding box
 
   // this array stores coordinates of pixels used for computing weights. The order is:
   // [ro1 col1 z1 row2 col2 z2 .....] Weight should be computed between P1 and P2, P3 and P4 etc.
@@ -110,7 +110,7 @@ public class IncidenceMatrixGenerator implements Serializable {
     int verticesInLayer = nrows * ncols;
     // taken from Till's code
     int numBoxEl = (nrows * 2 + (ncols - 2) * 2) * (nz - 2) + 2 * nrows * ncols;
-    sink = new int[numBoxEl];
+    sink = new Integer[numBoxEl];
     int l = 0;
     for (int k = 1; k < nz - 1; k++) {
       for (int i = 0; i < nrows; i++) {
@@ -466,7 +466,7 @@ public class IncidenceMatrixGenerator implements Serializable {
    * 
    * @return indexes of pixels on edges.
    */
-  public int[] getSinkBox() {
+  public Integer[] getSinkBox() {
     return sink;
   }
 }

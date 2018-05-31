@@ -4,9 +4,12 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.closeTo;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 
 import java.io.File;
 import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 import java.util.stream.DoubleStream;
 
 import org.apache.commons.lang3.ArrayUtils;
@@ -270,7 +273,10 @@ public class IncidenceMatrixGeneratorTest {
     stack = TestDataGenerators.getTestStack(width, height, nz, "double");
     IncidenceMatrixGenerator obj = new IncidenceMatrixGenerator(stack, options.getAlgOptions());
     obj.computeSinkBox();
-    int[] b = obj.getSinkBox();
+    Integer[] b = obj.getSinkBox();
+    List<Integer> blist = Arrays.asList(b);
+    boolean issorted = blist.stream().sorted().collect(Collectors.toList()).equals(blist);
+    assertThat(issorted, is(true));
     // Arrays.sort(b);
     LOGGER.trace("BBA: " + ArrayTools
             .printArray(ArrayTools.array2Object(stack.getProcessor(1).getFloatArray())));
@@ -279,8 +285,8 @@ public class IncidenceMatrixGeneratorTest {
     LOGGER.trace("BBA: " + ArrayTools
             .printArray(ArrayTools.array2Object(stack.getProcessor(3).getFloatArray())));
     LOGGER.trace("BB: " + ArrayUtils.toString(b));
-    assertThat(Arrays.asList(b), contains(new int[] { 12, 21, 13, 22, 14, 23, 15, 17, 18, 20, 0, 3,
-        6, 9, 1, 4, 7, 10, 2, 5, 8, 11, 24, 27, 30, 33, 25, 28, 31, 34, 26, 29, 32, 35 }));
+    assertThat(blist, containsInAnyOrder(new Integer[] { 12, 21, 13, 22, 14, 23, 15, 17, 18, 20, 0,
+        3, 6, 9, 1, 4, 7, 10, 2, 5, 8, 11, 24, 27, 30, 33, 25, 28, 31, 34, 26, 29, 32, 35 }));
   }
 
   /**
