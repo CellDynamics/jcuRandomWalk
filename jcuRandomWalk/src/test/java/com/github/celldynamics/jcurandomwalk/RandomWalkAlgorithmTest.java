@@ -211,7 +211,7 @@ public class RandomWalkAlgorithmTest {
 
   /**
    * Test method for
-   * {@link RandomWalkAlgorithm#getSourceIndices(ij.ImageStack)}.
+   * {@link RandomWalkAlgorithm#getSourceIndices(ImageStack, int)}.
    * 
    * <p>Output indexes are column-ordered
    *
@@ -230,7 +230,7 @@ public class RandomWalkAlgorithmTest {
 
   /**
    * Test method for
-   * {@link RandomWalkAlgorithm#computeReducedLaplacian(int[], int[])}.
+   * {@link RandomWalkAlgorithm#computeReducedLaplacian(Integer[], Integer[])}.
    *
    * @throws Exception the exception
    */
@@ -295,8 +295,7 @@ public class RandomWalkAlgorithmTest {
     int[] ci = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
     float[] v = new float[] { 10, 101, 102, 11, 12, 13, 131, 14, 15 };
     ISparseMatrix testL = new SparseMatrixHost(ri, ci, v, SparseMatrixType.MATRIX_FORMAT_COO);
-    obj.computeB(testL, new Integer[] { 0, 1 });
-    IMatrix ret = obj.getB();
+    IMatrix ret = obj.computeB(testL, new Integer[] { 0, 1 });
     assertThat(Arrays.asList(ret.getVal()),
             contains(new float[] { -111.0f, -11.0f, -0f, -0f, -131.0f, -0.0f }));
   }
@@ -336,7 +335,7 @@ public class RandomWalkAlgorithmTest {
 
   /**
    * Test method for
-   * {@link com.github.celldynamics.jcurandomwalk.RandomWalkAlgorithm#solve(ij.ImageStack)}.
+   * {@link com.github.celldynamics.jcurandomwalk.RandomWalkAlgorithm#solve(ImageStack, int)}.
    * 
    * @throws Exception
    */
@@ -354,7 +353,7 @@ public class RandomWalkAlgorithmTest {
 
   /**
    * Test method for
-   * {@link com.github.celldynamics.jcurandomwalk.RandomWalkAlgorithm#incorporateSeeds(float[], int[], int[], int)}.
+   * {@link com.github.celldynamics.jcurandomwalk.RandomWalkAlgorithm#incorporateSeeds(float[], Integer[], Integer[], int)}.
    * 
    * @throws Exception
    */
