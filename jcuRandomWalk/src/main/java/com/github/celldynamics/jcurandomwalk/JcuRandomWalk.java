@@ -3,7 +3,11 @@ package com.github.celldynamics.jcurandomwalk;
 import static jcuda.runtime.JCuda.cudaGetDeviceCount;
 import static jcuda.runtime.JCuda.cudaSetDevice;
 
+import java.awt.Window;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.nio.file.Paths;
+import java.util.concurrent.CountDownLatch;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -26,6 +30,7 @@ import ch.qos.logback.classic.encoder.PatternLayoutEncoder;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.ConsoleAppender;
 import ij.IJ;
+import ij.ImageJ;
 import ij.ImagePlus;
 import ij.ImageStack;
 
@@ -36,10 +41,13 @@ import ij.ImageStack;
  * @author t.bretschneider
  */
 public class JcuRandomWalk {
+
+  ImageJ ij;
   static final Logger LOGGER = LoggerFactory.getLogger(JcuRandomWalk.class.getName());
   private int cliErrorStatus = 0; // returned to main
   private RandomWalkOptions rwOptions;
   private Options cliOptions = null;
+  private CommandLine cmd;
 
   /**
    * Default constructor using default options.
@@ -96,6 +104,8 @@ public class JcuRandomWalk {
     qd.addOption(quietOption);
     qd.addOption(ddebugOption);
 
+    Option showOption = Option.builder().desc("Show resulting image").longOpt("show").build();
+
     // alg options
     Option maxitOption = Option.builder().argName("iter").hasArg()
             .desc("Maximum number of iterations. Default is " + rwOptions.getAlgOptions().maxit)
@@ -114,14 +124,15 @@ public class JcuRandomWalk {
 
     cliOptions = new Options();
     cliOptions.addOption(seedOption);
-    cliOptions.addOption(loadIncOption);
+    cliOptions.addOptionGroup(gl);
     cliOptions.addOption(defProcessOption);
     cliOptions.addOption(deviceOption);
-    cliOptions.addOptionGroup(gl);
+    cliOptions.addOption(imageOption);
     cliOptions.addOption(verOption);
     cliOptions.addOption(helpOption);
     cliOptions.addOption(outputOption);
     cliOptions.addOptionGroup(qd);
+    cliOptions.addOption(showOption);
 
     cliOptions.addOption(maxitOption);
     cliOptions.addOption(tolOption);
@@ -137,7 +148,7 @@ public class JcuRandomWalk {
         return; // and finish
       }
       // process all but do not handle those from 2nd group
-      CommandLine cmd = parser.parse(cliOptions, args);
+      cmd = parser.parse(cliOptions, args);
 
       if (cmd.hasOption("device")) {
         rwOptions.device = Integer.parseInt(cmd.getOptionValue("device").trim());
@@ -259,6 +270,10 @@ public class JcuRandomWalk {
     timer.stop();
     LOGGER.info("Solved in " + timer.toString());
     rwa.free();
+    if (cmd != null && cmd.hasOption("show")) {
+      ij = new ImageJ();
+      segmentedImage.show();
+    }
   }
 
   /**
@@ -316,7 +331,28 @@ public class JcuRandomWalk {
    * @param args cmd args
    */
   public static void main(String[] args) {
+    CountDownLatch startSignal = new CountDownLatch(1);
     JcuRandomWalk app = new JcuRandomWalk(args);
+    if (app.ij != null) {
+      app.ij.addWindowListener(new WindowAdapter() {
+
+        @Override
+        public void windowClosing(WindowEvent e) {
+          Window[] windows = Window.getWindows();
+          for (Window w : windows) {
+            w.dispose();
+          }
+          startSignal.countDown();
+        }
+      });
+      try {
+        LOGGER.info("Waiting for IJ to close.");
+        startSignal.await();
+      } catch (InterruptedException e1) {
+        e1.printStackTrace();
+      }
+    }
+    LOGGER.info("Bye!");
     System.exit(app.cliErrorStatus);
   }
 
