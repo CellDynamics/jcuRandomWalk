@@ -232,7 +232,7 @@ public class JcuRandomWalk {
    * 
    */
   public void run() throws Exception {
-    final int seedVal = 255;
+    final int seedVal = 255; // value of seed to look for, TODO multi seed option
     selectGpu();
     StopWatch timer = StopWatch.createStarted();
     ImageStack stack = IJ.openImage(rwOptions.stack.toString()).getImageStack();

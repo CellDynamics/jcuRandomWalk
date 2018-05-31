@@ -43,7 +43,7 @@ public class RandomWalkAlgorithm {
   RandomWalkOptions options;
   ISparseMatrix reducedLap; // reduced laplacian
   ISparseMatrix lap; // full laplacian
-  IDenseVector b; // right vector
+  List<IDenseVector> b = new ArrayList<>(); // right vector
 
   private int[] mergedseeds; // Optimisation store
 
@@ -163,7 +163,9 @@ public class RandomWalkAlgorithm {
     LOGGER.trace("Rows to be removed: " + this.mergedseeds.length);
     IMatrix lapRowsRem = lap.removeRows(this.mergedseeds); // return is on cpu
 
-    computeB(lapRowsRem, source);
+    this.b.add(computeB(lapRowsRem, source));
+    this.b.add(computeB(lapRowsRem, sink));
+
     ISparseMatrix reducedL = (ISparseMatrix) lapRowsRem.removeCols(this.mergedseeds);
 
     lapRowsRem.free();
@@ -177,9 +179,10 @@ public class RandomWalkAlgorithm {
    * 
    * @param lap Laplacian with removed edges (rows).
    * @param indexes indexes of either source or sink, sorted
+   * @return B vector
    * @see #getB()
    */
-  void computeB(IMatrix lap, Integer[] indexes) {
+  IDenseVector computeB(IMatrix lap, Integer[] indexes) {
     LOGGER.info("Computing B");
     StopWatch timer = StopWatch.createStarted();
     if (lap instanceof SparseMatrixDevice) {
@@ -213,7 +216,7 @@ public class RandomWalkAlgorithm {
               1, ret.getVal());
       timer.stop();
       LOGGER.info("B computed in " + timer.toString());
-      this.b = dwret;
+      return dwret;
     }
   }
 
@@ -288,10 +291,25 @@ public class RandomWalkAlgorithm {
     ISparseMatrix reducedLapGpu = (ISparseMatrix) getReducedLap().toGpu();
     ISparseMatrix reducedLapGpuCsr = reducedLapGpu.convert2csr();
     // reducedLapGpu.free();
-    float[] solved = reducedLapGpuCsr.luSolve(b, true, options.getAlgOptions().maxit,
+    LOGGER.info("Forward");
+    float[] solved_fw = reducedLapGpuCsr.luSolve(b.get(0), true, options.getAlgOptions().maxit,
             options.getAlgOptions().tol);
-    float[] solvedSeeds = incorporateSeeds(solved, seedIndices, getIncidenceMatrix().getSinkBox(),
-            lap.getColNumber());
+    float[] solvedSeeds_fw = incorporateSeeds(solved_fw, seedIndices,
+            getIncidenceMatrix().getSinkBox(), lap.getColNumber());
+
+    LOGGER.info("Backward");
+    // reducedLapGpuCsr.free();
+    // reducedLapGpu.free();
+    // reducedLapGpu = (ISparseMatrix) getReducedLap().toGpu();
+    // reducedLapGpuCsr = reducedLapGpu.convert2csr();
+    float[] solved_bw = reducedLapGpuCsr.luSolve(b.get(1), true, options.getAlgOptions().maxit,
+            options.getAlgOptions().tol);
+    float[] solvedSeeds_bw = incorporateSeeds(solved_bw, getIncidenceMatrix().getSinkBox(),
+            seedIndices, lap.getColNumber());
+
+    float[] solvedSeeds = new float[solvedSeeds_bw.length];
+    for (int i = 0; i < solvedSeeds.length; i++)
+      solvedSeeds[i] = solvedSeeds_fw[i] > solvedSeeds_bw[i] ? 1.0f : 0.0f;
 
     ImageStack ret = getSegmentedStack(solvedSeeds);
     reducedLapGpuCsr.free();
@@ -369,7 +387,7 @@ public class RandomWalkAlgorithm {
    * 
    * @return the b
    */
-  public IDenseVector getB() {
+  public List<IDenseVector> getB() {
     return b;
   }
 
@@ -468,8 +486,10 @@ public class RandomWalkAlgorithm {
     if (lap != null) {
       lap.free();
     }
-    if (b != null) {
-      b.free();
+    for (IDenseVector bv : this.b) {
+      if (bv != null) {
+        bv.free();
+      }
     }
   }
 
