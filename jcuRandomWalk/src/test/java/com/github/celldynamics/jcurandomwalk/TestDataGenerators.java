@@ -22,7 +22,7 @@ public class TestDataGenerators {
   public int[] colInd = new int[] { 0, 1, 1, 2, 0, 3, 4, 2, 4 };
 
   /** The val. */
-  public float[] val = new float[] { 1, 4, 2, 3, 5, 7, 8, 9, 6 };
+  public float[] valRowOrder = new float[] { 1, 4, 2, 3, 5, 7, 8, 9, 6 };
 
   /** The row ind 1. */
   public int[] rowInd1 = new int[] { 0, 0, 1, 1, 2, 2, 3, 4, 4 };
@@ -31,7 +31,7 @@ public class TestDataGenerators {
   public int[] colInd1 = new int[] { 0, 2, 0, 1, 1, 3, 2, 2, 3 };
 
   /** The val 1. */
-  public float[] val1 = new float[] { 1, 5, 4, 2, 3, 9, 7, 8, 6 };
+  public float[] val1RowOrder = new float[] { 1, 5, 4, 2, 3, 9, 7, 8, 6 };
 
   /** The weights. */
   public double[] weights = new double[] { 1.0, 2.0, 3.0, 4.0, 5.0 };
