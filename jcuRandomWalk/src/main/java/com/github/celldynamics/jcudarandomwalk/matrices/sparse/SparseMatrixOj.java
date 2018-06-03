@@ -4,7 +4,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.lang3.ArrayUtils;
-import org.ojalgo.access.ElementView2D;
+import org.apache.commons.lang3.NotImplementedException;
+import org.ojalgo.access.ElementView1D;
+import org.ojalgo.matrix.store.MatrixStore;
 import org.ojalgo.matrix.store.SparseStore;
 
 import com.github.celldynamics.jcudarandomwalk.matrices.IMatrix;
@@ -18,10 +20,14 @@ public class SparseMatrixOj implements ISparseMatrix {
 
   public final static OjSparseMatrixFactory FACTORY = new OjSparseMatrixFactory();
 
-  SparseStore<Double> mat;
+  private int nrows;
+  private int ncols;
+  MatrixStore<Double> mat;
 
-  SparseMatrixOj(SparseStore<Double> mat) {
+  SparseMatrixOj(MatrixStore<Double> mat) {
     this.mat = mat;
+    this.nrows = (int) mat.countRows();
+    this.ncols = (int) mat.countColumns();
   }
 
   /*
@@ -31,7 +37,9 @@ public class SparseMatrixOj implements ISparseMatrix {
    */
   @Override
   public float[] getVal() {
-    ElementView2D<Double, ?> nz = mat.nonzeros();
+    // this returns column ordered nonzero indices. Matrix is ok, but only getVal returns in
+    // different order.
+    ElementView1D<Double, ?> nz = mat.nonzeros();
     List<Float> ret = new ArrayList<>();
     while (nz.hasNext()) {
       Number e = nz.next().get();
@@ -47,7 +55,7 @@ public class SparseMatrixOj implements ISparseMatrix {
    */
   @Override
   public int getRowNumber() {
-    return (int) mat.countRows();
+    return nrows;
   }
 
   /*
@@ -57,7 +65,7 @@ public class SparseMatrixOj implements ISparseMatrix {
    */
   @Override
   public int getColNumber() {
-    return (int) mat.countColumns();
+    return ncols;
   }
 
   /*
@@ -67,7 +75,7 @@ public class SparseMatrixOj implements ISparseMatrix {
    */
   @Override
   public int getElementNumber() {
-    ElementView2D<Double, ?> nz = mat.nonzeros();
+    ElementView1D<Double, ?> nz = mat.nonzeros();
     return (int) nz.getExactSizeIfKnown();
   }
 
@@ -118,8 +126,10 @@ public class SparseMatrixOj implements ISparseMatrix {
    */
   @Override
   public IMatrix transpose() {
-    // TODO Auto-generated method stub
-    return null;
+    SparseStore<Double> retm = SparseStore.PRIMITIVE.make(getColNumber(), getRowNumber());
+    mat.transpose().supplyTo(retm);
+    SparseMatrixOj ret = new SparseMatrixOj(retm);
+    return ret;
   }
 
   /*
@@ -129,8 +139,7 @@ public class SparseMatrixOj implements ISparseMatrix {
    */
   @Override
   public IMatrix toGpu() {
-    // TODO Auto-generated method stub
-    return null;
+    return this;
   }
 
   /*
@@ -140,8 +149,7 @@ public class SparseMatrixOj implements ISparseMatrix {
    */
   @Override
   public IMatrix toCpu() {
-    // TODO Auto-generated method stub
-    return null;
+    return this;
   }
 
   /*
@@ -151,8 +159,6 @@ public class SparseMatrixOj implements ISparseMatrix {
    */
   @Override
   public void free() {
-    // TODO Auto-generated method stub
-
   }
 
   /*
@@ -173,8 +179,14 @@ public class SparseMatrixOj implements ISparseMatrix {
    */
   @Override
   public int[] getRowInd() {
-    // TODO Auto-generated method stub
-    return null;
+    ElementView1D<Double, ?> nz = mat.nonzeros();
+    List<Integer> ret = new ArrayList<>();
+    while (nz.hasNext()) {
+      long i = nz.next().index();
+      Number e = nz.get();
+      ret.add((int) (i % nrows));
+    }
+    return ArrayUtils.toPrimitive(ret.toArray(new Integer[0]));
   }
 
   /*
@@ -184,8 +196,13 @@ public class SparseMatrixOj implements ISparseMatrix {
    */
   @Override
   public int[] getColInd() {
-    // TODO Auto-generated method stub
-    return null;
+    ElementView1D<Double, ?> nz = mat.nonzeros();
+    List<Integer> ret = new ArrayList<>();
+    while (nz.hasNext()) {
+      long i = nz.next().index();
+      ret.add((int) (i % ncols));
+    }
+    return ArrayUtils.toPrimitive(ret.toArray(new Integer[0]));
   }
 
   /*
@@ -196,8 +213,7 @@ public class SparseMatrixOj implements ISparseMatrix {
    */
   @Override
   public SparseMatrixType getSparseMatrixType() {
-    // TODO Auto-generated method stub
-    return null;
+    return SparseMatrixType.MATRIX_FORMAT_COO;
   }
 
   /*
@@ -207,8 +223,7 @@ public class SparseMatrixOj implements ISparseMatrix {
    */
   @Override
   public ISparseMatrix convert2csr() {
-    // TODO Auto-generated method stub
-    return null;
+    throw new NotImplementedException("Conversions are not implemented for OjAlg");
   }
 
   /*
@@ -218,8 +233,7 @@ public class SparseMatrixOj implements ISparseMatrix {
    */
   @Override
   public ISparseMatrix convert2coo() {
-    // TODO Auto-generated method stub
-    return null;
+    throw new NotImplementedException("Conversions are not implemented for OjAlg");
   }
 
   /*
