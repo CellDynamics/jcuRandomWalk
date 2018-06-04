@@ -293,7 +293,13 @@ public class SparseMatrixOjTest {
    */
   @Test
   public void testSumAlongRows() throws Exception {
-    throw new RuntimeException("not yet implemented");
+    int[] ri = new int[] { 0, 0, 0, 1, 2, 3, 4, 4, 5 };
+    int[] ci = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
+    float[] v = new float[] { 10, 101, 102, 11, 12, 13, 131, 14, 15 };
+    ISparseMatrix mat = SparseMatrixOj.FACTORY.make(ri, ci, v);
+    IMatrix ret = mat.sumAlongRows();
+    assertThat(Arrays.asList(ret.getVal()),
+            contains(new float[] { 213.0f, 11.0f, 12.0f, 13.0f, 145.0f, 15.0f }));
   }
 
   /**

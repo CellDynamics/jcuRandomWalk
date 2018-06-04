@@ -1,5 +1,6 @@
 package com.github.celldynamics.jcudarandomwalk.matrices.dense;
 
+import org.ojalgo.matrix.store.MatrixStore;
 import org.ojalgo.matrix.store.PrimitiveDenseStore;
 
 /**
@@ -21,5 +22,9 @@ public final class OjDenseVectorFactory {
       b.set(i, val[i]);
     }
     return new DenseVectorOj(b);
+  }
+
+  public IDenseVector make(MatrixStore<Double> mat) {
+    return new DenseVectorOj(mat);
   }
 }

@@ -1,6 +1,11 @@
 package com.github.celldynamics.jcudarandomwalk.matrices.dense;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.NotImplementedException;
+import org.ojalgo.access.ElementView1D;
 import org.ojalgo.matrix.store.MatrixStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,7 +51,16 @@ public class DenseVectorOj implements IDenseVector {
    */
   @Override
   public float[] getVal() {
-    throw new NotImplementedException("not implemented");
+    // this returns column ordered nonzero indices. Matrix is ok, but only getVal returns in
+    // different order.
+    ElementView1D<Double, ?> nz = mat.nonzeros();
+    List<Float> ret = new ArrayList<>();
+    while (nz.hasNext()) {
+      Number e = nz.next().get();
+      ret.add(e.floatValue());
+    }
+    return ArrayUtils.toPrimitive(ret.toArray(new Float[0]));
+
   }
 
   /*
