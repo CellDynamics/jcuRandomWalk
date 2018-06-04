@@ -292,7 +292,7 @@ public class SparseMatrixHostTest {
     int[] ci = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
     float[] v = new float[] { 10, 101, 102, 11, 12, 13, 131, 14, 15 };
     ISparseMatrix testL = new SparseMatrixHost(ri, ci, v, SparseMatrixType.MATRIX_FORMAT_COO);
-    LOGGER.debug("Laplacean" + testL.toString());
+    LOGGER.debug("Laplacian" + testL.toString());
 
     // remove row/co 1,2,3
     int[] toRem = new int[] { 5 };

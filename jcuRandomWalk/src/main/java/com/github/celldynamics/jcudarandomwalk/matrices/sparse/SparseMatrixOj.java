@@ -40,10 +40,10 @@ public class SparseMatrixOj implements ISparseMatrix {
   /**
    * OjAlg store wrapped by this class.
    */
-  MatrixStore<Double> mat;
+  SparseStore<Double> mat;
 
   SparseMatrixOj(MatrixStore<Double> mat) {
-    this.mat = mat;
+    this.mat = (SparseStore<Double>) mat;
     this.nrows = (int) mat.countRows();
     this.ncols = (int) mat.countColumns();
   }
@@ -104,8 +104,14 @@ public class SparseMatrixOj implements ISparseMatrix {
    */
   @Override
   public IMatrix removeRows(int[] rows) {
-    // TODO Auto-generated method stub
-    return null;
+    int[] rr = getRowInd();
+    int[] cc = getColInd();
+    float[] vv = getVal();
+    SparseMatrixHost tmp =
+            (SparseMatrixHost) new SparseMatrixHost(rr, cc, vv, getSparseMatrixType())
+                    .removeRows(rows);
+
+    return FACTORY.make(tmp.getRowInd(), tmp.getColInd(), tmp.getVal());
   }
 
   /*
@@ -115,8 +121,14 @@ public class SparseMatrixOj implements ISparseMatrix {
    */
   @Override
   public IMatrix removeCols(int[] cols) {
-    // TODO Auto-generated method stub
-    return null;
+    int[] rr = getRowInd();
+    int[] cc = getColInd();
+    float[] vv = getVal();
+    SparseMatrixHost tmp =
+            (SparseMatrixHost) new SparseMatrixHost(rr, cc, vv, getSparseMatrixType())
+                    .removeCols(cols);
+
+    return FACTORY.make(tmp.getRowInd(), tmp.getColInd(), tmp.getVal());
   }
 
   /*

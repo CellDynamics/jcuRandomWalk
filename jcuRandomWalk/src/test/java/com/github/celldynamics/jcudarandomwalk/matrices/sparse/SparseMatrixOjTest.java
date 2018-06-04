@@ -1,9 +1,9 @@
 package com.github.celldynamics.jcudarandomwalk.matrices.sparse;
 
 import static com.github.baniuk.ImageJTestSuite.matchers.arrays.ArrayMatchers.arrayCloseTo;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.is;
 
 import java.util.Arrays;
 import java.util.stream.IntStream;
@@ -159,7 +159,27 @@ public class SparseMatrixOjTest {
    */
   @Test
   public void testRemoveRows() throws Exception {
-    throw new RuntimeException("not yet implemented");
+    int[] ri = new int[] { 0, 0, 0, 1, 2, 3, 4, 4, 5 };
+    int[] ci = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
+    float[] v = new float[] { 10, 101, 102, 11, 12, 13, 131, 14, 15 };
+    ISparseMatrix testL = SparseMatrixOj.FACTORY.make(ri, ci, v);
+    LOGGER.debug("Laplacian" + testL.toString());
+
+    int[] toRem = new int[] { 2, 4 };
+
+    IMatrix ret = testL.removeRows(toRem);
+    LOGGER.debug("Reduced: " + ret.toString());
+    assertThat(ret.getColNumber(), is(6));
+    assertThat(ret.getRowNumber(), is(4));
+    assertThat(ret.getElementNumber(), is(6));
+
+    assertThat(Arrays.asList(ret.getVal()),
+            contains(new float[] { 10.0f, 101.0f, 11.0f, 13.0f, 102.0f, 15.0f }));
+    assertThat(Arrays.asList(((ISparseMatrix) ret).getRowInd()),
+            contains(new int[] { 0, 0, 1, 2, 0, 3 }));
+    assertThat(Arrays.asList(((ISparseMatrix) ret).getColInd()),
+            contains(new int[] { 0, 1, 1, 3, 5, 5 }));
+
   }
 
   /**
@@ -170,7 +190,26 @@ public class SparseMatrixOjTest {
    */
   @Test
   public void testRemoveCols() throws Exception {
-    throw new RuntimeException("not yet implemented");
+    int[] ri = new int[] { 0, 0, 0, 1, 2, 3, 4, 4, 5 };
+    int[] ci = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
+    float[] v = new float[] { 10, 101, 102, 11, 12, 13, 131, 14, 15 };
+    ISparseMatrix testL = SparseMatrixOj.FACTORY.make(ri, ci, v);
+    LOGGER.debug("Laplacian" + testL.toString());
+
+    int[] toRem = new int[] { 0, 2 };
+
+    IMatrix ret = testL.removeCols(toRem);
+    LOGGER.debug("Reduced" + ret.toString());
+    assertThat(ret.getColNumber(), is(4));
+    assertThat(ret.getRowNumber(), is(6));
+    assertThat(ret.getElementNumber(), is(6));
+    assertThat(Arrays.asList(ret.getVal()),
+            contains(new float[] { 101.0f, 11.0f, 13.0f, 14.0f, 102.0f, 15.0f }));
+    assertThat(Arrays.asList(((ISparseMatrix) ret).getRowInd()),
+            contains(new int[] { 0, 1, 3, 4, 0, 5 }));
+    assertThat(Arrays.asList(((ISparseMatrix) ret).getColInd()),
+            contains(new int[] { 0, 0, 1, 2, 3, 3 }));
+
   }
 
   /**
