@@ -1,5 +1,7 @@
 package com.github.celldynamics.jcudarandomwalk.matrices.sparse;
 
+import static org.ojalgo.function.aggregator.Aggregator.SUM;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -8,7 +10,9 @@ import org.apache.commons.lang3.NotImplementedException;
 import org.ojalgo.RecoverableCondition;
 import org.ojalgo.access.ElementView1D;
 import org.ojalgo.matrix.decomposition.LU;
+import org.ojalgo.matrix.store.ElementsSupplier;
 import org.ojalgo.matrix.store.MatrixStore;
+import org.ojalgo.matrix.store.PrimitiveDenseStore;
 import org.ojalgo.matrix.store.SparseStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,10 +44,10 @@ public class SparseMatrixOj implements ISparseMatrix {
   /**
    * OjAlg store wrapped by this class.
    */
-  SparseStore<Double> mat;
+  MatrixStore<Double> mat;
 
   SparseMatrixOj(MatrixStore<Double> mat) {
-    this.mat = (SparseStore<Double>) mat;
+    this.mat = mat;
     this.nrows = (int) mat.countRows();
     this.ncols = (int) mat.countColumns();
   }
@@ -198,8 +202,11 @@ public class SparseMatrixOj implements ISparseMatrix {
    */
   @Override
   public IMatrix sumAlongRows() {
-    // TODO Auto-generated method stub
-    return null;
+    ElementsSupplier<Double> rs = mat.reduceRows(SUM);
+    PrimitiveDenseStore ret = PrimitiveDenseStore.FACTORY.makeZero(getRowNumber(), 1);
+    rs.supplyTo(ret);
+    return DenseVectorOj.FACTORY.make(ret);
+
   }
 
   /*
