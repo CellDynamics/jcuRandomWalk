@@ -20,10 +20,6 @@ import com.github.celldynamics.jcudarandomwalk.matrices.dense.IDenseVector;
  */
 public class SparseMatrixHost extends SparseMatrix {
 
-  /**
-   * Default UID.
-   */
-  private static final long serialVersionUID = -2934384684498319094L;
   private int counter = 0; // counter
 
   /**

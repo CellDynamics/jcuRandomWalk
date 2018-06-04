@@ -117,7 +117,7 @@ public class SparseMatrixDevice extends SparseMatrix implements ICudaLibHandles 
   /**
    * Set up sparse engine. Should not be called directly.
    */
-  SparseMatrixDevice() {
+  public SparseMatrixDevice() {
     cusparseCreateMatDescr(descr);
     cusparseSetMatType(descr, CUSPARSE_MATRIX_TYPE_GENERAL);
     cusparseSetMatIndexBase(descr, CUSPARSE_INDEX_BASE_ZERO);
