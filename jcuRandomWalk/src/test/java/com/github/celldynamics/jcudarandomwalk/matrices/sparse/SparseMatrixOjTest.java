@@ -61,7 +61,7 @@ public class SparseMatrixOjTest {
     // note that val returns in column order
     float[] exp = new float[] { 10, 131, 101, 11, 12, 13, 14, 102, 15 };
 
-    ISparseMatrix mat = SparseMatrixOj.FACTORY.make(ri, ci, v);
+    ISparseMatrix mat = new SparseMatrixOj(ri, ci, v);
     float[] retval = mat.getVal();
     assertThat(Arrays.asList(retval), contains(exp));
   }
@@ -78,7 +78,7 @@ public class SparseMatrixOjTest {
     int[] ci = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
     float[] v = new float[] { 10, 101, 102, 11, 12, 13, 131, 14, 15 };
 
-    ISparseMatrix mat = SparseMatrixOj.FACTORY.make(ri, ci, v);
+    ISparseMatrix mat = new SparseMatrixOj(ri, ci, v);
     int ret = mat.getRowNumber();
     assertThat(ret, is(6));
   }
@@ -95,7 +95,7 @@ public class SparseMatrixOjTest {
     int[] ci = new int[] { 0, 1, 5, 2, 3, 0, 4, 5 };
     float[] v = new float[] { 10, 101, 102, 12, 13, 131, 14, 15 };
 
-    ISparseMatrix mat = SparseMatrixOj.FACTORY.make(ri, ci, v);
+    ISparseMatrix mat = new SparseMatrixOj(ri, ci, v);
     int ret = mat.getRowNumber();
     assertThat(ret, is(6));
   }
@@ -112,7 +112,7 @@ public class SparseMatrixOjTest {
     int[] ci = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
     float[] v = new float[] { 10, 101, 102, 11, 12, 13, 131, 14, 15 };
 
-    ISparseMatrix mat = SparseMatrixOj.FACTORY.make(ri, ci, v);
+    ISparseMatrix mat = new SparseMatrixOj(ri, ci, v);
     int ret = mat.getColNumber();
     assertThat(ret, is(6));
   }
@@ -129,7 +129,7 @@ public class SparseMatrixOjTest {
     int[] ci = new int[] { 0, 1, 4, 1, 2, 0, 3, 4 };
     float[] v = new float[] { 10, 101, 102, 11, 13, 131, 14, 15 };
 
-    ISparseMatrix mat = SparseMatrixOj.FACTORY.make(ri, ci, v);
+    ISparseMatrix mat = new SparseMatrixOj(ri, ci, v);
     int ret = mat.getColNumber();
     assertThat(ret, is(5));
   }
@@ -146,7 +146,7 @@ public class SparseMatrixOjTest {
     int[] ci = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
     float[] v = new float[] { 10, 101, 102, 11, 12, 13, 131, 14, 15 };
 
-    ISparseMatrix mat = SparseMatrixOj.FACTORY.make(ri, ci, v);
+    ISparseMatrix mat = new SparseMatrixOj(ri, ci, v);
     int el = mat.getElementNumber();
     assertThat(el, is(v.length));
   }
@@ -162,7 +162,7 @@ public class SparseMatrixOjTest {
     int[] ri = new int[] { 0, 0, 0, 1, 2, 3, 4, 4, 5 };
     int[] ci = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
     float[] v = new float[] { 10, 101, 102, 11, 12, 13, 131, 14, 15 };
-    ISparseMatrix testL = SparseMatrixOj.FACTORY.make(ri, ci, v);
+    ISparseMatrix testL = new SparseMatrixOj(ri, ci, v);
     LOGGER.debug("Laplacian" + testL.toString());
 
     int[] toRem = new int[] { 2, 4 };
@@ -193,7 +193,7 @@ public class SparseMatrixOjTest {
     int[] ri = new int[] { 0, 0, 0, 1, 2, 3, 4, 4, 5 };
     int[] ci = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
     float[] v = new float[] { 10, 101, 102, 11, 12, 13, 131, 14, 15 };
-    ISparseMatrix testL = SparseMatrixOj.FACTORY.make(ri, ci, v);
+    ISparseMatrix testL = new SparseMatrixOj(ri, ci, v);
     LOGGER.debug("Laplacian" + testL.toString());
 
     int[] toRem = new int[] { 0, 2 };
@@ -221,8 +221,8 @@ public class SparseMatrixOjTest {
   @Test
   public void testMultiply() throws Exception {
     TestDataGenerators td = new TestDataGenerators();
-    ISparseMatrix mat = SparseMatrixOj.FACTORY.make(td.rowInd, td.colInd, td.valRowOrder);
-    ISparseMatrix b = SparseMatrixOj.FACTORY.make(td.rowInd1, td.colInd1, td.val1RowOrder);
+    ISparseMatrix mat = new SparseMatrixOj(td.rowInd, td.colInd, td.valRowOrder);
+    ISparseMatrix b = new SparseMatrixOj(td.rowInd1, td.colInd1, td.val1RowOrder);
     IMatrix ret = mat.multiply(b);
     float[] vals = ret.getVal();
     assertThat(Arrays.asList(vals), contains(new float[] { 17.0f, 8.0f, 5.0f, 8.0f, 13.0f, 27.0f,
@@ -238,7 +238,7 @@ public class SparseMatrixOjTest {
   @Test
   public void testTranspose() throws Exception {
     TestDataGenerators td = new TestDataGenerators();
-    ISparseMatrix mat = SparseMatrixOj.FACTORY.make(td.rowInd, td.colInd, td.valRowOrder);
+    ISparseMatrix mat = new SparseMatrixOj(td.rowInd, td.colInd, td.valRowOrder);
     LOGGER.trace(((SparseMatrixOj) mat).mat.toString());
     IMatrix matt = mat.transpose();
     LOGGER.trace(((SparseMatrixOj) matt).mat.toString());
@@ -254,8 +254,7 @@ public class SparseMatrixOjTest {
    */
   @Test
   public void testToGpu() throws Exception {
-    ISparseMatrix r =
-            SparseMatrixOj.FACTORY.make(new int[] { 1 }, new int[] { 1 }, new float[] { 1 });
+    ISparseMatrix r = new SparseMatrixOj(new int[] { 1 }, new int[] { 1 }, new float[] { 1 });
     assertThat(r, is(r));
   }
 
@@ -267,8 +266,7 @@ public class SparseMatrixOjTest {
    */
   @Test
   public void testToCpu() throws Exception {
-    ISparseMatrix r =
-            SparseMatrixOj.FACTORY.make(new int[] { 1 }, new int[] { 1 }, new float[] { 1 });
+    ISparseMatrix r = new SparseMatrixOj(new int[] { 1 }, new int[] { 1 }, new float[] { 1 });
     assertThat(r, is(r));
   }
 
@@ -280,8 +278,7 @@ public class SparseMatrixOjTest {
    */
   @Test
   public void testFree() throws Exception {
-    ISparseMatrix r =
-            SparseMatrixOj.FACTORY.make(new int[] { 1 }, new int[] { 1 }, new float[] { 1 });
+    ISparseMatrix r = new SparseMatrixOj(new int[] { 1 }, new int[] { 1 }, new float[] { 1 });
     r.free();
   }
 
@@ -296,7 +293,7 @@ public class SparseMatrixOjTest {
     int[] ri = new int[] { 0, 0, 0, 1, 2, 3, 4, 4, 5 };
     int[] ci = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
     float[] v = new float[] { 10, 101, 102, 11, 12, 13, 131, 14, 15 };
-    ISparseMatrix mat = SparseMatrixOj.FACTORY.make(ri, ci, v);
+    ISparseMatrix mat = new SparseMatrixOj(ri, ci, v);
     IMatrix ret = mat.sumAlongRows();
     assertThat(Arrays.asList(ret.getVal()),
             contains(new float[] { 213.0f, 11.0f, 12.0f, 13.0f, 145.0f, 15.0f }));
@@ -316,7 +313,7 @@ public class SparseMatrixOjTest {
     int[] ci = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
     float[] v = new float[] { 10, 101, 102, 11, 12, 13, 131, 14, 15 };
 
-    ISparseMatrix mat = SparseMatrixOj.FACTORY.make(ri, ci, v);
+    ISparseMatrix mat = new SparseMatrixOj(ri, ci, v);
     int[] ret = mat.getRowInd();
     assertThat(Arrays.asList(ret), contains(rexp));
   }
@@ -335,7 +332,7 @@ public class SparseMatrixOjTest {
     int[] cexp = new int[] { 0, 00, 1, 1, 2, 3, 4, 5, 5 };
     float[] v = new float[] { 10, 101, 102, 11, 12, 13, 131, 14, 15 };
 
-    ISparseMatrix mat = SparseMatrixOj.FACTORY.make(ri, ci, v);
+    ISparseMatrix mat = new SparseMatrixOj(ri, ci, v);
     int[] ret = mat.getColInd();
     assertThat(Arrays.asList(ret), contains(cexp));
   }
@@ -348,8 +345,7 @@ public class SparseMatrixOjTest {
    */
   @Test
   public void testGetSparseMatrixType() throws Exception {
-    ISparseMatrix r =
-            SparseMatrixOj.FACTORY.make(new int[] { 1 }, new int[] { 1 }, new float[] { 1 });
+    ISparseMatrix r = new SparseMatrixOj(new int[] { 1 }, new int[] { 1 }, new float[] { 1 });
     assertThat(r.getSparseMatrixType(), is(SparseMatrixType.MATRIX_FORMAT_COO));
   }
 
@@ -361,7 +357,7 @@ public class SparseMatrixOjTest {
    */
   @Test(expected = NotImplementedException.class)
   public void testConvert2csr() throws Exception {
-    SparseMatrixOj.FACTORY.make(new int[] { 1 }, new int[] { 1 }, new float[] { 1 }).convert2csr();
+    new SparseMatrixOj(new int[] { 1 }, new int[] { 1 }, new float[] { 1 }).convert2csr();
   }
 
   /**
@@ -372,7 +368,7 @@ public class SparseMatrixOjTest {
    */
   @Test(expected = NotImplementedException.class)
   public void testConvert2coo() throws Exception {
-    SparseMatrixOj.FACTORY.make(new int[] { 1 }, new int[] { 1 }, new float[] { 1 }).convert2coo();
+    new SparseMatrixOj(new int[] { 1 }, new int[] { 1 }, new float[] { 1 }).convert2coo();
   }
 
   /**
@@ -384,7 +380,7 @@ public class SparseMatrixOjTest {
    */
   @Test
   public void testFull() throws Exception {
-    ISparseMatrix test = SparseMatrixOj.FACTORY.make(new int[] { 0, 0, 2 }, new int[] { 1, 4, 1 },
+    ISparseMatrix test = new SparseMatrixOj(new int[] { 0, 0, 2 }, new int[] { 1, 4, 1 },
             new float[] { 1, 2, 3 });
     LOGGER.trace("test: " + test.toString());
     double[][] f = test.full();
@@ -408,8 +404,8 @@ public class SparseMatrixOjTest {
     float[] vals = new float[] { 0.9f, 0.4f, 0.1f, 0.9f, 0.1f, 0.1f, 0.9f, 0.9f, 0.6f, 0.2f, 0.4f,
         0.2f, 0.6f, 0.4f, 0.1f, 0.3f, 0.3f, 0.5f, 0.5f, 0.2f, 0.8f, 0.1f, 0.1f, 0.4f, 0.2f };
     float[] bval = new float[] { 6.1f, 8f, 4.7f, 5.4f, 3.9f };
-    ISparseMatrix a = SparseMatrixOj.FACTORY.make(rows, cols, vals);
-    IDenseVector b = DenseVectorOj.FACTORY.make(bval);
+    ISparseMatrix a = new SparseMatrixOj(rows, cols, vals);
+    IDenseVector b = new DenseVectorOj(bval);
 
     float[] ret = a.luSolve(b, true, 0, 0);
 

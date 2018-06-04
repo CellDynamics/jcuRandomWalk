@@ -21,6 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.celldynamics.jcudarandomwalk.matrices.sparse.ISparseMatrix;
+import com.github.celldynamics.jcudarandomwalk.matrices.sparse.SparseMatrixHost;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.LoggerContext;
@@ -100,16 +101,16 @@ public class IncidenceMatrixGeneratorTest {
             ArrayTools.printArray(ArrayTools.array2Object(stack.getProcessor(2).getFloatArray())));
     IncidenceMatrixGenerator obj = new IncidenceMatrixGenerator(stack, options.getAlgOptions());
     // check sizes
-    ISparseMatrix incid = obj.getIncidence();
-    assertThat(incid.getRowNumber(), is(46)); // numbers for tes stack
-    assertThat(incid.getColNumber(), is(24));
-    ISparseMatrix weights = obj.getWeights();
+    ISparseMatrix incidence = obj.getIncidence().toSparse(new SparseMatrixHost());
+    assertThat(incidence.getRowNumber(), is(46)); // numbers for tes stack
+    assertThat(incidence.getColNumber(), is(24));
+    ISparseMatrix weights = obj.getWeights().toSparse(new SparseMatrixHost());
     assertThat(weights.getRowNumber(), is(46));
     assertThat(weights.getColNumber(), is(46));
 
-    double[][] f = incid.full();
+    double[][] f = incidence.full();
     LOGGER.debug(ArrayTools.printArray(ArrayTools.array2Object(f)));
-    LOGGER.debug("Incidence: " + incid.toString());
+    LOGGER.debug("Incidence: " + incidence.toString());
     double[][] w = weights.full();
     LOGGER.trace(ArrayTools.printArray(ArrayTools.array2Object(w)));
 
@@ -178,15 +179,19 @@ public class IncidenceMatrixGeneratorTest {
    */
   @Test
   public void testSaveObject() throws Exception {
+    // TODO use factory to get Host from incidence
     RandomWalkOptions options = new RandomWalkOptions();
     IncidenceMatrixGenerator obj = new IncidenceMatrixGenerator(stack, options.getAlgOptions());
-    double[][] objFull = obj.getIncidence().full();
+    ISparseMatrix incidence = obj.getIncidence().toSparse(new SparseMatrixHost());
+    double[][] objFull = incidence.full();
     File filename = folder.newFile();
     obj.saveObject(filename.toString());
     // restore
     IncidenceMatrixGenerator restored = IncidenceMatrixGenerator.restoreObject(filename.toString(),
             stack, options.getAlgOptions());
-    double[][] resFull = restored.getIncidence().full();
+
+    ISparseMatrix incidenceRes = restored.getIncidence().toSparse(new SparseMatrixHost());
+    double[][] resFull = incidenceRes.full();
     for (int c = 0; c < resFull.length; c++) {
       assertThat(Arrays.asList(resFull[c]), contains(objFull[c]));
     }
@@ -198,12 +203,11 @@ public class IncidenceMatrixGeneratorTest {
     assertThat(Arrays.asList(restored.getSinkBox()), contains(obj.getSinkBox()));
     assertThat(restored.getWeights().getColNumber(), is(obj.getWeights().getColNumber()));
     assertThat(restored.getWeights().getRowNumber(), is(obj.getWeights().getRowNumber()));
-    assertThat(restored.getWeights().getElementNumber(), is(obj.getWeights().getElementNumber()));
+    assertThat(restored.getWeights().getVal().length, is(obj.getWeights().getVal().length));
 
     assertThat(restored.getIncidence().getColNumber(), is(obj.getIncidence().getColNumber()));
     assertThat(restored.getIncidence().getRowNumber(), is(obj.getIncidence().getRowNumber()));
-    assertThat(restored.getIncidence().getElementNumber(),
-            is(obj.getIncidence().getElementNumber()));
+    assertThat(restored.getIncidence().getVal().length, is(obj.getIncidence().getVal().length));
   }
 
   /**
@@ -322,7 +326,8 @@ public class IncidenceMatrixGeneratorTest {
     inc.assignStack(ts);
     LOGGER.trace("Slice 1: "
             + ArrayTools.printArray(ArrayTools.array2Object(ts.getProcessor(1).getFloatArray())));
-    ISparseMatrix weights = inc.getWeights();
+    ISparseMatrix weights = inc.getWeights().toSparse(new SparseMatrixHost());
+    ISparseMatrix incidence = inc.getIncidence().toSparse(new SparseMatrixHost());
     // LOGGER.trace(ArrayTools.printArray(ArrayTools.array2Object(inicidence.full())));
     // LOGGER.trace(ArrayTools.printArray(ArrayTools.array2Object(weights.full())));
     LOGGER.trace("INC: " + inc.getIncidence());
@@ -330,7 +335,7 @@ public class IncidenceMatrixGeneratorTest {
     // Arrays.sort(inc.getSinkBox());
     LOGGER.trace("BBX: " + ArrayUtils.toString(inc.getSinkBox()));
 
-    double[][] f = inc.getIncidence().full();
+    double[][] f = incidence.full();
     LOGGER.debug(ArrayTools.printArray(ArrayTools.array2Object(f)));
     double[][] w = weights.full();
     LOGGER.trace(ArrayTools.printArray(ArrayTools.array2Object(w)));

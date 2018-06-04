@@ -7,6 +7,7 @@ import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.NotImplementedException;
 import org.ojalgo.access.ElementView1D;
 import org.ojalgo.matrix.store.MatrixStore;
+import org.ojalgo.matrix.store.PrimitiveDenseStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,22 +27,30 @@ public class DenseVectorOj implements IDenseVector {
   static final Logger LOGGER = LoggerFactory.getLogger(DenseVectorOj.class.getName());
 
   /**
-   * Factory of Oj sparse matrix.
-   */
-  public static final OjDenseVectorFactory FACTORY = new OjDenseVectorFactory();
-
-  private int nrows;
-  private int ncols;
-
-  /**
    * OjAlg store wrapped by this class.
    */
   public MatrixStore<Double> mat;
 
-  DenseVectorOj(MatrixStore<Double> mat) {
+  /**
+   * Wrap oj object.
+   * 
+   * @param mat oj matrix
+   */
+  public DenseVectorOj(MatrixStore<Double> mat) {
     this.mat = mat;
-    this.nrows = (int) mat.countRows();
-    this.ncols = (int) mat.countColumns();
+  }
+
+  /**
+   * Create oj dense vector.
+   * 
+   * @param val values.
+   */
+  public DenseVectorOj(float[] val) {
+    PrimitiveDenseStore b = PrimitiveDenseStore.FACTORY.makeZero(val.length, 1);
+    for (int i = 0; i < val.length; i++) {
+      b.set(i, val[i]);
+    }
+    mat = b;
   }
 
   /*

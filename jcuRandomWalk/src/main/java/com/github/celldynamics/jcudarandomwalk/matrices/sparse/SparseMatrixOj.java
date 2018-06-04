@@ -4,6 +4,7 @@ import static org.ojalgo.function.aggregator.Aggregator.SUM;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.IntStream;
 
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.NotImplementedException;
@@ -34,11 +35,6 @@ public class SparseMatrixOj implements ISparseMatrix {
    */
   static final Logger LOGGER = LoggerFactory.getLogger(SparseMatrixOj.class.getName());
 
-  /**
-   * Factory of Oj sparse matrix.
-   */
-  public static final OjSparseMatrixFactory FACTORY = new OjSparseMatrixFactory();
-
   private int nrows;
   private int ncols;
   /**
@@ -46,10 +42,55 @@ public class SparseMatrixOj implements ISparseMatrix {
    */
   MatrixStore<Double> mat;
 
-  SparseMatrixOj(MatrixStore<Double> mat) {
+  /**
+   * Wrap existing Oj object.
+   * 
+   * @param mat oj object.
+   */
+  public SparseMatrixOj(MatrixStore<Double> mat) {
     this.mat = mat;
     this.nrows = (int) mat.countRows();
     this.ncols = (int) mat.countColumns();
+  }
+
+  /**
+   * Create sparse matrix. Oj wrapper.
+   * 
+   * @param rowInd row indices
+   * @param colInd column indices
+   * @param val values
+   * @param rowNumber number of rows
+   * @param colNumber number of columns
+   */
+  public SparseMatrixOj(int[] rowInd, int[] colInd, float[] val, int rowNumber, int colNumber) {
+    if ((rowInd.length != colInd.length) || (rowInd.length != val.length)) {
+      throw new IllegalArgumentException("Input arrays should have the same length in COO format");
+    }
+    SparseStore<Double> mtrxA = SparseStore.PRIMITIVE.make(rowNumber, colNumber);
+    for (int i = 0; i < rowInd.length; i++) {
+      mtrxA.set(rowInd[i], colInd[i], val[i]);
+    }
+    mat = mtrxA;
+  }
+
+  /**
+   * Create sparse matrix. Oj wrapper. Calculate number of rows and colums.
+   * 
+   * @param rowInd row indices
+   * @param colInd column indices
+   * @param val values
+   */
+  public SparseMatrixOj(int[] rowInd, int[] colInd, float[] val) {
+    if ((rowInd.length != colInd.length) || (rowInd.length != val.length)) {
+      throw new IllegalArgumentException("Input arrays should have the same length in COO format");
+    }
+    int colNumber = IntStream.of(colInd).parallel().max().getAsInt() + 1; // assuming 0 based
+    int rowNumber = IntStream.of(rowInd).parallel().max().getAsInt() + 1;
+    SparseStore<Double> mtrxA = SparseStore.PRIMITIVE.make(rowNumber, colNumber);
+    for (int i = 0; i < rowInd.length; i++) {
+      mtrxA.set(rowInd[i], colInd[i], val[i]);
+    }
+    mat = mtrxA;
   }
 
   /*
@@ -115,7 +156,7 @@ public class SparseMatrixOj implements ISparseMatrix {
             (SparseMatrixHost) new SparseMatrixHost(rr, cc, vv, getSparseMatrixType())
                     .removeRows(rows);
 
-    return FACTORY.make(tmp.getRowInd(), tmp.getColInd(), tmp.getVal());
+    return new SparseMatrixOj(tmp.getRowInd(), tmp.getColInd(), tmp.getVal());
   }
 
   /*
@@ -132,7 +173,7 @@ public class SparseMatrixOj implements ISparseMatrix {
             (SparseMatrixHost) new SparseMatrixHost(rr, cc, vv, getSparseMatrixType())
                     .removeCols(cols);
 
-    return FACTORY.make(tmp.getRowInd(), tmp.getColInd(), tmp.getVal());
+    return new SparseMatrixOj(tmp.getRowInd(), tmp.getColInd(), tmp.getVal());
   }
 
   /*
@@ -205,7 +246,7 @@ public class SparseMatrixOj implements ISparseMatrix {
     ElementsSupplier<Double> rs = mat.reduceRows(SUM);
     PrimitiveDenseStore ret = PrimitiveDenseStore.FACTORY.makeZero(getRowNumber(), 1);
     rs.supplyTo(ret);
-    return DenseVectorOj.FACTORY.make(ret);
+    return new DenseVectorOj(ret);
 
   }
 

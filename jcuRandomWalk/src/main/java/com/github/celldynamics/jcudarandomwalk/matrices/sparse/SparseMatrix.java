@@ -1,6 +1,5 @@
 package com.github.celldynamics.jcudarandomwalk.matrices.sparse;
 
-import java.io.Serializable;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 import java.util.stream.IntStream;
@@ -15,11 +14,7 @@ import org.slf4j.LoggerFactory;
  * @author p.baniukiewicz
  *
  */
-public abstract class SparseMatrix implements ISparseMatrix, Serializable {
-  /**
-   * Default UID.
-   */
-  private static final long serialVersionUID = 6351642336769639014L;
+public abstract class SparseMatrix implements ISparseMatrix {
 
   /**
    * The Constant LOGGER.

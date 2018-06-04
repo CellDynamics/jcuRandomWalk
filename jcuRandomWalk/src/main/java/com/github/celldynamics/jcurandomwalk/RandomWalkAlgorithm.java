@@ -111,16 +111,12 @@ public class RandomWalkAlgorithm {
     LOGGER.info("Computing Laplacian");
     StopWatch timer = new StopWatch();
     timer.start();
-    if (options.useGPU) {
-      incidence = ((ISparseMatrix) img.getIncidence().toGpu()).convert2csr();
+    if (options.cpuOnly == false) {
+      incidence = img.getIncidence().toSparse(new SparseMatrixDevice()).convert2csr();
       incidenceT = incidence.transpose();
-
-      weight = ((ISparseMatrix) img.getWeights().toGpu()).convert2csr();
+      weight = img.getWeights().toSparse(new SparseMatrixDevice()).convert2csr();
     } else {
-      incidence = ((ISparseMatrix) img.getIncidence()).convert2csr();
-      incidenceT = incidence.transpose();
-
-      weight = ((ISparseMatrix) img.getWeights()).convert2csr();
+      throw new NotImplementedException("not implemented");
     }
     // A'*W*A
     // ISparseMatrix ATW = incidenceGpuT.multiply(wGpu);
@@ -310,8 +306,9 @@ public class RandomWalkAlgorithm {
             seedIndices, lap.getColNumber());
 
     float[] solvedSeeds = new float[solvedSeeds_bw.length];
-    for (int i = 0; i < solvedSeeds.length; i++)
+    for (int i = 0; i < solvedSeeds.length; i++) {
       solvedSeeds[i] = solvedSeeds_fw[i] > solvedSeeds_bw[i] ? 1.0f : 0.0f;
+    }
 
     ImageStack ret = getSegmentedStack(solvedSeeds);
     reducedLapGpuCsr.free();
