@@ -1,20 +1,23 @@
 package com.github.celldynamics.jcudarandomwalk.matrices.sparse;
 
+import static com.github.baniuk.ImageJTestSuite.matchers.arrays.ArrayMatchers.arrayCloseTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 
 import java.util.Arrays;
+import java.util.stream.IntStream;
 
 import org.apache.commons.lang3.NotImplementedException;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.celldynamics.jcudarandomwalk.matrices.IMatrix;
+import com.github.celldynamics.jcudarandomwalk.matrices.dense.DenseVectorOj;
+import com.github.celldynamics.jcudarandomwalk.matrices.dense.IDenseVector;
 import com.github.celldynamics.jcurandomwalk.TestDataGenerators;
 
 /**
@@ -55,10 +58,12 @@ public class SparseMatrixOjTest {
     int[] ri = new int[] { 0, 0, 0, 1, 2, 3, 4, 4, 5 };
     int[] ci = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
     float[] v = new float[] { 10, 101, 102, 11, 12, 13, 131, 14, 15 };
+    // note that val returns in column order
+    float[] exp = new float[] { 10, 131, 101, 11, 12, 13, 14, 102, 15 };
 
     ISparseMatrix mat = SparseMatrixOj.FACTORY.make(ri, ci, v);
     float[] retval = mat.getVal();
-    assertThat(Arrays.asList(retval), contains(v));
+    assertThat(Arrays.asList(retval), contains(exp));
   }
 
   /**
@@ -153,7 +158,6 @@ public class SparseMatrixOjTest {
    * @throws Exception the exception
    */
   @Test
-  @Ignore
   public void testRemoveRows() throws Exception {
     throw new RuntimeException("not yet implemented");
   }
@@ -165,7 +169,6 @@ public class SparseMatrixOjTest {
    * @throws Exception the exception
    */
   @Test
-  @Ignore
   public void testRemoveCols() throws Exception {
     throw new RuntimeException("not yet implemented");
   }
@@ -197,11 +200,11 @@ public class SparseMatrixOjTest {
   public void testTranspose() throws Exception {
     TestDataGenerators td = new TestDataGenerators();
     ISparseMatrix mat = SparseMatrixOj.FACTORY.make(td.rowInd, td.colInd, td.valRowOrder);
-    LOGGER.debug(((SparseMatrixOj) mat).mat.toString());
+    LOGGER.trace(((SparseMatrixOj) mat).mat.toString());
     IMatrix matt = mat.transpose();
-    LOGGER.debug(((SparseMatrixOj) matt).mat.toString());
+    LOGGER.trace(((SparseMatrixOj) matt).mat.toString());
     float[] vals = matt.getVal();
-    assertThat(Arrays.asList(vals), contains(td.val1RowOrder));
+    assertThat(Arrays.asList(vals), contains(td.val1ColOrder));
   }
 
   /**
@@ -250,7 +253,6 @@ public class SparseMatrixOjTest {
    * @throws Exception the exception
    */
   @Test
-  @Ignore
   public void testSumAlongRows() throws Exception {
     throw new RuntimeException("not yet implemented");
   }
@@ -264,12 +266,14 @@ public class SparseMatrixOjTest {
   @Test
   public void testGetRowInd() throws Exception {
     int[] ri = new int[] { 0, 0, 0, 1, 2, 3, 4, 4, 5 };
+    // expected columns but taken for non-zero elements counted aloong rows
+    int[] rexp = new int[] { 0, 4, 0, 1, 2, 3, 4, 0, 5 };
     int[] ci = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
     float[] v = new float[] { 10, 101, 102, 11, 12, 13, 131, 14, 15 };
 
     ISparseMatrix mat = SparseMatrixOj.FACTORY.make(ri, ci, v);
     int[] ret = mat.getRowInd();
-    assertThat(Arrays.asList(ret), contains(ri));
+    assertThat(Arrays.asList(ret), contains(rexp));
   }
 
   /**
@@ -282,11 +286,13 @@ public class SparseMatrixOjTest {
   public void testGetColInd() throws Exception {
     int[] ri = new int[] { 0, 0, 0, 1, 2, 3, 4, 4, 5 };
     int[] ci = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
+    // expected columns but taken for non-zero elements counted aloong rows
+    int[] cexp = new int[] { 0, 00, 1, 1, 2, 3, 4, 5, 5 };
     float[] v = new float[] { 10, 101, 102, 11, 12, 13, 131, 14, 15 };
 
     ISparseMatrix mat = SparseMatrixOj.FACTORY.make(ri, ci, v);
     int[] ret = mat.getColInd();
-    assertThat(Arrays.asList(ret), contains(ci));
+    assertThat(Arrays.asList(ret), contains(cexp));
   }
 
   /**
@@ -329,11 +335,17 @@ public class SparseMatrixOjTest {
    * {@link com.github.celldynamics.jcudarandomwalk.matrices.sparse.SparseMatrixOj#full()}.
    *
    * @throws Exception the exception
+   * @see com.github.celldynamics.jcudarandomwalk.matrices.sparse.SparseMatrixHostTest#testFull()
    */
   @Test
-  @Ignore
   public void testFull() throws Exception {
-    throw new RuntimeException("not yet implemented");
+    ISparseMatrix test = SparseMatrixOj.FACTORY.make(new int[] { 0, 0, 2 }, new int[] { 1, 4, 1 },
+            new float[] { 1, 2, 3 });
+    LOGGER.trace("test: " + test.toString());
+    double[][] f = test.full();
+    assertThat(f[0][1], is(1.0));
+    assertThat(f[0][4], is(2.0));
+    assertThat(f[2][1], is(3.0));
   }
 
   /**
@@ -343,9 +355,23 @@ public class SparseMatrixOjTest {
    * @throws Exception the exception
    */
   @Test
-  @Ignore
   public void testLuSolve() throws Exception {
-    throw new RuntimeException("not yet implemented");
+    int[] rows =
+            new int[] { 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4 };
+    int[] cols =
+            new int[] { 0, 1, 2, 3, 4, 0, 1, 2, 3, 4, 0, 1, 2, 3, 4, 0, 1, 2, 3, 4, 0, 1, 2, 3, 4 };
+    float[] vals = new float[] { 0.9f, 0.4f, 0.1f, 0.9f, 0.1f, 0.1f, 0.9f, 0.9f, 0.6f, 0.2f, 0.4f,
+        0.2f, 0.6f, 0.4f, 0.1f, 0.3f, 0.3f, 0.5f, 0.5f, 0.2f, 0.8f, 0.1f, 0.1f, 0.4f, 0.2f };
+    float[] bval = new float[] { 6.1f, 8f, 4.7f, 5.4f, 3.9f };
+    ISparseMatrix a = SparseMatrixOj.FACTORY.make(rows, cols, vals);
+    IDenseVector b = DenseVectorOj.FACTORY.make(bval);
+
+    float[] ret = a.luSolve(b, true, 0, 0);
+
+    Double[] retd =
+            IntStream.range(0, ret.length).mapToDouble(i -> ret[i]).boxed().toArray(Double[]::new);
+
+    assertThat(retd, arrayCloseTo(new double[] { 1, 2, 3, 4, 5 }, 1e-5));
   }
 
 }

@@ -21,7 +21,15 @@ public class TestDataGenerators {
   /** The col ind. */
   public int[] colInd = new int[] { 0, 1, 1, 2, 0, 3, 4, 2, 4 };
 
-  /** The val. */
+  /**
+   * The val.
+   * 
+   * <p>Matrix:
+   * 1 4 0 0 0
+   * 0 2 3 0 0
+   * 5 0 0 7 8
+   * 0 0 9 0 6
+   */
   public float[] valRowOrder = new float[] { 1, 4, 2, 3, 5, 7, 8, 9, 6 };
 
   /** The row ind 1. */
@@ -30,8 +38,21 @@ public class TestDataGenerators {
   /** The col ind 1. */
   public int[] colInd1 = new int[] { 0, 2, 0, 1, 1, 3, 2, 2, 3 };
 
-  /** The val 1. */
+  /**
+   * The val 1.
+   * 
+   * <p>Matrix:
+   * 1 0 5 0
+   * 4 2 0 0
+   * 0 3 0 9
+   * 0 0 7 0
+   * 0 0 8 6
+   */
   public float[] val1RowOrder = new float[] { 1, 5, 4, 2, 3, 9, 7, 8, 6 };
+  /**
+   * The same as val1 but written in column order.
+   */
+  public float[] val1ColOrder = new float[] { 1, 4, 2, 3, 5, 7, 8, 9, 6 };
 
   /** The weights. */
   public double[] weights = new double[] { 1.0, 2.0, 3.0, 4.0, 5.0 };

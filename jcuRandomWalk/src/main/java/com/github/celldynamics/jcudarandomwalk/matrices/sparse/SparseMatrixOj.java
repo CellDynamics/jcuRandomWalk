@@ -5,23 +5,41 @@ import java.util.List;
 
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.NotImplementedException;
+import org.ojalgo.RecoverableCondition;
 import org.ojalgo.access.ElementView1D;
+import org.ojalgo.matrix.decomposition.LU;
 import org.ojalgo.matrix.store.MatrixStore;
 import org.ojalgo.matrix.store.SparseStore;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.github.celldynamics.jcudarandomwalk.matrices.IMatrix;
+import com.github.celldynamics.jcudarandomwalk.matrices.dense.DenseVectorOj;
 import com.github.celldynamics.jcudarandomwalk.matrices.dense.IDenseVector;
 
 /**
+ * Implementation of {@link ISparseMatrix} by OjAlg.
+ * 
  * @author p.baniukiewicz
  *
  */
 public class SparseMatrixOj implements ISparseMatrix {
 
-  public final static OjSparseMatrixFactory FACTORY = new OjSparseMatrixFactory();
+  /**
+   * The Constant LOGGER.
+   */
+  static final Logger LOGGER = LoggerFactory.getLogger(SparseMatrixOj.class.getName());
+
+  /**
+   * Factory of Oj sparse matrix.
+   */
+  public static final OjSparseMatrixFactory FACTORY = new OjSparseMatrixFactory();
 
   private int nrows;
   private int ncols;
+  /**
+   * OjAlg store wrapped by this class.
+   */
   MatrixStore<Double> mat;
 
   SparseMatrixOj(MatrixStore<Double> mat) {
@@ -183,7 +201,6 @@ public class SparseMatrixOj implements ISparseMatrix {
     List<Integer> ret = new ArrayList<>();
     while (nz.hasNext()) {
       long i = nz.next().index();
-      Number e = nz.get();
       ret.add((int) (i % nrows));
     }
     return ArrayUtils.toPrimitive(ret.toArray(new Integer[0]));
@@ -200,7 +217,7 @@ public class SparseMatrixOj implements ISparseMatrix {
     List<Integer> ret = new ArrayList<>();
     while (nz.hasNext()) {
       long i = nz.next().index();
-      ret.add((int) (i % ncols));
+      ret.add((int) (i / nrows));
     }
     return ArrayUtils.toPrimitive(ret.toArray(new Integer[0]));
   }
@@ -243,8 +260,7 @@ public class SparseMatrixOj implements ISparseMatrix {
    */
   @Override
   public double[][] full() {
-    // TODO Auto-generated method stub
-    return null;
+    return this.mat.toRawCopy2D();
   }
 
   /*
@@ -255,8 +271,26 @@ public class SparseMatrixOj implements ISparseMatrix {
    */
   @Override
   public float[] luSolve(IDenseVector b_gpuPtr, boolean iLuBiCGStabSolve, int iter, float tol) {
-    // TODO Auto-generated method stub
-    return null;
+    LOGGER.info("Parameters iter and tol are ignored for OjAlg");
+    final LU<Double> tmpA = LU.PRIMITIVE.make();
+    tmpA.decompose(this.mat);
+    try {
+      MatrixStore<Double> ret = tmpA.solve(this.mat, ((DenseVectorOj) b_gpuPtr).mat);
+      return new SparseMatrixOj(ret).getVal();
+    } catch (RecoverableCondition e) {
+      LOGGER.error("Solver failed with error: " + e.toString());
+      throw new IllegalArgumentException(e);
+    }
+  }
+
+  /*
+   * (non-Javadoc)
+   * 
+   * @see java.lang.Object#toString()
+   */
+  @Override
+  public String toString() {
+    return "SparseMatrixOj [nrows=" + nrows + ", ncols=" + ncols + ", mat=" + mat + "]";
   }
 
 }
