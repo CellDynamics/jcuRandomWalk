@@ -146,19 +146,18 @@ public abstract class DenseVector implements IDenseVector, Serializable {
   /**
    * Produce sparse matrix of the same type as specified from raw data.
    * 
-   * @param type type of output matrix, can be even empty dummy object
+   * @param lap type of output matrix, can be even empty dummy object
    * @param rows number of rows, one of dimensions must be 1
    * @param cols number of columns, one of dimensions must be 1
    * @param val values
    * @return matrix of type 'type' from above arrays
    */
-  public static IDenseVector denseVectorFactory(IDenseVector type, int rows, int cols,
-          float[] val) {
+  public static IDenseVector denseVectorFactory(IMatrix lap, int rows, int cols, float[] val) {
     if (val.length == 0) {
       throw new IllegalArgumentException(
               "One or more arrays passed to sparseMatrixFactory are 0-sized");
     }
-    Class<? extends IDenseVector> classToLoad = type.getClass();
+    Class<? extends IMatrix> classToLoad = lap.getClass();
     Class<?>[] carg = new Class[3]; // Our constructor has 3 arguments
     carg[0] = int.class;
     carg[1] = int.class;

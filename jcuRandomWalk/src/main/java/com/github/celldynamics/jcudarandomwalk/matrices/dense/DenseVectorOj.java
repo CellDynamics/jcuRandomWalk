@@ -43,6 +43,22 @@ public class DenseVectorOj implements IDenseVector {
   /**
    * Create oj dense vector.
    * 
+   * @param rows
+   * @param cols
+   * 
+   * @param val values.
+   */
+  public DenseVectorOj(int rows, int cols, float[] val) {
+    PrimitiveDenseStore b = PrimitiveDenseStore.FACTORY.makeZero(rows, cols);
+    for (int i = 0; i < val.length; i++) {
+      b.set(i, val[i]);
+    }
+    mat = b;
+  }
+
+  /**
+   * Create oj dense vector.
+   * 
    * @param val values.
    */
   public DenseVectorOj(float[] val) {
@@ -79,7 +95,7 @@ public class DenseVectorOj implements IDenseVector {
    */
   @Override
   public int getRowNumber() {
-    throw new NotImplementedException("not implemented");
+    return (int) mat.countRows();
   }
 
   /*
@@ -89,7 +105,7 @@ public class DenseVectorOj implements IDenseVector {
    */
   @Override
   public int getColNumber() {
-    throw new NotImplementedException("not implemented");
+    return (int) mat.countColumns();
   }
 
   /*
@@ -99,7 +115,7 @@ public class DenseVectorOj implements IDenseVector {
    */
   @Override
   public int getElementNumber() {
-    throw new NotImplementedException("not implemented");
+    return (int) mat.count();
   }
 
   /*

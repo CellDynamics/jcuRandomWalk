@@ -4,6 +4,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 import java.util.stream.IntStream;
 
+import org.apache.commons.lang3.time.StopWatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -201,6 +202,9 @@ public abstract class SparseMatrix implements ISparseMatrix {
    */
   public static ISparseMatrix sparseMatrixFactory(ISparseMatrix type, int[] rowInd, int[] colInd,
           float[] val, int rowNumber, int colNumber, SparseMatrixType matrixInputFormat) {
+    new StopWatch();
+    StopWatch timer = StopWatch.createStarted();
+    LOGGER.debug("Creating object of type: " + type.getClass().getSimpleName());
     if (rowInd.length == 0 || colInd.length == 0 || val.length == 0) {
       throw new IllegalArgumentException(
               "One or more arrays passed to sparseMatrixFactory are 0-sized");
@@ -219,6 +223,9 @@ public abstract class SparseMatrix implements ISparseMatrix {
     } catch (InstantiationException | IllegalAccessException | IllegalArgumentException
             | InvocationTargetException | NoSuchMethodException | SecurityException e) {
       throw new IllegalArgumentException("Can not create object instance: " + e.getMessage());
+    } finally {
+      timer.stop();
+      LOGGER.debug("Object created in " + timer.toString());
     }
   }
 

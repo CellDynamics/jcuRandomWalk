@@ -8,7 +8,6 @@ import static org.hamcrest.Matchers.contains;
 import java.util.Arrays;
 import java.util.stream.IntStream;
 
-import org.apache.commons.lang3.NotImplementedException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -355,9 +354,11 @@ public class SparseMatrixOjTest {
    *
    * @throws Exception the exception
    */
-  @Test(expected = NotImplementedException.class)
+  @Test
   public void testConvert2csr() throws Exception {
-    new SparseMatrixOj(new int[] { 1 }, new int[] { 1 }, new float[] { 1 }).convert2csr();
+    SparseMatrixOj obj = new SparseMatrixOj(new int[] { 1 }, new int[] { 1 }, new float[] { 1 });
+    ISparseMatrix ret = obj.convert2csr();
+    assertThat(ret, is(obj));
   }
 
   /**
@@ -366,9 +367,11 @@ public class SparseMatrixOjTest {
    *
    * @throws Exception the exception
    */
-  @Test(expected = NotImplementedException.class)
+  @Test
   public void testConvert2coo() throws Exception {
-    new SparseMatrixOj(new int[] { 1 }, new int[] { 1 }, new float[] { 1 }).convert2coo();
+    SparseMatrixOj obj = new SparseMatrixOj(new int[] { 1 }, new int[] { 1 }, new float[] { 1 });
+    ISparseMatrix ret = obj.convert2coo();
+    assertThat(ret, is(obj));
   }
 
   /**
@@ -412,7 +415,7 @@ public class SparseMatrixOjTest {
     Double[] retd =
             IntStream.range(0, ret.length).mapToDouble(i -> ret[i]).boxed().toArray(Double[]::new);
 
-    assertThat(retd, arrayCloseTo(new double[] { 1, 2, 3, 4, 5 }, 1e-5));
+    assertThat(retd, arrayCloseTo(new double[] { -1, -2, -3, -4, -5 }, 1e-5));
   }
 
 }

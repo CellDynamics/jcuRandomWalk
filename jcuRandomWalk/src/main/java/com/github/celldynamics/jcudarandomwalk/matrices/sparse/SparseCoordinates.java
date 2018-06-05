@@ -3,6 +3,9 @@ package com.github.celldynamics.jcudarandomwalk.matrices.sparse;
 import java.io.Serializable;
 import java.util.stream.IntStream;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * Hold sparse coordinates.
  * 
@@ -12,6 +15,8 @@ import java.util.stream.IntStream;
  *
  */
 public class SparseCoordinates implements Serializable {
+
+  static final Logger LOGGER = LoggerFactory.getLogger(SparseCoordinates.class.getName());
 
   /**
    * UID.

@@ -7,6 +7,8 @@ import java.util.stream.IntStream;
 import org.apache.commons.lang3.NotImplementedException;
 
 import com.github.celldynamics.jcudarandomwalk.matrices.IMatrix;
+import com.github.celldynamics.jcudarandomwalk.matrices.dense.DenseVector;
+import com.github.celldynamics.jcudarandomwalk.matrices.dense.DenseVectorHost;
 import com.github.celldynamics.jcudarandomwalk.matrices.dense.IDenseVector;
 
 /**
@@ -394,8 +396,7 @@ public class SparseMatrixHost extends SparseMatrix {
     int[] riret = IntStream.range(0, ret.length).toArray();
     Arrays.fill(ciret, 0);
 
-    return SparseMatrix.sparseMatrixFactory(this, riret, ciret, ret, this.getRowNumber(), 1,
-            SparseMatrixType.MATRIX_FORMAT_COO);
+    return DenseVector.denseVectorFactory(new DenseVectorHost(), this.getRowNumber(), 1, ret);
   }
 
   /*
