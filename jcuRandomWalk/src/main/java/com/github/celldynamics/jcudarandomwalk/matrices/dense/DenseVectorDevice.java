@@ -51,6 +51,19 @@ public class DenseVectorDevice extends DenseVector implements ICudaLibHandles {
     return valPtr;
   }
 
+  /*
+   * (non-Javadoc)
+   * 
+   * @see com.github.celldynamics.jcudarandomwalk.matrices.dense.DenseVector#getVal()
+   */
+  @Override
+  public float[] getVal() {
+    if (val == null) {
+      retrieveFromDevice();
+    }
+    return super.getVal();
+  }
+
   /**
    * Copy indices from device to host.
    */

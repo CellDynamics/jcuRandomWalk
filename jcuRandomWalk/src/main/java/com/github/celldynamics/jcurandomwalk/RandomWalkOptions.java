@@ -40,9 +40,9 @@ public class RandomWalkOptions {
    */
   public int device = 0;
   /**
-   * If use gpu.
+   * If use cpu.
    */
-  public boolean useGPU = true;
+  public boolean cpuOnly = false;
   /**
    * Path to stack to segment.
    */
@@ -73,7 +73,7 @@ public class RandomWalkOptions {
   Level debugLevel = Level.INFO;
 
   /**
-   * Specific options for algorithm
+   * Specific options for algorithm.
    * 
    * @author p.baniukiewicz
    *
@@ -131,7 +131,7 @@ public class RandomWalkOptions {
   public String toString() {
     return "RandomWalkOptions [algOptions=" + algOptions + ", configBaseName=" + configBaseName
             + ", configBaseExt=" + configBaseExt + ", configFolder=" + configFolder + ", device="
-            + device + ", useGPU=" + useGPU + ", stack=" + stack + ", seeds=" + seeds + ", output="
+            + device + ", useGPU=" + cpuOnly + ", stack=" + stack + ", seeds=" + seeds + ", output="
             + output + ", ifComputeIncidence=" + ifComputeIncidence + ", ifSaveIncidence="
             + ifSaveIncidence + ", ifApplyProcessing=" + ifApplyProcessing + ", debugLevel="
             + debugLevel + "]";
