@@ -104,11 +104,6 @@ public class SparseMatrixDevice extends SparseMatrix implements ICudaLibHandles 
     RELERR
   }
 
-  /**
-   * Default UID.
-   */
-  private static final long serialVersionUID = 2760825038592785223L;
-
   private cusparseMatDescr descr = new cusparseMatDescr();
   private Pointer rowIndPtr = new Pointer();
   private Pointer colIndPtr = new Pointer();
@@ -554,6 +549,45 @@ public class SparseMatrixDevice extends SparseMatrix implements ICudaLibHandles 
   @Override
   public IMatrix sumAlongRows() {
     throw new NotImplementedException("Not implemented");
+  }
+
+  /*
+   * (non-Javadoc)
+   * 
+   * @see com.github.celldynamics.jcudarandomwalk.matrices.sparse.SparseMatrix#getRowInd()
+   */
+  @Override
+  public int[] getRowInd() {
+    if (rowInd == null) {
+      retrieveFromDevice();
+    }
+    return super.getRowInd();
+  }
+
+  /*
+   * (non-Javadoc)
+   * 
+   * @see com.github.celldynamics.jcudarandomwalk.matrices.sparse.SparseMatrix#getVal()
+   */
+  @Override
+  public float[] getVal() {
+    if (val == null) {
+      retrieveFromDevice();
+    }
+    return super.getVal();
+  }
+
+  /*
+   * (non-Javadoc)
+   * 
+   * @see com.github.celldynamics.jcudarandomwalk.matrices.sparse.SparseMatrix#getColInd()
+   */
+  @Override
+  public int[] getColInd() {
+    if (colInd == null) {
+      retrieveFromDevice();
+    }
+    return super.getColInd();
   }
 
   @Override
