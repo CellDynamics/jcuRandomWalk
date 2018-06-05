@@ -110,6 +110,7 @@ public class RandomWalkAlgorithm {
     LOGGER.info("Computing Laplacian");
     StopWatch timer = new StopWatch();
     timer.start();
+    // IMatrix atw = null;
     if (options.cpuOnly == false) {
       incidence = img.getIncidence().toSparse(new SparseMatrixDevice()).convert2csr();
       incidenceT = incidence.transpose();
@@ -118,6 +119,14 @@ public class RandomWalkAlgorithm {
       incidence = img.getIncidence().toSparse(new SparseMatrixOj());
       incidenceT = incidence.transpose();
       weight = img.getWeights().toSparse(new SparseMatrixOj());
+
+      // ElementsSupplier<Double> aTw = ((SparseMatrixOj) weight).mat
+      // .premultiply(((SparseMatrixOj) incidence).mat.transpose());
+      // SparseStore<Double> mm =
+      // SparseStore.PRIMITIVE.make(incidence.getColNumber(), incidence.getRowNumber());
+      // aTw.supplyTo(mm);
+      // atw = new SparseMatrixOj(mm, incidence.getColNumber(), incidence.getRowNumber());
+
     }
     LOGGER.info("Base class: " + incidence.getClass().getSimpleName());
     // A'*W*A

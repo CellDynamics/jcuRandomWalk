@@ -37,9 +37,6 @@ public abstract class SparseMatrix implements ISparseMatrix {
    */
   @Override
   public int[] getRowInd() {
-    if (rowInd == null && this instanceof SparseMatrixDevice) {
-      ((SparseMatrixDevice) this).retrieveFromDevice();
-    }
     return rowInd;
   }
 
@@ -50,9 +47,6 @@ public abstract class SparseMatrix implements ISparseMatrix {
    */
   @Override
   public int[] getColInd() {
-    if (colInd == null && this instanceof SparseMatrixDevice) {
-      ((SparseMatrixDevice) this).retrieveFromDevice();
-    }
     return colInd;
   }
 
@@ -63,9 +57,6 @@ public abstract class SparseMatrix implements ISparseMatrix {
    */
   @Override
   public float[] getVal() {
-    if (val == null && this instanceof SparseMatrixDevice) {
-      ((SparseMatrixDevice) this).retrieveFromDevice();
-    }
     return val;
   }
 
@@ -116,7 +107,6 @@ public abstract class SparseMatrix implements ISparseMatrix {
    * execution is expensive.
    */
   public void updateDimension() {
-    // TODO see 9.3. cusparse<t>csrgemm() to get nnz and rows number?
     colNumber = IntStream.of(getColInd()).parallel().max().getAsInt() + 1; // assuming 0 based
     rowNumber = IntStream.of(getRowInd()).parallel().max().getAsInt() + 1;
   }
@@ -204,7 +194,8 @@ public abstract class SparseMatrix implements ISparseMatrix {
           float[] val, int rowNumber, int colNumber, SparseMatrixType matrixInputFormat) {
     new StopWatch();
     StopWatch timer = StopWatch.createStarted();
-    LOGGER.debug("Creating object of type: " + type.getClass().getSimpleName());
+    LOGGER.debug("Creating object of type: " + type.getClass().getSimpleName() + " from "
+            + colInd.length + " elements");
     if (rowInd.length == 0 || colInd.length == 0 || val.length == 0) {
       throw new IllegalArgumentException(
               "One or more arrays passed to sparseMatrixFactory are 0-sized");

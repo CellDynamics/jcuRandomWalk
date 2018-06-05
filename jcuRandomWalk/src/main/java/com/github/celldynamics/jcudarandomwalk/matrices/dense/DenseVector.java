@@ -53,9 +53,6 @@ public abstract class DenseVector implements IDenseVector, Serializable {
    */
   @Override
   public float[] getVal() {
-    if (val == null && this instanceof DenseVectorDevice) {
-      ((DenseVectorDevice) this).retrieveFromDevice();
-    }
     return val;
   }
 
@@ -179,24 +176,6 @@ public abstract class DenseVector implements IDenseVector, Serializable {
   public String toString() {
     return "DenseVector [rowNumber=" + rowNumber + ", colNumber=" + colNumber + ", val="
             + Arrays.toString(val) + "]";
-  }
-
-  /**
-   * Default constructor for building dense vector from list of values. Must be implemented in
-   * concrete classes.
-   * 
-   * @param rows number of rows, rows or cols should be 1
-   * @param cols number of columns, rows or cols should be 1
-   * @param val values
-   */
-  public DenseVector(int rows, int cols, double[] val) {
-    throw new NotImplementedException("This constructor must be implemented in concrete classes.");
-  }
-
-  /**
-   * Default constructor. Generally not used.
-   */
-  public DenseVector() {
   }
 
 }

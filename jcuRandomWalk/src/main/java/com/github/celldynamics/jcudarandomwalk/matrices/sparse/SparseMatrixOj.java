@@ -41,7 +41,7 @@ public class SparseMatrixOj implements ISparseMatrix {
   /**
    * OjAlg store wrapped by this class.
    */
-  MatrixStore<Double> mat;
+  public MatrixStore<Double> mat;
 
   /**
    * Default empty constructor.
@@ -58,6 +58,19 @@ public class SparseMatrixOj implements ISparseMatrix {
     this.mat = mat;
     this.rowNumber = (int) mat.countRows();
     this.colNumber = (int) mat.countColumns();
+  }
+
+  /**
+   * Wrap existing Oj object.
+   * 
+   * @param mat oj object.
+   * @param rowNumber
+   * @param colNumber
+   */
+  public SparseMatrixOj(MatrixStore<Double> mat, int rowNumber, int colNumber) {
+    this.mat = mat;
+    this.rowNumber = rowNumber;
+    this.colNumber = colNumber;
   }
 
   /**
@@ -372,6 +385,7 @@ public class SparseMatrixOj implements ISparseMatrix {
     final LU<Double> tmpA = LU.PRIMITIVE.make();
     tmpA.decompose(this.mat);
     try {
+      // we need to *-1 here from unknown result. This breaks tests so they are adopted as well.
       MatrixStore<Double> ret = tmpA.solve(this.mat, ((DenseVectorOj) b_gpuPtr).mat).multiply(-1.0);
       return new SparseMatrixOj(ret).getVal();
     } catch (RecoverableCondition e) {
