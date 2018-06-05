@@ -12,7 +12,7 @@ import org.apache.commons.lang3.time.StopWatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.github.celldynamics.jcudarandomwalk.matrices.sparse.ISparseMatrix;
+import com.github.celldynamics.jcudarandomwalk.matrices.sparse.SparseCoordinates;
 import com.github.celldynamics.jcudarandomwalk.matrices.sparse.SparseMatrixHost;
 import com.github.celldynamics.jcurandomwalk.RandomWalkOptions.AlgOptions;
 
@@ -46,8 +46,8 @@ public class IncidenceMatrixGenerator implements Serializable {
   private int nrows; // number of rows of stack
   private int ncols; // number of columns of stack
   private int nz; // number of slices of the stack
-  private SparseMatrixHost incidence; // incidence matrix coords
-  private transient SparseMatrixHost weights; // weights coords, depends on stack, not serialised
+  private SparseCoordinates incidence; // incidence matrix coords
+  private transient SparseCoordinates weights; // weights coords, depends on stack, not serialised
   private Integer[] sink; // indexes of pixel on bounding box
 
   // this array stores coordinates of pixels used for computing weights. The order is:
@@ -163,9 +163,9 @@ public class IncidenceMatrixGenerator implements Serializable {
     int edges = getEdgesNumber(nrows, ncols, nz); // number of edges
     int verts = getNodesNumber(nrows, ncols, nz);
     LOGGER.info("Number of edges: " + edges + ", number of verts: " + verts);
-    weights = new SparseMatrixHost(edges);
+    weights = new SparseCoordinates(edges);
     coords = new int[edges * 6]; // 2 pixels * 3 coords for each edge
-    incidence = new SparseMatrixHost(edges * 2); // each edge has at least 2 points
+    incidence = new SparseCoordinates(edges * 2); // each edge has at least 2 points
     // counter for aggregating opposite pairs of neighbouring pixel in one row of
     // incidence matrix. It is incidence matrix row index (edges)
     int in = 0;
@@ -267,7 +267,7 @@ public class IncidenceMatrixGenerator implements Serializable {
    */
   private void recomputeWeights() {
     int edges = getEdgesNumber(nrows, ncols, nz); // number of edges
-    weights = new SparseMatrixHost(edges);
+    weights = new SparseCoordinates(edges);
     int l = 0; // diagonal counter
     int[] rcz = new int[3];
     int[] rc = new int[3];
@@ -357,7 +357,7 @@ public class IncidenceMatrixGenerator implements Serializable {
    * 
    * @return the incidence
    */
-  public ISparseMatrix getIncidence() {
+  public SparseCoordinates getIncidence() {
     return incidence;
   }
 
@@ -369,7 +369,7 @@ public class IncidenceMatrixGenerator implements Serializable {
    * 
    * @return the weights
    */
-  public ISparseMatrix getWeights() {
+  public SparseCoordinates getWeights() {
     return weights;
   }
 

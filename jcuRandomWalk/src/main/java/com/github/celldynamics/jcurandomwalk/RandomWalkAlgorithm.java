@@ -14,11 +14,10 @@ import org.slf4j.LoggerFactory;
 
 import com.github.celldynamics.jcudarandomwalk.matrices.ICudaLibHandles;
 import com.github.celldynamics.jcudarandomwalk.matrices.IMatrix;
-import com.github.celldynamics.jcudarandomwalk.matrices.dense.DenseVector;
-import com.github.celldynamics.jcudarandomwalk.matrices.dense.DenseVectorHost;
 import com.github.celldynamics.jcudarandomwalk.matrices.dense.IDenseVector;
 import com.github.celldynamics.jcudarandomwalk.matrices.sparse.ISparseMatrix;
 import com.github.celldynamics.jcudarandomwalk.matrices.sparse.SparseMatrixDevice;
+import com.github.celldynamics.jcudarandomwalk.matrices.sparse.SparseMatrixOj;
 
 import ij.ImagePlus;
 import ij.ImageStack;
@@ -111,17 +110,25 @@ public class RandomWalkAlgorithm {
     LOGGER.info("Computing Laplacian");
     StopWatch timer = new StopWatch();
     timer.start();
-    if (options.useGPU) {
-      incidence = ((ISparseMatrix) img.getIncidence().toGpu()).convert2csr();
+    // IMatrix atw = null;
+    if (options.cpuOnly == false) {
+      incidence = img.getIncidence().toSparse(new SparseMatrixDevice()).convert2csr();
       incidenceT = incidence.transpose();
-
-      weight = ((ISparseMatrix) img.getWeights().toGpu()).convert2csr();
+      weight = img.getWeights().toSparse(new SparseMatrixDevice()).convert2csr();
     } else {
-      incidence = ((ISparseMatrix) img.getIncidence()).convert2csr();
+      incidence = img.getIncidence().toSparse(new SparseMatrixOj());
       incidenceT = incidence.transpose();
+      weight = img.getWeights().toSparse(new SparseMatrixOj());
 
-      weight = ((ISparseMatrix) img.getWeights()).convert2csr();
+      // ElementsSupplier<Double> aTw = ((SparseMatrixOj) weight).mat
+      // .premultiply(((SparseMatrixOj) incidence).mat.transpose());
+      // SparseStore<Double> mm =
+      // SparseStore.PRIMITIVE.make(incidence.getColNumber(), incidence.getRowNumber());
+      // aTw.supplyTo(mm);
+      // atw = new SparseMatrixOj(mm, incidence.getColNumber(), incidence.getRowNumber());
+
     }
+    LOGGER.info("Base class: " + incidence.getClass().getSimpleName());
     // A'*W*A
     // ISparseMatrix ATW = incidenceGpuT.multiply(wGpu);
     // ISparseMatrix ATWA = ATW.multiply(incidenceGpu);
@@ -210,15 +217,14 @@ public class RandomWalkAlgorithm {
       int[] colsRemove = ArrayUtils.toPrimitive(colsRemovea.toArray(new Integer[0]));
 
       IMatrix tmp = lap.removeCols(colsRemove);
-      ISparseMatrix ret = (ISparseMatrix) tmp.sumAlongRows();
-      for (int i = 0; i < ret.getVal().length; i++) {
+      IMatrix ret = tmp.sumAlongRows();
+      int eln = ret.getElementNumber();
+      for (int i = 0; i < eln; i++) {
         ret.getVal()[i] *= -1;
       }
-      IDenseVector dwret = DenseVector.denseVectorFactory(new DenseVectorHost(), ret.getRowNumber(),
-              1, ret.getVal());
       timer.stop();
       LOGGER.info("B computed in " + timer.toString());
-      return dwret;
+      return (IDenseVector) ret;
     }
   }
 
@@ -287,7 +293,7 @@ public class RandomWalkAlgorithm {
     if (getIncidenceMatrix() == null) {
       throw new IllegalStateException("Incidence matrix should be computed first");
     }
-    computeLaplacian();
+    computeLaplacian(); // here there is first matrix created, decides CPU/GPU
     Integer[] seedIndices = getSourceIndices(seed, seedVal);
     computeReducedLaplacian(seedIndices, getIncidenceMatrix().getSinkBox());
     ISparseMatrix reducedLapGpu = (ISparseMatrix) getReducedLap().toGpu();
@@ -300,20 +306,17 @@ public class RandomWalkAlgorithm {
             getIncidenceMatrix().getSinkBox(), lap.getColNumber());
 
     LOGGER.info("Backward");
-    // reducedLapGpuCsr.free();
-    // reducedLapGpu.free();
-    // reducedLapGpu = (ISparseMatrix) getReducedLap().toGpu();
-    // reducedLapGpuCsr = reducedLapGpu.convert2csr();
     float[] solved_bw = reducedLapGpuCsr.luSolve(b.get(1), true, options.getAlgOptions().maxit,
             options.getAlgOptions().tol);
     float[] solvedSeeds_bw = incorporateSeeds(solved_bw, getIncidenceMatrix().getSinkBox(),
             seedIndices, lap.getColNumber());
 
     float[] solvedSeeds = new float[solvedSeeds_bw.length];
-    for (int i = 0; i < solvedSeeds.length; i++)
+    for (int i = 0; i < solvedSeeds.length; i++) {
       solvedSeeds[i] = solvedSeeds_fw[i] > solvedSeeds_bw[i] ? 1.0f : 0.0f;
+    }
 
-    ImageStack ret = getSegmentedStack(solvedSeeds);
+    ImageStack ret = getSegmentedStack(solvedSeeds);// solvedSeeds
     reducedLapGpuCsr.free();
     reducedLapGpu.free();
     return ret;

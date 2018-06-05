@@ -87,6 +87,8 @@ public class JcuRandomWalk {
     Option deviceOption = Option.builder().argName("device").hasArg()
             .desc("Select CUDA device. Default is " + rwOptions.device).type(Integer.class)
             .longOpt("device").build();
+    Option cpuOption = Option.builder().desc("Use CPU only. Default is " + rwOptions.cpuOnly)
+            .longOpt("cpuonly").build();
 
     Option imageOption = Option.builder("i").argName("image").hasArg().required()
             .desc("Stack to process").longOpt("image").build();
@@ -127,6 +129,7 @@ public class JcuRandomWalk {
     cliOptions.addOptionGroup(gl);
     cliOptions.addOption(defProcessOption);
     cliOptions.addOption(deviceOption);
+    cliOptions.addOption(cpuOption);
     cliOptions.addOption(imageOption);
     cliOptions.addOption(verOption);
     cliOptions.addOption(helpOption);
@@ -152,6 +155,9 @@ public class JcuRandomWalk {
 
       if (cmd.hasOption("device")) {
         rwOptions.device = Integer.parseInt(cmd.getOptionValue("device").trim());
+      }
+      if (cmd.hasOption("cpuonly")) {
+        rwOptions.cpuOnly = true;
       }
       if (cmd.hasOption('i')) {
         rwOptions.stack = Paths.get(cmd.getOptionValue('i'));
@@ -281,7 +287,7 @@ public class JcuRandomWalk {
    */
   private void selectGpu() {
     // try {
-    if (rwOptions.useGPU) {
+    if (rwOptions.cpuOnly == false) {
       RandomWalkAlgorithm.initilizeGpu();
       int[] devicecount = new int[1];
       cudaGetDeviceCount(devicecount);

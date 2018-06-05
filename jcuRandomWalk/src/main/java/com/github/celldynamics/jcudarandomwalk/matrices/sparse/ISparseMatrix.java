@@ -62,7 +62,7 @@ public interface ISparseMatrix extends IMatrix {
    * Solver.
    * 
    * @param b_gpuPtr right side of equation
-   * @param iLuBiCGStabSolve
+   * @param iLuBiCGStabSolve ??
    * @param iter max iteration number
    * @param tol tolerance
    * @return solution vector

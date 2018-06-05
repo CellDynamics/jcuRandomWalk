@@ -1,11 +1,10 @@
 package com.github.celldynamics.jcudarandomwalk.matrices.sparse;
 
-import java.io.Serializable;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 import java.util.stream.IntStream;
 
-import org.apache.commons.lang3.NotImplementedException;
+import org.apache.commons.lang3.time.StopWatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,11 +14,7 @@ import org.slf4j.LoggerFactory;
  * @author p.baniukiewicz
  *
  */
-public abstract class SparseMatrix implements ISparseMatrix, Serializable {
-  /**
-   * Default UID.
-   */
-  private static final long serialVersionUID = 6351642336769639014L;
+public abstract class SparseMatrix implements ISparseMatrix {
 
   /**
    * The Constant LOGGER.
@@ -42,9 +37,6 @@ public abstract class SparseMatrix implements ISparseMatrix, Serializable {
    */
   @Override
   public int[] getRowInd() {
-    if (rowInd == null && this instanceof SparseMatrixDevice) {
-      ((SparseMatrixDevice) this).retrieveFromDevice();
-    }
     return rowInd;
   }
 
@@ -55,9 +47,6 @@ public abstract class SparseMatrix implements ISparseMatrix, Serializable {
    */
   @Override
   public int[] getColInd() {
-    if (colInd == null && this instanceof SparseMatrixDevice) {
-      ((SparseMatrixDevice) this).retrieveFromDevice();
-    }
     return colInd;
   }
 
@@ -68,9 +57,6 @@ public abstract class SparseMatrix implements ISparseMatrix, Serializable {
    */
   @Override
   public float[] getVal() {
-    if (val == null && this instanceof SparseMatrixDevice) {
-      ((SparseMatrixDevice) this).retrieveFromDevice();
-    }
     return val;
   }
 
@@ -121,7 +107,6 @@ public abstract class SparseMatrix implements ISparseMatrix, Serializable {
    * execution is expensive.
    */
   public void updateDimension() {
-    // TODO see 9.3. cusparse<t>csrgemm() to get nnz and rows number?
     colNumber = IntStream.of(getColInd()).parallel().max().getAsInt() + 1; // assuming 0 based
     rowNumber = IntStream.of(getRowInd()).parallel().max().getAsInt() + 1;
   }
@@ -207,6 +192,10 @@ public abstract class SparseMatrix implements ISparseMatrix, Serializable {
    */
   public static ISparseMatrix sparseMatrixFactory(ISparseMatrix type, int[] rowInd, int[] colInd,
           float[] val, int rowNumber, int colNumber, SparseMatrixType matrixInputFormat) {
+    new StopWatch();
+    StopWatch timer = StopWatch.createStarted();
+    LOGGER.debug("Creating object of type: " + type.getClass().getSimpleName() + " from "
+            + colInd.length + " elements");
     if (rowInd.length == 0 || colInd.length == 0 || val.length == 0) {
       throw new IllegalArgumentException(
               "One or more arrays passed to sparseMatrixFactory are 0-sized");
@@ -225,42 +214,10 @@ public abstract class SparseMatrix implements ISparseMatrix, Serializable {
     } catch (InstantiationException | IllegalAccessException | IllegalArgumentException
             | InvocationTargetException | NoSuchMethodException | SecurityException e) {
       throw new IllegalArgumentException("Can not create object instance: " + e.getMessage());
+    } finally {
+      timer.stop();
+      LOGGER.debug("Object created in " + timer.toString());
     }
-  }
-
-  /**
-   * Default constructor for building sparse matrix from list of indices. Must be implemented in
-   * concrete classes.
-   * 
-   * @param rowInd rows
-   * @param colInd columns
-   * @param val values
-   * @param matrixInputFormat type of matrix
-   */
-  public SparseMatrix(int[] rowInd, int[] colInd, float[] val, SparseMatrixType matrixInputFormat) {
-    throw new NotImplementedException("This constructor must be implemented in concrete classes.");
-  }
-
-  /**
-   * Default constructor for building sparse matrix from list of indices. Must be implemented in
-   * concrete classes.
-   * 
-   * @param rowInd rows
-   * @param colInd columns
-   * @param val values
-   * @param rowNumber number of rows
-   * @param colNumber number of columns
-   * @param matrixInputFormat type of matrix
-   */
-  public SparseMatrix(int[] rowInd, int[] colInd, float[] val, int rowNumber, int colNumber,
-          SparseMatrixType matrixInputFormat) {
-    throw new NotImplementedException("This constructor must be implemented in concrete classes.");
-  }
-
-  /**
-   * Default constructor. Generally not used.
-   */
-  public SparseMatrix() {
   }
 
 }

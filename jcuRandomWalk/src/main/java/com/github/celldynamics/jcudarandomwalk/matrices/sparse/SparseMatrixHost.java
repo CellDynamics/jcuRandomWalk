@@ -7,6 +7,8 @@ import java.util.stream.IntStream;
 import org.apache.commons.lang3.NotImplementedException;
 
 import com.github.celldynamics.jcudarandomwalk.matrices.IMatrix;
+import com.github.celldynamics.jcudarandomwalk.matrices.dense.DenseVector;
+import com.github.celldynamics.jcudarandomwalk.matrices.dense.DenseVectorHost;
 import com.github.celldynamics.jcudarandomwalk.matrices.dense.IDenseVector;
 
 /**
@@ -20,10 +22,6 @@ import com.github.celldynamics.jcudarandomwalk.matrices.dense.IDenseVector;
  */
 public class SparseMatrixHost extends SparseMatrix {
 
-  /**
-   * Default UID.
-   */
-  private static final long serialVersionUID = -2934384684498319094L;
   private int counter = 0; // counter
 
   /**
@@ -37,7 +35,6 @@ public class SparseMatrixHost extends SparseMatrix {
    * Create empty storage for specified number of sparse elements. Format COO
    * 
    * @param size size of the storage
-   * @see #add(int, int, double)
    * @see #updateDimension()
    */
   public SparseMatrixHost(int size) {
@@ -323,79 +320,6 @@ public class SparseMatrixHost extends SparseMatrix {
 
   /**
    * Compress sparse indices, removing gaps.
-   * 
-   * @param toRem array with "1" at positions to be removed.
-   * @param newRowInd array to be processed
-   * @return Array with compressed indices
-   */
-  // private int[] compressIndices(int[] toRem, int[] newRowInd) {
-  // LOGGER.trace("Compressing indices. Removing " + toRem.length + " from " + newRowInd.length);
-  // // compress
-  // // after removing indices from newColInd/RowInd it contains only valid nonzero elements
-  // // (without
-  // // those from deleted rows and
-  // // cols) but indexes contain gaps, e.g. if 2nd column was removed newColInd will keep next
-  // // column after as third whereas it should be moved to left and become the second
-  // // because we assumed square matrix we will go through toRem array and check which indexes were
-  // // removed (marked by 1 at index i - removed) and then decrease all indexes larger than those
-  // // removed in newColInd/newRowInd by one to shift them
-  // // These arrays need to be copied first otherwise next comparison would be wrong
-  // int[] newRowIndcp = Arrays.copyOf(newRowInd, newRowInd.length);
-  // for (int i = 0; i < toRem.length; i++) {
-  // if (toRem[i] > 0) { // compress all indices larger than i
-  // for (int k = 0; k < newRowInd.length; k++) { // go through sparse indexes
-  // if (newRowInd[k] > i) { // the same for rows
-  // newRowIndcp[k]--;
-  // }
-  // }
-  //
-  // }
-  // }
-  // LOGGER.trace("Indices compressed");
-  // return newRowIndcp;
-  // }
-
-  // /**
-  // * Compress sparse indices, removing gaps.
-  // *
-  // * @param toRem array with "1" at positions to be removed.
-  // * @param newRowInd array to be processed
-  // * @return Array with compressed indices
-  // */
-  // private int[] compressIndices(int[] toRem, int[] newRowInd) {
-  // LOGGER.trace("Compressing indices. Removing " + toRem.length + " from " + newRowInd.length);
-  // // compress
-  // // after removing indices from newColInd/RowInd it contains only valid nonzero elements
-  // // (without
-  // // those from deleted rows and
-  // // cols) but indexes contain gaps, e.g. if 2nd column was removed newColInd will keep next
-  // // column after as third whereas it should be moved to left and become the second
-  // // because we assumed square matrix we will go through toRem array and check which indexes were
-  // // removed (marked by 1 at index i - removed) and then decrease all indexes larger than those
-  // // removed in newColInd/newRowInd by one to shift them
-  // // These arrays need to be copied first otherwise next comparison would be wrong
-  // int[] newRowIndcp = Arrays.copyOf(newRowInd, newRowInd.length);
-  // int cluster = 0;
-  // for (int i = 0; i < toRem.length; i++) {
-  // if (toRem[i] > 0) {
-  // cluster++;
-  // continue;
-  // }
-  // if (toRem[i] == 0 && cluster > 0) { // something collected
-  // for (int k = 0; k < newRowInd.length; k++) { // go through sparse indexes
-  // if (newRowInd[k] >= i) { // the same for rows
-  // newRowIndcp[k] -= cluster;
-  // }
-  // }
-  // cluster = 0;
-  // }
-  // }
-  // LOGGER.trace("Indices compressed");
-  // return newRowIndcp;
-  // }
-
-  /**
-   * Compress sparse indices, removing gaps.
    *
    * @param toRem array with "1" at positions to be removed. This array is modified.
    * @param newRowInd array to be processed. This array is modified and stands like an output
@@ -472,10 +396,15 @@ public class SparseMatrixHost extends SparseMatrix {
     int[] riret = IntStream.range(0, ret.length).toArray();
     Arrays.fill(ciret, 0);
 
-    return SparseMatrix.sparseMatrixFactory(this, riret, ciret, ret, this.getRowNumber(), 1,
-            SparseMatrixType.MATRIX_FORMAT_COO);
+    return DenseVector.denseVectorFactory(new DenseVectorHost(), this.getRowNumber(), 1, ret);
   }
 
+  /*
+   * (non-Javadoc)
+   * 
+   * @see com.github.celldynamics.jcudarandomwalk.matrices.sparse.ISparseMatrix#luSolve(com.github.
+   * celldynamics.jcudarandomwalk.matrices.dense.IDenseVector, boolean, int, float)
+   */
   @Override
   public float[] luSolve(IDenseVector b_gpuPtr, boolean iLuBiCGStabSolve, int iter, float tol) {
     LOGGER.warn("luSolve run on GPU");
