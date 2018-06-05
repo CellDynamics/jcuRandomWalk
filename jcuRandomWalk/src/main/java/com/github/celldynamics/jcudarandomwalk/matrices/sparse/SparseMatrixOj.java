@@ -7,9 +7,9 @@ import java.util.List;
 import java.util.stream.IntStream;
 
 import org.apache.commons.lang3.ArrayUtils;
-import org.apache.commons.lang3.NotImplementedException;
 import org.ojalgo.RecoverableCondition;
 import org.ojalgo.access.ElementView1D;
+import org.ojalgo.access.ElementView2D;
 import org.ojalgo.matrix.decomposition.LU;
 import org.ojalgo.matrix.store.ElementsSupplier;
 import org.ojalgo.matrix.store.MatrixStore;
@@ -35,12 +35,19 @@ public class SparseMatrixOj implements ISparseMatrix {
    */
   static final Logger LOGGER = LoggerFactory.getLogger(SparseMatrixOj.class.getName());
 
-  private int nrows;
-  private int ncols;
+  protected int rowNumber; // number of rows
+  protected int colNumber; // number of cols
+
   /**
    * OjAlg store wrapped by this class.
    */
   MatrixStore<Double> mat;
+
+  /**
+   * Default empty constructor.
+   */
+  public SparseMatrixOj() {
+  }
 
   /**
    * Wrap existing Oj object.
@@ -49,8 +56,32 @@ public class SparseMatrixOj implements ISparseMatrix {
    */
   public SparseMatrixOj(MatrixStore<Double> mat) {
     this.mat = mat;
-    this.nrows = (int) mat.countRows();
-    this.ncols = (int) mat.countColumns();
+    this.rowNumber = (int) mat.countRows();
+    this.colNumber = (int) mat.countColumns();
+  }
+
+  /**
+   * Create sparse matrix. Oj wrapper.
+   * 
+   * @param rowInd row indices
+   * @param colInd column indices
+   * @param val values
+   * @param rowNumber number of rows
+   * @param colNumber number of columns
+   * @param matrixInputFormat for compatibility
+   */
+  public SparseMatrixOj(int[] rowInd, int[] colInd, float[] val, int rowNumber, int colNumber,
+          SparseMatrixType matrixInputFormat) {
+    if ((rowInd.length != colInd.length) || (rowInd.length != val.length)) {
+      throw new IllegalArgumentException("Input arrays should have the same length in COO format");
+    }
+    this.rowNumber = rowNumber;
+    this.colNumber = colNumber;
+    SparseStore<Double> mtrxA = SparseStore.PRIMITIVE.make(rowNumber, colNumber);
+    for (int i = 0; i < rowInd.length; i++) {
+      mtrxA.set(rowInd[i], colInd[i], val[i]);
+    }
+    mat = mtrxA;
   }
 
   /**
@@ -63,9 +94,24 @@ public class SparseMatrixOj implements ISparseMatrix {
    * @param colNumber number of columns
    */
   public SparseMatrixOj(int[] rowInd, int[] colInd, float[] val, int rowNumber, int colNumber) {
+    this(rowInd, colInd, val, rowNumber, colNumber, SparseMatrixType.MATRIX_FORMAT_COO);
+  }
+
+  /**
+   * Create sparse matrix. Oj wrapper. Calculate number of rows and colums.
+   * 
+   * @param rowInd row indices
+   * @param colInd column indices
+   * @param val values
+   * @param matrixInputFormat for compatibility
+   */
+  public SparseMatrixOj(int[] rowInd, int[] colInd, float[] val,
+          SparseMatrixType matrixInputFormat) {
     if ((rowInd.length != colInd.length) || (rowInd.length != val.length)) {
       throw new IllegalArgumentException("Input arrays should have the same length in COO format");
     }
+    colNumber = IntStream.of(colInd).parallel().max().getAsInt() + 1; // assuming 0 based
+    rowNumber = IntStream.of(rowInd).parallel().max().getAsInt() + 1;
     SparseStore<Double> mtrxA = SparseStore.PRIMITIVE.make(rowNumber, colNumber);
     for (int i = 0; i < rowInd.length; i++) {
       mtrxA.set(rowInd[i], colInd[i], val[i]);
@@ -81,16 +127,7 @@ public class SparseMatrixOj implements ISparseMatrix {
    * @param val values
    */
   public SparseMatrixOj(int[] rowInd, int[] colInd, float[] val) {
-    if ((rowInd.length != colInd.length) || (rowInd.length != val.length)) {
-      throw new IllegalArgumentException("Input arrays should have the same length in COO format");
-    }
-    int colNumber = IntStream.of(colInd).parallel().max().getAsInt() + 1; // assuming 0 based
-    int rowNumber = IntStream.of(rowInd).parallel().max().getAsInt() + 1;
-    SparseStore<Double> mtrxA = SparseStore.PRIMITIVE.make(rowNumber, colNumber);
-    for (int i = 0; i < rowInd.length; i++) {
-      mtrxA.set(rowInd[i], colInd[i], val[i]);
-    }
-    mat = mtrxA;
+    this(rowInd, colInd, val, SparseMatrixType.MATRIX_FORMAT_COO);
   }
 
   /*
@@ -118,7 +155,7 @@ public class SparseMatrixOj implements ISparseMatrix {
    */
   @Override
   public int getRowNumber() {
-    return nrows;
+    return rowNumber;
   }
 
   /*
@@ -128,7 +165,7 @@ public class SparseMatrixOj implements ISparseMatrix {
    */
   @Override
   public int getColNumber() {
-    return ncols;
+    return colNumber;
   }
 
   /*
@@ -152,11 +189,11 @@ public class SparseMatrixOj implements ISparseMatrix {
     int[] rr = getRowInd();
     int[] cc = getColInd();
     float[] vv = getVal();
-    SparseMatrixHost tmp =
-            (SparseMatrixHost) new SparseMatrixHost(rr, cc, vv, getSparseMatrixType())
-                    .removeRows(rows);
+    SparseMatrixHost tmp = (SparseMatrixHost) new SparseMatrixHost(rr, cc, vv, getRowNumber(),
+            getColNumber(), getSparseMatrixType()).removeRows(rows);
 
-    return new SparseMatrixOj(tmp.getRowInd(), tmp.getColInd(), tmp.getVal());
+    return new SparseMatrixOj(tmp.getRowInd(), tmp.getColInd(), tmp.getVal(), tmp.getRowNumber(),
+            tmp.getColNumber());
   }
 
   /*
@@ -169,11 +206,11 @@ public class SparseMatrixOj implements ISparseMatrix {
     int[] rr = getRowInd();
     int[] cc = getColInd();
     float[] vv = getVal();
-    SparseMatrixHost tmp =
-            (SparseMatrixHost) new SparseMatrixHost(rr, cc, vv, getSparseMatrixType())
-                    .removeCols(cols);
+    SparseMatrixHost tmp = (SparseMatrixHost) new SparseMatrixHost(rr, cc, vv, getRowNumber(),
+            getColNumber(), getSparseMatrixType()).removeCols(cols);
 
-    return new SparseMatrixOj(tmp.getRowInd(), tmp.getColInd(), tmp.getVal());
+    return new SparseMatrixOj(tmp.getRowInd(), tmp.getColInd(), tmp.getVal(), tmp.getRowNumber(),
+            tmp.getColNumber());
   }
 
   /*
@@ -257,11 +294,11 @@ public class SparseMatrixOj implements ISparseMatrix {
    */
   @Override
   public int[] getRowInd() {
-    ElementView1D<Double, ?> nz = mat.nonzeros();
+    ElementView2D<Double, ?> nz = ((SparseStore<Double>) mat).nonzeros();
     List<Integer> ret = new ArrayList<>();
     while (nz.hasNext()) {
-      long i = nz.next().index();
-      ret.add((int) (i % nrows));
+      long i = nz.next().row();
+      ret.add((int) i);
     }
     return ArrayUtils.toPrimitive(ret.toArray(new Integer[0]));
   }
@@ -273,11 +310,11 @@ public class SparseMatrixOj implements ISparseMatrix {
    */
   @Override
   public int[] getColInd() {
-    ElementView1D<Double, ?> nz = mat.nonzeros();
+    ElementView2D<Double, ?> nz = ((SparseStore<Double>) mat).nonzeros();
     List<Integer> ret = new ArrayList<>();
     while (nz.hasNext()) {
-      long i = nz.next().index();
-      ret.add((int) (i / nrows));
+      long i = nz.next().column();
+      ret.add((int) i);
     }
     return ArrayUtils.toPrimitive(ret.toArray(new Integer[0]));
   }
@@ -300,7 +337,7 @@ public class SparseMatrixOj implements ISparseMatrix {
    */
   @Override
   public ISparseMatrix convert2csr() {
-    throw new NotImplementedException("Conversions are not implemented for OjAlg");
+    return this;
   }
 
   /*
@@ -310,7 +347,7 @@ public class SparseMatrixOj implements ISparseMatrix {
    */
   @Override
   public ISparseMatrix convert2coo() {
-    throw new NotImplementedException("Conversions are not implemented for OjAlg");
+    return this;
   }
 
   /*
@@ -335,7 +372,7 @@ public class SparseMatrixOj implements ISparseMatrix {
     final LU<Double> tmpA = LU.PRIMITIVE.make();
     tmpA.decompose(this.mat);
     try {
-      MatrixStore<Double> ret = tmpA.solve(this.mat, ((DenseVectorOj) b_gpuPtr).mat);
+      MatrixStore<Double> ret = tmpA.solve(this.mat, ((DenseVectorOj) b_gpuPtr).mat).multiply(-1.0);
       return new SparseMatrixOj(ret).getVal();
     } catch (RecoverableCondition e) {
       LOGGER.error("Solver failed with error: " + e.toString());
@@ -350,7 +387,7 @@ public class SparseMatrixOj implements ISparseMatrix {
    */
   @Override
   public String toString() {
-    return "SparseMatrixOj [nrows=" + nrows + ", ncols=" + ncols + ", mat=" + mat + "]";
+    return "SparseMatrixOj [nrows=" + rowNumber + ", ncols=" + colNumber + ", mat=" + mat + "]";
   }
 
 }

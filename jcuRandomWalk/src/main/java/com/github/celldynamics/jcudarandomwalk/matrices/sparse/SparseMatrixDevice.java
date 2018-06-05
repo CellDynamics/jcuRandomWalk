@@ -118,6 +118,13 @@ public class SparseMatrixDevice extends SparseMatrix implements ICudaLibHandles 
    * Set up sparse engine. Should not be called directly.
    */
   public SparseMatrixDevice() {
+
+  }
+
+  /**
+   * 
+   */
+  private void initialiseGpu() {
     cusparseCreateMatDescr(descr);
     cusparseSetMatType(descr, CUSPARSE_MATRIX_TYPE_GENERAL);
     cusparseSetMatIndexBase(descr, CUSPARSE_INDEX_BASE_ZERO);
@@ -138,7 +145,7 @@ public class SparseMatrixDevice extends SparseMatrix implements ICudaLibHandles 
    */
   public SparseMatrixDevice(int[] rowInd, int[] colInd, float[] val,
           SparseMatrixType matrixInputFormat) {
-    this();
+    initialiseGpu();
     if (matrixInputFormat == SparseMatrixType.MATRIX_FORMAT_COO
             && ((rowInd.length != colInd.length) || (rowInd.length != val.length))) {
       throw new IllegalArgumentException("Input arrays should have the same length in COO format");
@@ -173,7 +180,7 @@ public class SparseMatrixDevice extends SparseMatrix implements ICudaLibHandles 
    */
   public SparseMatrixDevice(int[] rowInd, int[] colInd, float[] val, int rowNumber, int colNumber,
           SparseMatrixType matrixInputFormat) {
-    this();
+    initialiseGpu();
     if (matrixInputFormat == SparseMatrixType.MATRIX_FORMAT_COO
             && ((rowInd.length != colInd.length) || (rowInd.length != val.length))) {
       throw new IllegalArgumentException("Input arrays should have the same length in COO format");
@@ -211,7 +218,7 @@ public class SparseMatrixDevice extends SparseMatrix implements ICudaLibHandles 
    */
   public SparseMatrixDevice(Pointer rowIndPtr, Pointer colIndPtr, Pointer valPtr, int nrows,
           int ncols, int nnz, SparseMatrixType fmt) {
-    this();
+    initialiseGpu();
     this.rowIndPtr = rowIndPtr;
     this.colIndPtr = colIndPtr;
     this.valPtr = valPtr;
@@ -237,7 +244,7 @@ public class SparseMatrixDevice extends SparseMatrix implements ICudaLibHandles 
    */
   public SparseMatrixDevice(cusparseMatDescr descr, Pointer rowIndPtr, Pointer colIndPtr,
           Pointer valPtr, int nrows, int ncols, int nnz, SparseMatrixType fmt) {
-    this();
+    initialiseGpu();
     this.descr = descr;
     this.rowIndPtr = rowIndPtr;
     this.colIndPtr = colIndPtr;
