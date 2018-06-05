@@ -16,6 +16,7 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.github.celldynamics.jcudarandomwalk.matrices.IMatrix;
 import com.github.celldynamics.jcudarandomwalk.matrices.dense.DenseVectorDevice;
 import com.github.celldynamics.jcurandomwalk.ArrayTools;
 import com.github.celldynamics.jcurandomwalk.TestDataGenerators;
@@ -368,6 +369,78 @@ public class SparseMatrixDeviceTest {
     b.free();
     acsr.free();
     assertThat(retd, arrayCloseTo(new double[] { 1, 2, 3, 4, 5 }, 1e-5));
+  }
+
+  /**
+   * Test sum along rows.
+   *
+   * @throws Exception the exception
+   */
+  @Test
+  public void testSumAlongRows() throws Exception {
+    int[] ri = new int[] { 0, 0, 0, 1, 2, 3, 4, 4, 5 };
+    int[] ci = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
+    float[] v = new float[] { 10, 101, 102, 11, 12, 13, 131, 14, 15 };
+    ISparseMatrix testL = new SparseMatrixDevice(ri, ci, v, SparseMatrixType.MATRIX_FORMAT_COO);
+
+    IMatrix ret = testL.sumAlongRows();
+    assertThat(Arrays.asList(ret.getVal()),
+            contains(new float[] { 213.0f, 11.0f, 12.0f, 13.0f, 145.0f, 15.0f }));
+    LOGGER.trace(
+            "Sum" + ArrayTools.printArray(ArrayTools.array2Object(((ISparseMatrix) ret).full())));
+  }
+
+  /**
+   * Test sum along rows.
+   *
+   * <p>With empty rows.
+   * 
+   * @throws Exception the exception
+   */
+  @Test
+  public void testSumAlongRows_1() throws Exception {
+    // like output from testRemoveCols_3
+    int[] ri = new int[] { 0, 0, 1, 3, 4, 5 };
+    int[] ci = new int[] { 0, 3, 0, 1, 2, 3 };
+    float[] v = new float[] { 101.0f, 102.0f, 11.0f, 13.0f, 14.0f, 15.0f };
+    ISparseMatrix testL = new SparseMatrixDevice(ri, ci, v, SparseMatrixType.MATRIX_FORMAT_COO);
+
+    IMatrix ret = testL.sumAlongRows();
+    assertThat(Arrays.asList(ret.getVal()),
+            contains(new float[] { 203.0f, 11.0f, 0.0f, 13.0f, 14.0f, 15.0f }));
+  }
+
+  /**
+   * Test method for
+   * {@link SparseMatrixHost#removeRows(int[])}.
+   *
+   * <p>Like matlab without compressing 0 columns.
+   * 
+   * @throws Exception the exception
+   */
+  @Test
+  public void testRemoveRows_2() throws Exception {
+    // Laplacian is square, assume diagonal only
+    int[] ri = new int[] { 0, 0, 0, 1, 2, 3, 4, 4, 5 };
+    int[] ci = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
+    float[] v = new float[] { 10, 101, 102, 11, 12, 13, 131, 14, 15 };
+    ISparseMatrix testL = new SparseMatrixDevice(ri, ci, v, SparseMatrixType.MATRIX_FORMAT_COO);
+    LOGGER.debug("Laplacean" + testL.toString());
+
+    // remove row/co 1,2,3
+    int[] toRem = new int[] { 2 };
+
+    IMatrix ret = testL.removeRows(toRem);
+    LOGGER.debug("Reduced: " + ret.toString());
+    assertThat(ret.getColNumber(), is(6));
+    assertThat(ret.getRowNumber(), is(5));
+    assertThat(ret.getElementNumber(), is(8));
+    assertThat(Arrays.asList(ret.getVal()),
+            contains(new float[] { 10.0f, 101.0f, 102.0f, 11.0f, 13.0f, 131.0f, 14.0f, 15.0f }));
+    assertThat(Arrays.asList(((ISparseMatrix) ret).getRowInd()),
+            contains(new int[] { 0, 0, 0, 1, 2, 3, 3, 4 }));
+    assertThat(Arrays.asList(((ISparseMatrix) ret).getColInd()),
+            contains(new int[] { 0, 1, 5, 1, 3, 0, 4, 5 }));
   }
 
 }

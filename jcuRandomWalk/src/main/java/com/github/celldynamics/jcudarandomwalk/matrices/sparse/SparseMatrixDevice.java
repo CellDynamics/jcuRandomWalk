@@ -490,8 +490,6 @@ public class SparseMatrixDevice extends SparseMatrix implements ICudaLibHandles 
     if (((ISparseMatrix) in).getSparseMatrixType() != SparseMatrixType.MATRIX_FORMAT_CSR) {
       throw new IllegalArgumentException("multiply requires CSR input format.");
     }
-    // if not instance og GPU try to convert it to GPU
-    ((SparseMatrixDevice) in).toGpu();
     SparseMatrixDevice m2 = (SparseMatrixDevice) in;
 
     int m = this.getRowNumber();
@@ -634,7 +632,6 @@ public class SparseMatrixDevice extends SparseMatrix implements ICudaLibHandles 
       throw new IllegalArgumentException("Left matrix should be in CSR");
     }
     StoppedBy stoppedReason = StoppedBy.ITERATIONS; // default assumption
-    ((DenseVectorDevice) b_gpuPtrAny).toGpu();
     DenseVectorDevice b_gpuPtr = (DenseVectorDevice) b_gpuPtrAny;
     int m = getRowNumber();
     int n = m;
