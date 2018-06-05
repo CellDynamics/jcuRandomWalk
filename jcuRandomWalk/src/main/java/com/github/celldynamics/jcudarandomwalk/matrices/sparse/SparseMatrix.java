@@ -4,7 +4,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 import java.util.stream.IntStream;
 
-import org.apache.commons.lang3.NotImplementedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -221,41 +220,6 @@ public abstract class SparseMatrix implements ISparseMatrix {
             | InvocationTargetException | NoSuchMethodException | SecurityException e) {
       throw new IllegalArgumentException("Can not create object instance: " + e.getMessage());
     }
-  }
-
-  /**
-   * Default constructor for building sparse matrix from list of indices. Must be implemented in
-   * concrete classes.
-   * 
-   * @param rowInd rows
-   * @param colInd columns
-   * @param val values
-   * @param matrixInputFormat type of matrix
-   */
-  public SparseMatrix(int[] rowInd, int[] colInd, float[] val, SparseMatrixType matrixInputFormat) {
-    throw new NotImplementedException("This constructor must be implemented in concrete classes.");
-  }
-
-  /**
-   * Default constructor for building sparse matrix from list of indices. Must be implemented in
-   * concrete classes.
-   * 
-   * @param rowInd rows
-   * @param colInd columns
-   * @param val values
-   * @param rowNumber number of rows
-   * @param colNumber number of columns
-   * @param matrixInputFormat type of matrix
-   */
-  public SparseMatrix(int[] rowInd, int[] colInd, float[] val, int rowNumber, int colNumber,
-          SparseMatrixType matrixInputFormat) {
-    throw new NotImplementedException("This constructor must be implemented in concrete classes.");
-  }
-
-  /**
-   * Default constructor. Generally not used.
-   */
-  public SparseMatrix() {
   }
 
 }
