@@ -7,7 +7,6 @@ import static jcuda.runtime.cudaMemcpyKind.cudaMemcpyDeviceToHost;
 import static jcuda.runtime.cudaMemcpyKind.cudaMemcpyHostToDevice;
 
 import com.github.celldynamics.jcudarandomwalk.matrices.ICudaLibHandles;
-import com.github.celldynamics.jcudarandomwalk.matrices.IMatrix;
 
 import jcuda.Pointer;
 import jcuda.Sizeof;
@@ -38,6 +37,13 @@ public class DenseVectorDevice extends DenseVector implements ICudaLibHandles {
   public DenseVectorDevice(int rows, int cols, float[] val) {
     super(rows, cols);
     this.val = val;
+    transferToGpu(val);
+  }
+
+  /**
+   * @param val
+   */
+  private void transferToGpu(float[] val) {
     cudaMalloc(valPtr, getElementNumber() * Sizeof.FLOAT);
     cudaMemcpy(valPtr, Pointer.to(val), getElementNumber() * Sizeof.FLOAT, cudaMemcpyHostToDevice);
   }
@@ -60,17 +66,14 @@ public class DenseVectorDevice extends DenseVector implements ICudaLibHandles {
             cudaMemcpyDeviceToHost);
   }
 
-  @Override
-  public IMatrix toGpu() {
-    return this;
-  }
-
-  @Override
-  public IMatrix toCpu() {
+  public void toCpu() {
     if (val == null) {
       retrieveFromDevice();
     }
-    return new DenseVectorHost(getRowNumber(), getColNumber(), getVal());
+  }
+
+  public void toGpu() {
+    transferToGpu(getVal());
   }
 
   /*

@@ -67,21 +67,22 @@ public interface IMatrix {
    */
   public IMatrix transpose();
 
-  /**
-   * Send to GPU.
-   * 
-   * <p>Class can throw java.lang.UnsupportedOperationException if that conversion is not possible.
-   * 
-   * @return GPU version.
-   */
-  public IMatrix toGpu();
-
-  /**
-   * Retrieve from GPU. Return this if matrix is already on cpu.
-   * 
-   * @return CPU version.
-   */
-  public IMatrix toCpu();
+  // /**
+  // * Send to GPU.
+  // *
+  // * <p>Class can throw java.lang.UnsupportedOperationException if that conversion is not
+  // possible.
+  // *
+  // * @return GPU version.
+  // */
+  // public IMatrix toGpu();
+  //
+  // /**
+  // * Retrieve from GPU. Return this if matrix is already on cpu.
+  // *
+  // * @return CPU version.
+  // */
+  // public IMatrix toCpu();
 
   /**
    * Release resources (if needed).

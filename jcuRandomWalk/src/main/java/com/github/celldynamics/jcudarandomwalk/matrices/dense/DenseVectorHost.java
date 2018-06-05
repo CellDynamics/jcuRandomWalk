@@ -1,7 +1,5 @@
 package com.github.celldynamics.jcudarandomwalk.matrices.dense;
 
-import com.github.celldynamics.jcudarandomwalk.matrices.IMatrix;
-
 /**
  * Dense 1D vector on Host.
  * 
@@ -34,26 +32,6 @@ public class DenseVectorHost extends DenseVector {
   public DenseVectorHost(int rows, int cols, float[] val) {
     super(rows, cols);
     this.val = val;
-  }
-
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.github.celldynamics.jcudarandomwalk.matrices.IMatrix#toGpu()
-   */
-  @Override
-  public IMatrix toGpu() {
-    return new DenseVectorDevice(getRowNumber(), getColNumber(), getVal());
-  }
-
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.github.celldynamics.jcudarandomwalk.matrices.IMatrix#toCpu()
-   */
-  @Override
-  public IMatrix toCpu() {
-    return this;
   }
 
   /*

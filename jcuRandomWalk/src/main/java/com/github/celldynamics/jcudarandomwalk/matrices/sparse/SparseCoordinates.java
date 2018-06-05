@@ -1,7 +1,6 @@
 package com.github.celldynamics.jcudarandomwalk.matrices.sparse;
 
 import java.io.Serializable;
-import java.lang.reflect.InvocationTargetException;
 import java.util.stream.IntStream;
 
 /**
@@ -99,22 +98,8 @@ public class SparseCoordinates implements Serializable {
    * @return {@link ISparseMatrix} object
    */
   public ISparseMatrix toSparse(ISparseMatrix type) {
-    Class<? extends ISparseMatrix> classToLoad = type.getClass();
-    Class<?>[] carg = new Class[6]; // Our constructor has 4 arguments
-    carg[0] = int[].class;
-    carg[1] = int[].class;
-    carg[2] = float[].class;
-    carg[3] = int.class;
-    carg[4] = int.class;
-    carg[5] = SparseMatrixType.class;
-
-    try {
-      return (ISparseMatrix) classToLoad.getDeclaredConstructor(carg).newInstance(rowInd, colInd,
-              val, rowNumber, colNumber, SparseMatrixType.MATRIX_FORMAT_COO);
-    } catch (InstantiationException | IllegalAccessException | IllegalArgumentException
-            | InvocationTargetException | NoSuchMethodException | SecurityException e) {
-      throw new IllegalArgumentException("Can not create object instance: " + e.getMessage());
-    }
+    return SparseMatrix.sparseMatrixFactory(type, rowInd, colInd, val, rowNumber, colNumber,
+            SparseMatrixType.MATRIX_FORMAT_COO);
   }
 
   /**

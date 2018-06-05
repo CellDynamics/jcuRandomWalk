@@ -286,7 +286,7 @@ public class RandomWalkAlgorithm {
     computeLaplacian();
     Integer[] seedIndices = getSourceIndices(seed, seedVal);
     computeReducedLaplacian(seedIndices, getIncidenceMatrix().getSinkBox());
-    ISparseMatrix reducedLapGpu = (ISparseMatrix) getReducedLap().toGpu();
+    ISparseMatrix reducedLapGpu = (ISparseMatrix) getReducedLap();
     ISparseMatrix reducedLapGpuCsr = reducedLapGpu.convert2csr();
     // reducedLapGpu.free();
     LOGGER.info("Forward");

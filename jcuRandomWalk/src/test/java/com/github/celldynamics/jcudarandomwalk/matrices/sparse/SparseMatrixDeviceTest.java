@@ -203,11 +203,34 @@ public class SparseMatrixDeviceTest {
    */
   @Test
   public void testToSparseMatrixHost() throws Exception {
-    ISparseMatrix sph = obj.toCpu();
+    obj.toCpu();
+    ISparseMatrix sph = obj;
     assertThat(Arrays.asList(sph.getVal()), contains(gen.valRowOrder));
     assertThat(Arrays.asList(sph.getColInd()), contains(gen.colInd));
     assertThat(Arrays.asList(sph.getRowInd()), contains(gen.rowInd));
     assertThat(sph.getElementNumber(), is(gen.valRowOrder.length));
+  }
+
+  /**
+   * Test method for
+   * {@link com.github.celldynamics.jcudarandomwalk.matrices.sparse.SparseMatrixHost#toGpu()}.
+   *
+   * @throws Exception the exception
+   */
+  @Test
+  public void testToSparseMatrixDevice() throws Exception {
+    int[] rowInd = new int[] { 0, 0, 1, 1, 2, 2, 2, 3, 3 };
+    int[] colInd = new int[] { 0, 1, 1, 2, 0, 3, 4, 2, 4 };
+    float[] val = new float[] { 1, 4, 2, 3, 5, 7, 8, 9, 6 };
+    SparseMatrixDevice test =
+            new SparseMatrixDevice(rowInd, colInd, val, SparseMatrixType.MATRIX_FORMAT_COO);
+    test.toGpu();
+    SparseMatrixDevice spd = test;
+    assertThat(Arrays.asList(spd.getVal()), contains(val));
+    assertThat(Arrays.asList(spd.getColInd()), contains(colInd));
+    assertThat(Arrays.asList(spd.getRowInd()), contains(rowInd));
+    assertThat(spd.getElementNumber(), is(9));
+    spd.free();
   }
 
   /**

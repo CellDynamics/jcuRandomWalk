@@ -120,27 +120,6 @@ public class SparseMatrixHostTest {
 
   /**
    * Test method for
-   * {@link com.github.celldynamics.jcudarandomwalk.matrices.sparse.SparseMatrixHost#toGpu()}.
-   *
-   * @throws Exception the exception
-   */
-  @Test
-  public void testToSparseMatrixDevice() throws Exception {
-    int[] rowInd = new int[] { 0, 0, 1, 1, 2, 2, 2, 3, 3 };
-    int[] colInd = new int[] { 0, 1, 1, 2, 0, 3, 4, 2, 4 };
-    float[] val = new float[] { 1, 4, 2, 3, 5, 7, 8, 9, 6 };
-    SparseMatrixHost test =
-            new SparseMatrixHost(rowInd, colInd, val, SparseMatrixType.MATRIX_FORMAT_COO);
-    SparseMatrixDevice spd = (SparseMatrixDevice) test.toGpu();
-    assertThat(Arrays.asList(spd.getVal()), contains(val));
-    assertThat(Arrays.asList(spd.getColInd()), contains(colInd));
-    assertThat(Arrays.asList(spd.getRowInd()), contains(rowInd));
-    assertThat(spd.getElementNumber(), is(9));
-    spd.free();
-  }
-
-  /**
-   * Test method for
    * {@link SparseMatrixHost#removeRows(int[])}.
    *
    * @throws Exception the exception

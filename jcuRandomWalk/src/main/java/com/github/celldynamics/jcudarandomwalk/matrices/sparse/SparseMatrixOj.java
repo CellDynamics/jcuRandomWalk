@@ -210,26 +210,6 @@ public class SparseMatrixOj implements ISparseMatrix {
   /*
    * (non-Javadoc)
    * 
-   * @see com.github.celldynamics.jcudarandomwalk.matrices.IMatrix#toGpu()
-   */
-  @Override
-  public IMatrix toGpu() {
-    return this;
-  }
-
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.github.celldynamics.jcudarandomwalk.matrices.IMatrix#toCpu()
-   */
-  @Override
-  public IMatrix toCpu() {
-    return this;
-  }
-
-  /*
-   * (non-Javadoc)
-   * 
    * @see com.github.celldynamics.jcudarandomwalk.matrices.IMatrix#free()
    */
   @Override

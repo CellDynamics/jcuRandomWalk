@@ -1,12 +1,14 @@
 package com.github.celldynamics.jcudarandomwalk.matrices.sparse;
 
 import java.lang.reflect.InvocationTargetException;
+import java.security.InvalidParameterException;
 import java.util.Arrays;
 import java.util.stream.IntStream;
 
-import org.apache.commons.lang3.NotImplementedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.github.celldynamics.jcudarandomwalk.matrices.IMatrix;
 
 /**
  * Common base for CPU (base type) and GPU.
@@ -21,39 +23,23 @@ public abstract class SparseMatrix implements ISparseMatrix {
    */
   static final Logger LOGGER = LoggerFactory.getLogger(SparseMatrix.class.getName());
 
-  protected SparseMatrixType matrixFormat = SparseMatrixType.MATRIX_FORMAT_COO;
+  protected int rowNumber; // number of rows
+  protected int colNumber; // number of cols
   protected int nnz; // number of nonzero elements
-
   protected int[] rowInd; // rows
   protected int[] colInd; // cols
   protected float[] val; // value
-  protected int rowNumber; // number of rows
-  protected int colNumber; // number of cols
+
+  protected SparseMatrixType matrixFormat = SparseMatrixType.MATRIX_FORMAT_COO;
 
   /*
    * (non-Javadoc)
    * 
-   * @see com.github.celldynamics.jcudarandomwalk.matrices.ISparseMatrix#getRowInd()
+   * @see com.github.celldynamics.jcudarandomwalk.matrices.ISparseMatrix#getSparseMatrixType()
    */
   @Override
-  public int[] getRowInd() {
-    if (rowInd == null && this instanceof SparseMatrixDevice) {
-      ((SparseMatrixDevice) this).retrieveFromDevice();
-    }
-    return rowInd;
-  }
-
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.github.celldynamics.jcudarandomwalk.matrices.ISparseMatrix#getColInd()
-   */
-  @Override
-  public int[] getColInd() {
-    if (colInd == null && this instanceof SparseMatrixDevice) {
-      ((SparseMatrixDevice) this).retrieveFromDevice();
-    }
-    return colInd;
+  public SparseMatrixType getSparseMatrixType() {
+    return matrixFormat;
   }
 
   /*
@@ -63,9 +49,6 @@ public abstract class SparseMatrix implements ISparseMatrix {
    */
   @Override
   public float[] getVal() {
-    if (val == null && this instanceof SparseMatrixDevice) {
-      ((SparseMatrixDevice) this).retrieveFromDevice();
-    }
     return val;
   }
 
@@ -82,31 +65,174 @@ public abstract class SparseMatrix implements ISparseMatrix {
   /*
    * (non-Javadoc)
    * 
-   * @see com.github.celldynamics.jcudarandomwalk.matrices.ISparseMatrix#getSparseMatrixType()
+   * @see com.github.celldynamics.jcudarandomwalk.matrices.IMatrix#removeRows(int[])
    */
   @Override
-  public SparseMatrixType getSparseMatrixType() {
-    return matrixFormat;
+  public IMatrix removeRows(int[] rows) {
+    LOGGER.trace("Removing " + rows.length + " rows");
+    if (matrixFormat != SparseMatrixType.MATRIX_FORMAT_COO) {
+      throw new InvalidParameterException(
+              "This matrix must be in COO format. Perform explicit conversion.");
+    }
+    // any 1 at index i in this array stand for index i to remove from Lap
+    int[] toRem = new int[this.getRowNumber()];
+    for (int s = 0; s < rows.length; s++) {
+      toRem[rows[s]] = 1;
+    }
+    // iterate over indices lists and mark those to remove by -1 - ROWS
+    int[] rowInd = Arrays.copyOf(this.getRowInd(), this.getRowInd().length);
+    int[] colInd = Arrays.copyOf(this.getColInd(), this.getColInd().length);
+    for (int i = 0; i < rowInd.length; i++) {
+      if (toRem[rowInd[i]] > 0) {
+        rowInd[i] = -1; // to remove
+      }
+    }
+    // compute number of nonzero elements that remains
+    // ... and find how many rows is >=0 - valid rows
+    int remainingRow = 0;
+    for (int i = 0; i < rowInd.length; i++) {
+      if (rowInd[i] >= 0) {
+        remainingRow++;
+      }
+    }
+    int[] newRowInd = new int[remainingRow];
+    int[] newColInd = new int[remainingRow];
+    float[] newVal = new float[remainingRow];
+    int l = 0;
+    for (int i = 0; i < this.getElementNumber(); i++) {
+      if (rowInd[i] < 0) {
+        continue;
+      }
+      newRowInd[l] = rowInd[i];
+      newColInd[l] = colInd[i];
+      newVal[l] = this.getVal()[i];
+      l++;
+    }
+    compressIndices(toRem, newRowInd);
+
+    ISparseMatrix reducedL;
+    reducedL = SparseMatrix.sparseMatrixFactory(this, newRowInd, newColInd, newVal,
+            this.getRowNumber() - rows.length, this.getColNumber(),
+            SparseMatrixType.MATRIX_FORMAT_COO);
+    LOGGER.trace("Rows removed");
+    return reducedL;
   }
 
   /*
    * (non-Javadoc)
    * 
-   * @see com.github.celldynamics.jcudarandomwalk.matrices.IMatrix#getRowNumber()
+   * @see com.github.celldynamics.jcudarandomwalk.matrices.IMatrix#removeCols(int[])
    */
   @Override
-  public int getRowNumber() {
-    return rowNumber;
+  public IMatrix removeCols(int[] cols) {
+    LOGGER.trace("Removing " + cols.length + " cols");
+    if (matrixFormat != SparseMatrixType.MATRIX_FORMAT_COO) {
+      throw new InvalidParameterException(
+              "This matrix must be in COO format. Perform explicit conversion.");
+    }
+    // any 1 at index i in this array stand for index i to remove from Lap
+    int[] toRem = new int[this.getColNumber()];
+    for (int s = 0; s < cols.length; s++) {
+      toRem[cols[s]] = 1;
+    }
+    // iterate over indices lists and mark those to remove by -1 - ROWS
+    int[] rowInd = Arrays.copyOf(this.getRowInd(), this.getRowInd().length);
+    int[] colInd = Arrays.copyOf(this.getColInd(), this.getColInd().length);
+    for (int i = 0; i < rowInd.length; i++) {
+      if (toRem[colInd[i]] > 0) {
+        colInd[i] = -1; // to remove
+      }
+    }
+    // compute number of nonzero elements that remains
+    // ... and find how many rows is >=0 - valid rows
+    int remainingCol = 0;
+    for (int i = 0; i < colInd.length; i++) {
+      if (colInd[i] >= 0) {
+        remainingCol++;
+      }
+    }
+    int[] newRowInd = new int[remainingCol];
+    int[] newColInd = new int[remainingCol];
+    float[] newVal = new float[remainingCol];
+    int l = 0;
+    for (int i = 0; i < this.getElementNumber(); i++) {
+      if (colInd[i] < 0) {
+        continue;
+      }
+      newRowInd[l] = rowInd[i];
+      newColInd[l] = colInd[i];
+      newVal[l] = this.getVal()[i];
+      l++;
+    }
+    compressIndices(toRem, newColInd);
+
+    ISparseMatrix reducedL;
+    reducedL = SparseMatrix.sparseMatrixFactory(this, newRowInd, newColInd, newVal,
+            this.getRowNumber(), this.getColNumber() - cols.length,
+            SparseMatrixType.MATRIX_FORMAT_COO);
+    LOGGER.trace("Cols removed");
+    return reducedL;
+  }
+
+  /**
+   * Compress sparse indices, removing gaps.
+   *
+   * @param toRem array with "1" at positions to be removed. This array is modified.
+   * @param newRowInd array to be processed. This array is modified and stands like an output
+   * @return Array with compressed indices
+   */
+  private int[] compressIndices(int[] toRem, int[] newRowInd) {
+    LOGGER.trace("Compressing indices. Removing from array of size of" + newRowInd.length);
+    // compress
+    // after removing indices from newColInd/RowInd it contains only valid nonzero elements
+    // (without
+    // those from deleted rows and
+    // cols) but indexes contain gaps, e.g. if 2nd column was removed newColInd will keep next
+    // column after as third whereas it should be moved to left and become the second
+    // because we assumed square matrix we will go through toRem array and check which indexes were
+    // removed (marked by 1 at index i - removed) and then decrease all indexes larger than those
+    // removed in newColInd/newRowInd by one to shift them
+
+    // cumSum over toRem
+    // from array like this 0 0 0 1 1 0 1 0 0 -> 0 0 0 1 2 2 3 3 3
+    int cumSum = 0;
+    for (int i = 0; i < toRem.length; i++) {
+      if (toRem[i] > 0) {
+        toRem[i] += cumSum;
+        cumSum++;
+      } else {
+        toRem[i] = cumSum;
+      }
+    }
+    // int[] newRowIndcp = Arrays.copyOf(newRowInd, newRowInd.length);
+    // array newRowIndcp contains indexes, whose match indexes of toRem array.
+    // value over index i in toRem shows how much this index (as value in newRowIndcp should be
+    // shifted)
+    for (int i = 0; i < newRowInd.length; i++) {
+      newRowInd[i] -= toRem[newRowInd[i]];
+    }
+    LOGGER.trace("Indices compressed");
+    return newRowInd;
   }
 
   /*
    * (non-Javadoc)
    * 
-   * @see com.github.celldynamics.jcudarandomwalk.matrices.IMatrix#getColNumber()
+   * @see com.github.celldynamics.jcudarandomwalk.matrices.sparse.ISparseMatrix#getRowInd()
    */
   @Override
-  public int getColNumber() {
-    return colNumber;
+  public int[] getRowInd() {
+    return rowInd;
+  }
+
+  /*
+   * (non-Javadoc)
+   * 
+   * @see com.github.celldynamics.jcudarandomwalk.matrices.sparse.ISparseMatrix#getColInd()
+   */
+  @Override
+  public int[] getColInd() {
+    return colInd;
   }
 
   /**
@@ -124,37 +250,21 @@ public abstract class SparseMatrix implements ISparseMatrix {
   /*
    * (non-Javadoc)
    * 
-   * @see com.github.celldynamics.jcudarandomwalk.matrices.sparse.ISparseMatrix#full()
+   * @see com.github.celldynamics.jcudarandomwalk.matrices.sparse.SparseMatrix#getRowNumber()
    */
-  public double[][] full() {
-    if (getColNumber() == 0 || getRowNumber() == 0) {
-      updateDimension();
-    }
-    int ncols = getColNumber();
-    int nrows = getRowNumber();
-    if (nrows * ncols > 1e5) {
-      LOGGER.warn("Sparse matrix is large (" + nrows + "," + ncols + ")");
-    }
-    double[][] ret = new double[ncols][];
-    for (int c = 0; c < ncols; c++) {
-      ret[c] = new double[nrows];
-    }
-    for (int l = 0; l < getElementNumber(); l++) {
-      ret[getColInd()[l]][getRowInd()[l]] = getVal()[l];
-    }
-    return ret;
+  @Override
+  public int getRowNumber() {
+    return rowNumber;
   }
 
   /*
    * (non-Javadoc)
    * 
-   * @see java.lang.Object#toString()
+   * @see com.github.celldynamics.jcudarandomwalk.matrices.sparse.SparseMatrix#getColNumber()
    */
   @Override
-  public String toString() {
-    return "SparseMatrix [matrixFormat=" + matrixFormat + ", rowNumber=" + rowNumber
-            + ", colNumber=" + colNumber + ", nnz=" + nnz + ", rowInd=" + Arrays.toString(rowInd)
-            + ", colInd=" + Arrays.toString(colInd) + ", val=" + Arrays.toString(val) + "]";
+  public int getColNumber() {
+    return colNumber;
   }
 
   /**
@@ -223,39 +333,16 @@ public abstract class SparseMatrix implements ISparseMatrix {
     }
   }
 
-  /**
-   * Default constructor for building sparse matrix from list of indices. Must be implemented in
-   * concrete classes.
+  /*
+   * (non-Javadoc)
    * 
-   * @param rowInd rows
-   * @param colInd columns
-   * @param val values
-   * @param matrixInputFormat type of matrix
+   * @see java.lang.Object#toString()
    */
-  public SparseMatrix(int[] rowInd, int[] colInd, float[] val, SparseMatrixType matrixInputFormat) {
-    throw new NotImplementedException("This constructor must be implemented in concrete classes.");
-  }
-
-  /**
-   * Default constructor for building sparse matrix from list of indices. Must be implemented in
-   * concrete classes.
-   * 
-   * @param rowInd rows
-   * @param colInd columns
-   * @param val values
-   * @param rowNumber number of rows
-   * @param colNumber number of columns
-   * @param matrixInputFormat type of matrix
-   */
-  public SparseMatrix(int[] rowInd, int[] colInd, float[] val, int rowNumber, int colNumber,
-          SparseMatrixType matrixInputFormat) {
-    throw new NotImplementedException("This constructor must be implemented in concrete classes.");
-  }
-
-  /**
-   * Default constructor. Generally not used.
-   */
-  public SparseMatrix() {
+  @Override
+  public String toString() {
+    return "SparseMatrix [rowNumber=" + rowNumber + ", colNumber=" + colNumber + ", nnz=" + nnz
+            + ", rowInd=" + Arrays.toString(rowInd) + ", colInd=" + Arrays.toString(colInd)
+            + ", val=" + Arrays.toString(val) + ", matrixFormat=" + matrixFormat + "]";
   }
 
 }
