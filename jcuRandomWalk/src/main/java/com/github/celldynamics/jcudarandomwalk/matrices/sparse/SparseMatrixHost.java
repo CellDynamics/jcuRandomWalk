@@ -126,7 +126,6 @@ public class SparseMatrixHost extends SparseMatrix {
 
   @Override
   public ISparseMatrix convert2csr() {
-    // consider this in abstract with conversion through host
     if (matrixFormat == SparseMatrixType.MATRIX_FORMAT_CSR) {
       return this;
     } else {
