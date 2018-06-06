@@ -1,6 +1,5 @@
 package com.github.celldynamics.jcurandomwalk;
 
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -9,8 +8,6 @@ import java.util.stream.Stream;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.time.StopWatch;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.github.celldynamics.jcudarandomwalk.matrices.ICudaLibHandles;
 import com.github.celldynamics.jcudarandomwalk.matrices.IMatrix;
@@ -21,8 +18,6 @@ import com.github.celldynamics.jcudarandomwalk.matrices.sparse.SparseMatrixOj;
 
 import ij.ImagePlus;
 import ij.ImageStack;
-import ij.process.StackConverter;
-import ij.process.StackProcessor;
 import ij.process.StackStatistics;
 import jcuda.jcusparse.JCusparse;
 import jcuda.runtime.JCuda;
@@ -34,13 +29,8 @@ import jcuda.runtime.JCuda;
  * @author t.bretschneider
  *
  */
-public class RandomWalkAlgorithm {
+public class RandomWalkAlgorithmOj extends RandomWalkSolver {
 
-  static final Logger LOGGER = LoggerFactory.getLogger(RandomWalkAlgorithm.class.getName());
-
-  ImageStack stack;
-  IncidenceMatrixGenerator img;
-  RandomWalkOptions options;
   ISparseMatrix reducedLap; // reduced laplacian
   ISparseMatrix lap; // full laplacian
   List<IDenseVector> b = new ArrayList<>(); // right vector
@@ -50,7 +40,7 @@ public class RandomWalkAlgorithm {
   /**
    * Constructor for tests.
    */
-  RandomWalkAlgorithm() {
+  RandomWalkAlgorithmOj() {
 
   }
 
@@ -60,42 +50,8 @@ public class RandomWalkAlgorithm {
    * @param stack stack to be segmented
    * @param options options
    */
-  public RandomWalkAlgorithm(ImageStack stack, RandomWalkOptions options) {
-    this.options = options;
-    this.stack = stack;
-  }
-
-  /**
-   * Compute/reload incidence matrix for stack. Depending on options.
-   * 
-   * @throws Exception file can not be read or deserialised
-   */
-  public void computeIncidence() throws Exception {
-    String filename = options.configBaseName + "_" + stack.toString() + options.configBaseExt;
-    Path fullToFilename = options.configFolder.resolve(filename);
-    if (options.ifComputeIncidence) {
-      LOGGER.info("Computing new incidence matrix");
-      img = new IncidenceMatrixGenerator(stack, options.getAlgOptions());
-      if (options.ifSaveIncidence) {
-        img.saveObject(fullToFilename.toString());
-      }
-    } else {
-      if (fullToFilename.toFile().exists()) { // try to load if exists
-        try {
-          img = IncidenceMatrixGenerator.restoreObject(fullToFilename.toString(), stack,
-                  options.getAlgOptions()); // load
-        } catch (Exception e) {
-          LOGGER.error(
-                  "Incidence file could not be restored (" + filename + "): " + e.getMessage());
-          LOGGER.debug(e.getMessage(), e);
-          throw e;
-        }
-      } else { // if does not exist generate new one and save
-        LOGGER.info("Computing new incidence matrix");
-        img = new IncidenceMatrixGenerator(stack, options.getAlgOptions());
-        img.saveObject(fullToFilename.toString());
-      }
-    }
+  public RandomWalkAlgorithmOj(ImageStack stack, RandomWalkOptions options) {
+    super(stack, options);
   }
 
   /**
@@ -111,23 +67,17 @@ public class RandomWalkAlgorithm {
     StopWatch timer = new StopWatch();
     timer.start();
     // IMatrix atw = null;
-    if (options.cpuOnly == false) {
-      incidence = img.getIncidence().toSparse(new SparseMatrixDevice()).convert2csr();
-      incidenceT = incidence.transpose();
-      weight = img.getWeights().toSparse(new SparseMatrixDevice()).convert2csr();
-    } else {
-      incidence = img.getIncidence().toSparse(new SparseMatrixOj());
-      incidenceT = incidence.transpose();
-      weight = img.getWeights().toSparse(new SparseMatrixOj());
+    incidence = img.getIncidence().toSparse(new SparseMatrixOj());
+    incidenceT = incidence.transpose();
+    weight = img.getWeights().toSparse(new SparseMatrixOj());
 
-      // ElementsSupplier<Double> aTw = ((SparseMatrixOj) weight).mat
-      // .premultiply(((SparseMatrixOj) incidence).mat.transpose());
-      // SparseStore<Double> mm =
-      // SparseStore.PRIMITIVE.make(incidence.getColNumber(), incidence.getRowNumber());
-      // aTw.supplyTo(mm);
-      // atw = new SparseMatrixOj(mm, incidence.getColNumber(), incidence.getRowNumber());
+    // ElementsSupplier<Double> aTw = ((SparseMatrixOj) weight).mat
+    // .premultiply(((SparseMatrixOj) incidence).mat.transpose());
+    // SparseStore<Double> mm =
+    // SparseStore.PRIMITIVE.make(incidence.getColNumber(), incidence.getRowNumber());
+    // aTw.supplyTo(mm);
+    // atw = new SparseMatrixOj(mm, incidence.getColNumber(), incidence.getRowNumber());
 
-    }
     LOGGER.info("Base class: " + incidence.getClass().getSimpleName());
     // A'*W*A
     // ISparseMatrix ATW = incidenceGpuT.multiply(wGpu);
@@ -229,58 +179,6 @@ public class RandomWalkAlgorithm {
   }
 
   /**
-   * Merge indexes from source and sink into one array and removes duplicates.
-   * 
-   * @param source indexes (column ordered) of pixels that are the source
-   * @param sink indexes (column ordered) of pixels that are the sink
-   * @return merged two input arrays without duplicates. Sorted.
-   */
-  private int[] mergeSeeds(Integer[] source, Integer[] sink) {
-    LOGGER.debug("Merging seeds");
-    int[] mergedseeds = Stream.concat(Stream.of(source).parallel(), Stream.of(sink).parallel())
-            .distinct().mapToInt(i -> i).toArray();
-    Arrays.sort(mergedseeds);
-    return mergedseeds;
-  }
-
-  /**
-   * Apply default processing to stack. Assumes 8-bit imput.
-   * 
-   * <p>Apply 3x3 median filer 2D in each slice and normalisation.
-   * 
-   */
-  public void processStack() {
-    StopWatch timer = new StopWatch();
-    timer.start();
-    LOGGER.info("Processing stack");
-    ImageStack filterOut =
-            ImageStack.create(stack.getWidth(), stack.getHeight(), stack.getSize(), 8);
-    new StackProcessor(this.stack).filter3D(filterOut, 1, 1, 1, 0, stack.getSize(),
-            StackProcessor.FILTER_MEDIAN);
-    ImagePlus ip = new ImagePlus("", filterOut);
-
-    StackStatistics stats = new StackStatistics(ip);
-    double min = stats.min;
-    double max = stats.max; // test if computed for the whole stack
-    // convert stack to Float
-    StackConverter stc = new StackConverter(ip);
-    stc.convertToGray32();
-
-    for (int z = 1; z <= ip.getImageStackSize(); z++) {
-      ip.getStack().getProcessor(z).subtract(min);
-      ip.getStack().getProcessor(z).sqrt();
-    }
-    stats = new StackStatistics(ip);
-    max = 1 / stats.max;
-    for (int z = 1; z <= ip.getImageStackSize(); z++) {
-      ip.getStack().getProcessor(z).multiply(max);
-    }
-    timer.stop();
-    this.stack = ip.getStack();
-    LOGGER.info("Stack normalised in " + timer.toString());
-  }
-
-  /**
    * Main routine.
    * 
    * <p>Require incidence matrix computed by {@link #computeIncidence(boolean)}.
@@ -289,10 +187,9 @@ public class RandomWalkAlgorithm {
    * @param seedVal value of seed in seed stack to solve for. Define seed pixels.
    * @return Segmented stack
    */
-  public ImageStack solve(ImageStack seed, int seedVal) {
-    if (getIncidenceMatrix() == null) {
-      throw new IllegalStateException("Incidence matrix should be computed first");
-    }
+  @Override
+  public ImageStack solve(ImageStack seed, int seedVal) throws Exception {
+    computeIncidence();
     computeLaplacian(); // here there is first matrix created, decides CPU/GPU
     Integer[] seedIndices = getSourceIndices(seed, seedVal);
     computeReducedLaplacian(seedIndices, getIncidenceMatrix().getSinkBox());
@@ -383,7 +280,7 @@ public class RandomWalkAlgorithm {
    * 
    * @return the reducedLap
    */
-  public ISparseMatrix getReducedLap() {
+  ISparseMatrix getReducedLap() {
     return reducedLap;
   }
 
@@ -392,7 +289,7 @@ public class RandomWalkAlgorithm {
    * 
    * @return the b
    */
-  public List<IDenseVector> getB() {
+  List<IDenseVector> getB() {
     return b;
   }
 
@@ -477,13 +374,14 @@ public class RandomWalkAlgorithm {
    * 
    * @return the img
    */
-  public IncidenceMatrixGenerator getIncidenceMatrix() {
+  IncidenceMatrixGenerator getIncidenceMatrix() {
     return img;
   }
 
   /**
    * Destroy all private CUDA objects.
    */
+  @Override
   public void free() {
     if (reducedLap != null) {
       reducedLap.free();
@@ -523,7 +421,7 @@ public class RandomWalkAlgorithm {
   /**
    * @return the lap
    */
-  public ISparseMatrix getLap() {
+  ISparseMatrix getLap() {
     return lap;
   }
 }

@@ -45,7 +45,7 @@ import ij.process.StackStatistics;
  *
  * @author p.baniukiewicz
  */
-public class RandomWalkAlgorithmTest {
+public class RandomWalkAlgorithmGpuTest {
 
   static {
     LoggerContext loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
@@ -54,7 +54,7 @@ public class RandomWalkAlgorithmTest {
   }
 
   /** The Constant LOGGER. */
-  static final Logger LOGGER = LoggerFactory.getLogger(RandomWalkAlgorithmTest.class.getName());
+  static final Logger LOGGER = LoggerFactory.getLogger(RandomWalkAlgorithmGpuTest.class.getName());
 
   /**
    * The tmpdir.
@@ -113,7 +113,7 @@ public class RandomWalkAlgorithmTest {
   @BeforeClass
   public static void before() {
     try {
-      RandomWalkAlgorithm.initilizeGpu();
+      RandomWalkAlgorithmGpu.initilizeGpu();
     } catch (UnsatisfiedLinkError | NoClassDefFoundError e) {
       LOGGER.error(e.getMessage());
     }
@@ -125,7 +125,7 @@ public class RandomWalkAlgorithmTest {
   @AfterClass
   public static void after() {
     try {
-      RandomWalkAlgorithm.finish();
+      RandomWalkAlgorithmGpu.finish();
     } catch (UnsatisfiedLinkError | NoClassDefFoundError e) {
       LOGGER.error(e.getMessage());
     }
@@ -133,7 +133,7 @@ public class RandomWalkAlgorithmTest {
 
   /**
    * Test method for
-   * {@link com.github.celldynamics.jcurandomwalk.RandomWalkAlgorithm#computeIncidence()}.
+   * {@link com.github.celldynamics.jcurandomwalk.RandomWalkAlgorithmGpu#computeIncidence()}.
    *
    * @throws Exception the exception
    */
@@ -142,14 +142,14 @@ public class RandomWalkAlgorithmTest {
     RandomWalkOptions options = new RandomWalkOptions();
     options.configFolder = folder.newFolder().toPath();
     options.ifComputeIncidence = false;
-    RandomWalkAlgorithm obj = new RandomWalkAlgorithm(stack, options);
+    RandomWalkAlgorithmGpu obj = new RandomWalkAlgorithmGpu(stack, options);
     obj.computeIncidence();
     assertThat(options.configFolder.resolve("incidence_stack[3x4x2].ser").toFile().exists(),
             is(true));
   }
 
   /**
-   * Test of {@link RandomWalkAlgorithm#computeLaplacian()}.
+   * Test of {@link RandomWalkAlgorithmGpu#computeLaplacian()}.
    * 
    * <p>Compute laplacian for {@link TestDataGenerators#getTestStack(int, int, int, String)} and
    * mocked weights.
@@ -170,7 +170,7 @@ public class RandomWalkAlgorithmTest {
     img.computeIncidence(); // repeated to use mocked (first is in constructor)
 
     // final object
-    RandomWalkAlgorithm obj = Mockito.spy(new RandomWalkAlgorithm(stack, options));
+    RandomWalkAlgorithmGpu obj = Mockito.spy(new RandomWalkAlgorithmGpu(stack, options));
     // assign mocked generator
     obj.img = img;
     obj.computeLaplacian();
@@ -192,7 +192,7 @@ public class RandomWalkAlgorithmTest {
 
   /**
    * Test method for
-   * {@link com.github.celldynamics.jcurandomwalk.RandomWalkAlgorithm#processStack()}.
+   * {@link com.github.celldynamics.jcurandomwalk.RandomWalkAlgorithmGpu#processStack()}.
    * 
    * <p>Process stack, save it to tmp and check if minmax is in range 0-1
    *
@@ -202,7 +202,7 @@ public class RandomWalkAlgorithmTest {
   public void testProcessStack() throws Exception {
     ImagePlus teststack = IJ.openImage("src/test/test_data/Stack_cut.tif");
     RandomWalkOptions options = new RandomWalkOptions();
-    RandomWalkAlgorithm obj = new RandomWalkAlgorithm(teststack.getImageStack(), options);
+    RandomWalkAlgorithmGpu obj = new RandomWalkAlgorithmGpu(teststack.getImageStack(), options);
     obj.processStack();
     IJ.saveAsTiff(new ImagePlus("", obj.stack), tmpdir + "testProcessStack.tiff");
     StackStatistics st = new StackStatistics(new ImagePlus("", obj.stack));
@@ -212,7 +212,7 @@ public class RandomWalkAlgorithmTest {
 
   /**
    * Test method for
-   * {@link RandomWalkAlgorithm#getSourceIndices(ImageStack, int)}.
+   * {@link RandomWalkAlgorithmGpu#getSourceIndices(ImageStack, int)}.
    * 
    * <p>Output indexes are column-ordered
    *
@@ -221,7 +221,7 @@ public class RandomWalkAlgorithmTest {
   @Test
   public void testGetSourceIndices() throws Exception {
     ImageStack seed = TestDataGenerators.getSeedStack_1();
-    RandomWalkAlgorithm obj = new RandomWalkAlgorithm();
+    RandomWalkAlgorithmGpu obj = new RandomWalkAlgorithmGpu();
     Integer[] ret = obj.getSourceIndices(seed, 255);
     List<Integer> blist = Arrays.asList(ret);
     boolean issorted = blist.stream().sorted().collect(Collectors.toList()).equals(blist);
@@ -231,7 +231,7 @@ public class RandomWalkAlgorithmTest {
 
   /**
    * Test method for
-   * {@link RandomWalkAlgorithm#computeReducedLaplacian(Integer[], Integer[])}.
+   * {@link RandomWalkAlgorithmGpu#computeReducedLaplacian(Integer[], Integer[])}.
    *
    * @throws Exception the exception
    */
@@ -243,7 +243,7 @@ public class RandomWalkAlgorithmTest {
     float[] v = new float[] { 10, 101, 102, 11, 12, 13, 131, 14, 15 };
     ISparseMatrix testL = new SparseMatrixHost(ri, ci, v, SparseMatrixType.MATRIX_FORMAT_COO);
     LOGGER.debug("Laplacean" + testL.toString());
-    RandomWalkAlgorithm obj = new RandomWalkAlgorithm();
+    RandomWalkAlgorithmGpu obj = new RandomWalkAlgorithmGpu();
 
     // remove row/co 1,2,3
     Integer[] source = new Integer[] { 1, 3 };
@@ -291,7 +291,7 @@ public class RandomWalkAlgorithmTest {
    */
   @Test
   public void testComputeB() throws Exception {
-    RandomWalkAlgorithm obj = new RandomWalkAlgorithm();
+    RandomWalkAlgorithmGpu obj = new RandomWalkAlgorithmGpu();
     int[] ri = new int[] { 0, 0, 0, 1, 2, 3, 4, 4, 5 };
     int[] ci = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
     float[] v = new float[] { 10, 101, 102, 11, 12, 13, 131, 14, 15 };
@@ -303,7 +303,7 @@ public class RandomWalkAlgorithmTest {
 
   /**
    * Test method for
-   * {@link com.github.celldynamics.jcurandomwalk.RandomWalkAlgorithm#getSegmentedStack(float[])}.
+   * {@link com.github.celldynamics.jcurandomwalk.RandomWalkAlgorithmGpu#getSegmentedStack(float[])}.
    * 
    * <p>Check if output stack converted from linear solution has proper orientation - column wise.
    * 
@@ -311,7 +311,7 @@ public class RandomWalkAlgorithmTest {
    */
   @Test
   public void testGetSegmentedStack() throws Exception {
-    RandomWalkAlgorithm obj = new RandomWalkAlgorithm();
+    RandomWalkAlgorithmGpu obj = new RandomWalkAlgorithmGpu();
     ImageStack mockStack = Mockito.mock(ImageStack.class);
     obj.stack = mockStack;
     Mockito.doReturn(5).when(mockStack).getWidth();
@@ -336,7 +336,7 @@ public class RandomWalkAlgorithmTest {
 
   /**
    * Test method for
-   * {@link com.github.celldynamics.jcurandomwalk.RandomWalkAlgorithm#solve(ImageStack, int)}.
+   * {@link com.github.celldynamics.jcurandomwalk.RandomWalkAlgorithmGpu#solve(ImageStack, int)}.
    * 
    * @throws Exception
    */
@@ -345,7 +345,7 @@ public class RandomWalkAlgorithmTest {
     RandomWalkOptions options = new RandomWalkOptions();
     ImageStack org = IJ.openImage("src/test/test_data/segment_test_normalised.tif").getImageStack();
     ImageStack seeds = IJ.openImage("src/test/test_data/segment_test_seeds.tif").getImageStack();
-    RandomWalkAlgorithm obj = new RandomWalkAlgorithm(org, options);
+    RandomWalkAlgorithmGpu obj = new RandomWalkAlgorithmGpu(org, options);
     obj.computeIncidence();
     ImageStack segmented = obj.solve(seeds, 255);
     ImagePlus tmp = new ImagePlus("", segmented);
@@ -354,7 +354,7 @@ public class RandomWalkAlgorithmTest {
 
   /**
    * Test method for
-   * {@link com.github.celldynamics.jcurandomwalk.RandomWalkAlgorithm#incorporateSeeds(float[], Integer[], Integer[], int)}.
+   * {@link com.github.celldynamics.jcurandomwalk.RandomWalkAlgorithmGpu#incorporateSeeds(float[], Integer[], Integer[], int)}.
    * 
    * @throws Exception
    */
@@ -365,7 +365,7 @@ public class RandomWalkAlgorithmTest {
     Integer[] sink = new Integer[] { 1, 9 }; // sink pixels
     // 5 pixels were given, 5 were calculated from reduced lap
     float[] solution = new float[] { 10, 11, 12, 13, 14 };
-    RandomWalkAlgorithm obj = new RandomWalkAlgorithm();
+    RandomWalkAlgorithmGpu obj = new RandomWalkAlgorithmGpu();
     float[] ret = obj.incorporateSeeds(solution, source, sink, 10);
     // expected are 1.0 at positions from source
     assertThat((double) ret[0], closeTo(1.0, 1e-6));

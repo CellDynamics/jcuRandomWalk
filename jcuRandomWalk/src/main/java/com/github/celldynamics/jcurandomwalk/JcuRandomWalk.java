@@ -203,7 +203,7 @@ public class JcuRandomWalk {
         e.printStackTrace();
       }
     } finally {
-      RandomWalkAlgorithm.finish();
+      RandomWalkAlgorithmGpu.finish();
     }
   }
 
@@ -254,22 +254,25 @@ public class JcuRandomWalk {
    * 
    */
   public void run() throws Exception {
+    IRandomWalkSolver rwa = null;
     final int seedVal = 255; // value of seed to look for, TODO multi seed option
-    selectGpu();
     StopWatch timer = StopWatch.createStarted();
     ImageStack stack = IJ.openImage(rwOptions.stack.toString()).getImageStack();
     ImageStack seed = IJ.openImage(rwOptions.seeds.toString()).getImageStack();
     timer.stop();
     LOGGER.info("Stacks loaded in " + timer.toString());
-    // create main object
     timer = StopWatch.createStarted();
-    RandomWalkAlgorithm rwa = new RandomWalkAlgorithm(stack, rwOptions);
+    if (rwOptions.cpuOnly == false) {
+      selectGpu();
+      // create main object
+      rwa = new RandomWalkAlgorithmGpu(stack, rwOptions);
+    } else {
+      rwa = new RandomWalkAlgorithmOj(stack, rwOptions);
+    }
     // compute or load incidence or save, depending on options
-    rwa.computeIncidence();
     if (rwOptions.ifApplyProcessing) {
       rwa.processStack();
     }
-
     ImageStack segmented = rwa.solve(seed, seedVal);
     ImagePlus segmentedImage = new ImagePlus("", segmented);
     IJ.saveAsTiff(segmentedImage, rwOptions.output.toString());
@@ -288,11 +291,10 @@ public class JcuRandomWalk {
   private void selectGpu() {
     // try {
     if (rwOptions.cpuOnly == false) {
-      RandomWalkAlgorithm.initilizeGpu();
+      RandomWalkAlgorithmGpu.initilizeGpu();
       int[] devicecount = new int[1];
       cudaGetDeviceCount(devicecount);
       cudaSetDevice(rwOptions.device);
-      RandomWalkAlgorithm.initilizeGpu();
       LOGGER.info(String.format("Using device %d/%d", rwOptions.device, devicecount[0]));
     }
     // } catch (UnsatisfiedLinkError | NoClassDefFoundError e) {
