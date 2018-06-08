@@ -18,9 +18,7 @@ import org.ojalgo.matrix.store.SparseStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.github.celldynamics.jcudarandomwalk.matrices.IMatrix;
 import com.github.celldynamics.jcudarandomwalk.matrices.dense.DenseVectorOj;
-import com.github.celldynamics.jcudarandomwalk.matrices.dense.IDenseVector;
 
 /**
  * Implementation of {@link ISparseMatrix} by OjAlg.
@@ -28,7 +26,7 @@ import com.github.celldynamics.jcudarandomwalk.matrices.dense.IDenseVector;
  * @author p.baniukiewicz
  *
  */
-public class SparseMatrixOj implements ISparseMatrix {
+public class SparseMatrixOj {
 
   /**
    * The Constant LOGGER.
@@ -143,12 +141,6 @@ public class SparseMatrixOj implements ISparseMatrix {
     this(rowInd, colInd, val, SparseMatrixType.MATRIX_FORMAT_COO);
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.github.celldynamics.jcudarandomwalk.matrices.IMatrix#getVal()
-   */
-  @Override
   public float[] getVal() {
     // this returns column ordered nonzero indices. Matrix is ok, but only getVal returns in
     // different order.
@@ -161,82 +153,48 @@ public class SparseMatrixOj implements ISparseMatrix {
     return ArrayUtils.toPrimitive(ret.toArray(new Float[0]));
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.github.celldynamics.jcudarandomwalk.matrices.IMatrix#getRowNumber()
-   */
-  @Override
   public int getRowNumber() {
     return rowNumber;
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.github.celldynamics.jcudarandomwalk.matrices.IMatrix#getColNumber()
-   */
-  @Override
   public int getColNumber() {
     return colNumber;
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.github.celldynamics.jcudarandomwalk.matrices.IMatrix#getElementNumber()
-   */
-  @Override
   public int getElementNumber() {
     ElementView1D<Double, ?> nz = mat.nonzeros();
     return (int) nz.getExactSizeIfKnown();
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.github.celldynamics.jcudarandomwalk.matrices.IMatrix#removeRows(int[])
-   */
-  @Override
-  public IMatrix removeRows(int[] rows) {
+  public SparseMatrixOj removeRows(int[] rows) {
     int[] rr = getRowInd();
     int[] cc = getColInd();
     float[] vv = getVal();
-    SparseMatrixHost tmp = (SparseMatrixHost) new SparseMatrixHost(rr, cc, vv, getRowNumber(),
-            getColNumber(), getSparseMatrixType()).removeRows(rows);
+    SparseCoordinates tmp = new SparseCoordinates(rr, cc, vv, getRowNumber(), getColNumber(),
+            getSparseMatrixType());
+    tmp.removeRowsIndices(rows);
 
     return new SparseMatrixOj(tmp.getRowInd(), tmp.getColInd(), tmp.getVal(), tmp.getRowNumber(),
             tmp.getColNumber());
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.github.celldynamics.jcudarandomwalk.matrices.IMatrix#removeCols(int[])
-   */
-  @Override
-  public IMatrix removeCols(int[] cols) {
+  public SparseMatrixOj removeCols(int[] cols) {
     int[] rr = getRowInd();
     int[] cc = getColInd();
     float[] vv = getVal();
-    SparseMatrixHost tmp = (SparseMatrixHost) new SparseMatrixHost(rr, cc, vv, getRowNumber(),
-            getColNumber(), getSparseMatrixType()).removeCols(cols);
+    SparseCoordinates tmp = new SparseCoordinates(rr, cc, vv, getRowNumber(), getColNumber(),
+            getSparseMatrixType());
+    tmp.removeColsIndices(cols);
 
     return new SparseMatrixOj(tmp.getRowInd(), tmp.getColInd(), tmp.getVal(), tmp.getRowNumber(),
             tmp.getColNumber());
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.github.celldynamics.jcudarandomwalk.matrices.IMatrix#multiply(com.github.celldynamics.
-   * jcudarandomwalk.matrices.IMatrix)
-   */
-  @Override
-  public IMatrix multiply(IMatrix in) {
-    IMatrix ret;
-    if (in instanceof SparseMatrixOj) {
-      SparseStore<Double> tmpret = (SparseStore<Double>) mat.multiply(((SparseMatrixOj) in).mat);
+  public SparseMatrixOj multiply(SparseMatrixOj weight) {
+    SparseMatrixOj ret;
+    if (weight instanceof SparseMatrixOj) {
+      SparseStore<Double> tmpret =
+              (SparseStore<Double>) mat.multiply(((SparseMatrixOj) weight).mat);
       ret = new SparseMatrixOj(tmpret);
     } else {
       throw new IllegalArgumentException("This combination is not allowed");
@@ -244,55 +202,14 @@ public class SparseMatrixOj implements ISparseMatrix {
     return ret;
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.github.celldynamics.jcudarandomwalk.matrices.IMatrix#transpose()
-   */
-  @Override
-  public IMatrix transpose() {
+  public SparseMatrixOj transpose() {
     SparseStore<Double> retm = SparseStore.PRIMITIVE.make(getColNumber(), getRowNumber());
     mat.transpose().supplyTo(retm);
     SparseMatrixOj ret = new SparseMatrixOj(retm);
     return ret;
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.github.celldynamics.jcudarandomwalk.matrices.IMatrix#toGpu()
-   */
-  @Override
-  public IMatrix toGpu() {
-    return this;
-  }
-
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.github.celldynamics.jcudarandomwalk.matrices.IMatrix#toCpu()
-   */
-  @Override
-  public IMatrix toCpu() {
-    return this;
-  }
-
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.github.celldynamics.jcudarandomwalk.matrices.IMatrix#free()
-   */
-  @Override
-  public void free() {
-  }
-
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.github.celldynamics.jcudarandomwalk.matrices.IMatrix#sumAlongRows()
-   */
-  @Override
-  public IMatrix sumAlongRows() {
+  public DenseVectorOj sumAlongRows() {
     ElementsSupplier<Double> rs = mat.reduceRows(SUM);
     PrimitiveDenseStore ret = PrimitiveDenseStore.FACTORY.makeZero(getRowNumber(), 1);
     rs.supplyTo(ret);
@@ -300,12 +217,6 @@ public class SparseMatrixOj implements ISparseMatrix {
 
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.github.celldynamics.jcudarandomwalk.matrices.sparse.ISparseMatrix#getRowInd()
-   */
-  @Override
   public int[] getRowInd() {
     ElementView2D<Double, ?> nz = ((SparseStore<Double>) mat).nonzeros();
     List<Integer> ret = new ArrayList<>();
@@ -316,12 +227,6 @@ public class SparseMatrixOj implements ISparseMatrix {
     return ArrayUtils.toPrimitive(ret.toArray(new Integer[0]));
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.github.celldynamics.jcudarandomwalk.matrices.sparse.ISparseMatrix#getColInd()
-   */
-  @Override
   public int[] getColInd() {
     ElementView2D<Double, ?> nz = ((SparseStore<Double>) mat).nonzeros();
     List<Integer> ret = new ArrayList<>();
@@ -332,61 +237,21 @@ public class SparseMatrixOj implements ISparseMatrix {
     return ArrayUtils.toPrimitive(ret.toArray(new Integer[0]));
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see
-   * com.github.celldynamics.jcudarandomwalk.matrices.sparse.ISparseMatrix#getSparseMatrixType()
-   */
-  @Override
   public SparseMatrixType getSparseMatrixType() {
     return SparseMatrixType.MATRIX_FORMAT_COO;
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.github.celldynamics.jcudarandomwalk.matrices.sparse.ISparseMatrix#convert2csr()
-   */
-  @Override
-  public ISparseMatrix convert2csr() {
-    return this;
-  }
-
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.github.celldynamics.jcudarandomwalk.matrices.sparse.ISparseMatrix#convert2coo()
-   */
-  @Override
-  public ISparseMatrix convert2coo() {
-    return this;
-  }
-
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.github.celldynamics.jcudarandomwalk.matrices.sparse.ISparseMatrix#full()
-   */
-  @Override
   public double[][] full() {
     return this.mat.toRawCopy2D();
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.github.celldynamics.jcudarandomwalk.matrices.sparse.ISparseMatrix#luSolve(com.github.
-   * celldynamics.jcudarandomwalk.matrices.dense.IDenseVector, boolean, int, float)
-   */
-  @Override
-  public float[] luSolve(IDenseVector b_gpuPtr, boolean iLuBiCGStabSolve, int iter, float tol) {
+  public float[] luSolve(DenseVectorOj b_gpuPtr, boolean iLuBiCGStabSolve, int iter, float tol) {
     LOGGER.info("Parameters iter and tol are ignored for OjAlg");
     final LU<Double> tmpA = LU.PRIMITIVE.make();
     tmpA.decompose(this.mat);
     try {
       // we need to *-1 here from unknown result. This breaks tests so they are adopted as well.
-      MatrixStore<Double> ret = tmpA.solve(this.mat, ((DenseVectorOj) b_gpuPtr).mat).multiply(-1.0);
+      MatrixStore<Double> ret = tmpA.solve(this.mat, b_gpuPtr.mat).multiply(-1.0);
       return new SparseMatrixOj(ret).getVal();
     } catch (RecoverableCondition e) {
       LOGGER.error("Solver failed with error: " + e.toString());
@@ -402,6 +267,11 @@ public class SparseMatrixOj implements ISparseMatrix {
   @Override
   public String toString() {
     return "SparseMatrixOj [nrows=" + rowNumber + ", ncols=" + colNumber + ", mat=" + mat + "]";
+  }
+
+  public static SparseMatrixOj factory(SparseCoordinates raw) {
+    return new SparseMatrixOj(raw.getRowInd(), raw.getColInd(), raw.getVal(), raw.getRowNumber(),
+            raw.getColNumber(), SparseMatrixType.MATRIX_FORMAT_COO);
   }
 
 }

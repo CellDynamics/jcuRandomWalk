@@ -203,11 +203,11 @@ public class SparseMatrixDeviceTest {
    */
   @Test
   public void testToSparseMatrixHost() throws Exception {
-    ISparseMatrix sph = obj.toCpu();
-    assertThat(Arrays.asList(sph.getVal()), contains(gen.valRowOrder));
-    assertThat(Arrays.asList(sph.getColInd()), contains(gen.colInd));
-    assertThat(Arrays.asList(sph.getRowInd()), contains(gen.rowInd));
-    assertThat(sph.getElementNumber(), is(gen.valRowOrder.length));
+    obj.toCpu(false);
+    assertThat(Arrays.asList(obj.getVal()), contains(gen.valRowOrder));
+    assertThat(Arrays.asList(obj.getColInd()), contains(gen.colInd));
+    assertThat(Arrays.asList(obj.getRowInd()), contains(gen.rowInd));
+    assertThat(obj.getElementNumber(), is(gen.valRowOrder.length));
   }
 
   /**
@@ -218,10 +218,10 @@ public class SparseMatrixDeviceTest {
    */
   @Test
   public void testMultiply() throws Exception {
-    ISparseMatrix objcsr = obj.convert2csr();
-    ISparseMatrix obj1csr = obj1.convert2csr();
-    ISparseMatrix ret = (ISparseMatrix) objcsr.multiply(obj1csr);
-    ISparseMatrix retcoo = ret.convert2coo();
+    SparseMatrixDevice objcsr = obj.convert2csr();
+    SparseMatrixDevice obj1csr = obj1.convert2csr();
+    SparseMatrixDevice ret = objcsr.multiply(obj1csr);
+    SparseMatrixDevice retcoo = ret.convert2coo();
     int[] r = retcoo.getRowInd();
     int[] c = retcoo.getColInd();
     float[] v = retcoo.getVal();
@@ -264,7 +264,7 @@ public class SparseMatrixDeviceTest {
    */
   @Test
   public void testConvert2csr() throws Exception {
-    ISparseMatrix ret = obj.convert2csr();
+    SparseMatrixDevice ret = obj.convert2csr();
     // obj.free(); // can not be free here
     assertThat(ret.getRowNumber(), is(4));
     assertThat(ret.getColNumber(), is(5));
@@ -275,7 +275,9 @@ public class SparseMatrixDeviceTest {
     // from page 9 https://docs.nvidia.com/cuda/pdf/CUSPARSE_Library.pdf
     assertThat(Arrays.asList(ret.getRowInd()), contains(new int[] { 0, 2, 4, 7, 9 }));
 
-    ISparseMatrix retret = ret.convert2coo(); // should be the same os original obj
+    ret.toCpu(true);
+    ret.toGpu();
+    SparseMatrixDevice retret = ret.convert2coo(); // should be the same os original obj
 
     assertThat(Arrays.asList(retret.getVal()), contains(obj.getVal()));
     assertThat(Arrays.asList(retret.getRowInd()), contains(obj.getRowInd()));
@@ -292,7 +294,7 @@ public class SparseMatrixDeviceTest {
    */
   @Test
   public void testTranspose() throws Exception {
-    ISparseMatrix tobj = obj.transpose().convert2coo();
+    SparseMatrixDevice tobj = obj.transpose().convert2coo();
     assertThat(tobj.getRowNumber(), is(obj1.getRowNumber()));
     assertThat(tobj.getColNumber(), is(obj1.getColNumber()));
     // resutls from manual transposition -> ob1
@@ -334,7 +336,7 @@ public class SparseMatrixDeviceTest {
 
     SparseMatrixDevice a =
             new SparseMatrixDevice(rows, cols, vals, SparseMatrixType.MATRIX_FORMAT_COO);
-    ISparseMatrix acsr = a.convert2csr();
+    SparseMatrixDevice acsr = a.convert2csr();
 
     float[] ret = acsr.luSolve(b, true, 50, 1e-12f);
     // convert to double
@@ -345,6 +347,41 @@ public class SparseMatrixDeviceTest {
     b.free();
     acsr.free();
     assertThat(retd, arrayCloseTo(new double[] { 1, 2, 3, 4, 5 }, 1e-5));
+  }
+
+  /**
+   * Test method for
+   * {@link com.github.celldynamics.jcudarandomwalk.matrices.sparse.SparseMatrixDevice#toCpu()}.
+   * 
+   * @throws Exception
+   */
+  @Test
+  public void testToCpuToGpu() throws Exception {
+    SparseMatrixDevice objcsr = obj.convert2csr(); // on gpu
+    SparseMatrixDevice obj1csr = obj1.convert2csr(); // on gpu
+    SparseMatrixDevice ret = objcsr.multiply(obj1csr); // on gpu
+    SparseMatrixDevice retcoo = ret.convert2coo(); // on gpu
+    retcoo.toCpu(true);
+    int[] r = retcoo.getRowInd();
+    int[] c = retcoo.getColInd();
+    float[] v = retcoo.getVal();
+    // result of obj*obj in matlab
+    assertThat(Arrays.asList(r), contains(new int[] { 0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3 }));
+    assertThat(Arrays.asList(c), contains(new int[] { 0, 1, 2, 0, 1, 3, 0, 2, 3, 1, 2, 3 }));
+    assertThat(Arrays.asList(v), contains(new float[] { 17.0f, 8.0f, 5.0f, 8.0f, 13.0f, 27.0f, 5.0f,
+        138.0f, 48.0f, 27.0f, 48.0f, 117.0f }));
+    assertThat(ret.getElementNumber(), is(12));
+
+    // change something
+    v[0] = 200;
+    c[5] = 2;
+    retcoo.toGpu();
+    retcoo.toCpu(true);
+    float[] v1 = retcoo.getVal();
+    int[] c1 = retcoo.getColInd();
+    assertThat(Arrays.asList(v1), contains(new float[] { 200.0f, 8.0f, 5.0f, 8.0f, 13.0f, 27.0f,
+        5.0f, 138.0f, 48.0f, 27.0f, 48.0f, 117.0f }));
+    assertThat(Arrays.asList(c1), contains(new int[] { 0, 1, 2, 0, 1, 2, 0, 2, 3, 1, 2, 3 }));
   }
 
 }

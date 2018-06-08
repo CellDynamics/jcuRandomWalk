@@ -23,7 +23,7 @@ public class JcuRandomWalkRun {
 //     .split(" ");
 
     String[] args1 =
-            "app -i src/test/test_data/img_original_normalised.tif -s src/test/test_data/img_original_seeds.tif -o /tmp/test.tif -dd --cpuonly"
+            "app -i src/test/test_data/img_original_normalised.tif -s src/test/test_data/img_original_seeds.tif -o /tmp/test.tif"
                     .split(" ");
     
     JcuRandomWalk.main(args1);

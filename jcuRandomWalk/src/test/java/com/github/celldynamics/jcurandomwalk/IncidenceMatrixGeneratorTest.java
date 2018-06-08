@@ -20,8 +20,7 @@ import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.github.celldynamics.jcudarandomwalk.matrices.sparse.ISparseMatrix;
-import com.github.celldynamics.jcudarandomwalk.matrices.sparse.SparseMatrixHost;
+import com.github.celldynamics.jcudarandomwalk.matrices.sparse.SparseMatrixDevice;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.LoggerContext;
@@ -101,10 +100,10 @@ public class IncidenceMatrixGeneratorTest {
             ArrayTools.printArray(ArrayTools.array2Object(stack.getProcessor(2).getFloatArray())));
     IncidenceMatrixGenerator obj = new IncidenceMatrixGenerator(stack, options.getAlgOptions());
     // check sizes
-    ISparseMatrix incidence = obj.getIncidence().toSparse(new SparseMatrixHost());
+    SparseMatrixDevice incidence = SparseMatrixDevice.factory(obj.getIncidence());
     assertThat(incidence.getRowNumber(), is(46)); // numbers for tes stack
     assertThat(incidence.getColNumber(), is(24));
-    ISparseMatrix weights = obj.getWeights().toSparse(new SparseMatrixHost());
+    SparseMatrixDevice weights = SparseMatrixDevice.factory(obj.getWeights());
     assertThat(weights.getRowNumber(), is(46));
     assertThat(weights.getColNumber(), is(46));
 
@@ -182,7 +181,7 @@ public class IncidenceMatrixGeneratorTest {
     // TODO use factory to get Host from incidence
     RandomWalkOptions options = new RandomWalkOptions();
     IncidenceMatrixGenerator obj = new IncidenceMatrixGenerator(stack, options.getAlgOptions());
-    ISparseMatrix incidence = obj.getIncidence().toSparse(new SparseMatrixHost());
+    SparseMatrixDevice incidence = SparseMatrixDevice.factory(obj.getIncidence());
     double[][] objFull = incidence.full();
     File filename = folder.newFile();
     obj.saveObject(filename.toString());
@@ -190,7 +189,7 @@ public class IncidenceMatrixGeneratorTest {
     IncidenceMatrixGenerator restored = IncidenceMatrixGenerator.restoreObject(filename.toString(),
             stack, options.getAlgOptions());
 
-    ISparseMatrix incidenceRes = restored.getIncidence().toSparse(new SparseMatrixHost());
+    SparseMatrixDevice incidenceRes = SparseMatrixDevice.factory(restored.getIncidence());
     double[][] resFull = incidenceRes.full();
     for (int c = 0; c < resFull.length; c++) {
       assertThat(Arrays.asList(resFull[c]), contains(objFull[c]));
@@ -326,8 +325,8 @@ public class IncidenceMatrixGeneratorTest {
     inc.assignStack(ts);
     LOGGER.trace("Slice 1: "
             + ArrayTools.printArray(ArrayTools.array2Object(ts.getProcessor(1).getFloatArray())));
-    ISparseMatrix weights = inc.getWeights().toSparse(new SparseMatrixHost());
-    ISparseMatrix incidence = inc.getIncidence().toSparse(new SparseMatrixHost());
+    SparseMatrixDevice weights = SparseMatrixDevice.factory(inc.getWeights());
+    SparseMatrixDevice incidence = SparseMatrixDevice.factory(inc.getIncidence());
     // LOGGER.trace(ArrayTools.printArray(ArrayTools.array2Object(inicidence.full())));
     // LOGGER.trace(ArrayTools.printArray(ArrayTools.array2Object(weights.full())));
     LOGGER.trace("INC: " + inc.getIncidence());

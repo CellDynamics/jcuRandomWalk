@@ -27,10 +27,8 @@ import org.mockito.junit.MockitoRule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.github.celldynamics.jcudarandomwalk.matrices.IMatrix;
-import com.github.celldynamics.jcudarandomwalk.matrices.sparse.ISparseMatrix;
+import com.github.celldynamics.jcudarandomwalk.matrices.dense.DenseVectorDevice;
 import com.github.celldynamics.jcudarandomwalk.matrices.sparse.SparseMatrixDevice;
-import com.github.celldynamics.jcudarandomwalk.matrices.sparse.SparseMatrixHost;
 import com.github.celldynamics.jcudarandomwalk.matrices.sparse.SparseMatrixType;
 
 import ch.qos.logback.classic.Level;
@@ -174,7 +172,7 @@ public class RandomWalkAlgorithmGpuTest {
     // assign mocked generator
     obj.img = img;
     obj.computeLaplacian();
-    ISparseMatrix lap = obj.getLap();
+    SparseMatrixDevice lap = obj.getLap();
     // A' [24 46]
     // W [46 46]
     // A [46 24]
@@ -241,7 +239,8 @@ public class RandomWalkAlgorithmGpuTest {
     int[] ri = new int[] { 0, 0, 0, 1, 2, 3, 4, 4, 5 };
     int[] ci = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
     float[] v = new float[] { 10, 101, 102, 11, 12, 13, 131, 14, 15 };
-    ISparseMatrix testL = new SparseMatrixHost(ri, ci, v, SparseMatrixType.MATRIX_FORMAT_COO);
+    SparseMatrixDevice testL =
+            new SparseMatrixDevice(ri, ci, v, SparseMatrixType.MATRIX_FORMAT_COO);
     LOGGER.debug("Laplacean" + testL.toString());
     RandomWalkAlgorithmGpu obj = new RandomWalkAlgorithmGpu();
 
@@ -250,7 +249,7 @@ public class RandomWalkAlgorithmGpuTest {
     Integer[] sink = new Integer[] { 1, 2 };
     obj.lap = testL;
     obj.computeReducedLaplacian(source, sink);
-    ISparseMatrix ret = obj.reducedLap.convert2coo();
+    SparseMatrixDevice ret = obj.reducedLap.convert2coo();
     LOGGER.debug("Reduced" + ret.toString());
     assertThat(ret.getColNumber(), is(3));
     assertThat(ret.getRowNumber(), is(3));
@@ -295,8 +294,9 @@ public class RandomWalkAlgorithmGpuTest {
     int[] ri = new int[] { 0, 0, 0, 1, 2, 3, 4, 4, 5 };
     int[] ci = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
     float[] v = new float[] { 10, 101, 102, 11, 12, 13, 131, 14, 15 };
-    ISparseMatrix testL = new SparseMatrixHost(ri, ci, v, SparseMatrixType.MATRIX_FORMAT_COO);
-    IMatrix ret = obj.computeB(testL, new Integer[] { 0, 1 });
+    SparseMatrixDevice testL =
+            new SparseMatrixDevice(ri, ci, v, SparseMatrixType.MATRIX_FORMAT_COO);
+    DenseVectorDevice ret = obj.computeB(testL, new Integer[] { 0, 1 });
     assertThat(Arrays.asList(ret.getVal()),
             contains(new float[] { -111.0f, -11.0f, -0f, -0f, -131.0f, -0.0f }));
   }
@@ -346,7 +346,6 @@ public class RandomWalkAlgorithmGpuTest {
     ImageStack org = IJ.openImage("src/test/test_data/segment_test_normalised.tif").getImageStack();
     ImageStack seeds = IJ.openImage("src/test/test_data/segment_test_seeds.tif").getImageStack();
     RandomWalkAlgorithmGpu obj = new RandomWalkAlgorithmGpu(org, options);
-    obj.computeIncidence();
     ImageStack segmented = obj.solve(seeds, 255);
     ImagePlus tmp = new ImagePlus("", segmented);
     IJ.saveAsTiff(tmp, "/tmp/solution.tif");

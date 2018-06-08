@@ -54,13 +54,12 @@ import static jcuda.runtime.cudaMemcpyKind.cudaMemcpyDeviceToDevice;
 import static jcuda.runtime.cudaMemcpyKind.cudaMemcpyDeviceToHost;
 import static jcuda.runtime.cudaMemcpyKind.cudaMemcpyHostToDevice;
 
-import org.apache.commons.lang3.NotImplementedException;
+import java.util.Arrays;
+
 import org.apache.commons.lang3.time.StopWatch;
 
 import com.github.celldynamics.jcudarandomwalk.matrices.ICudaLibHandles;
-import com.github.celldynamics.jcudarandomwalk.matrices.IMatrix;
 import com.github.celldynamics.jcudarandomwalk.matrices.dense.DenseVectorDevice;
-import com.github.celldynamics.jcudarandomwalk.matrices.dense.IDenseVector;
 
 import jcuda.Pointer;
 import jcuda.Sizeof;
@@ -77,7 +76,12 @@ import jcuda.runtime.JCuda;
  * @author p.baniukiewicz
  *
  */
-public class SparseMatrixDevice extends SparseMatrix implements ICudaLibHandles {
+public class SparseMatrixDevice extends SparseCoordinates implements ICudaLibHandles {
+
+  /**
+   * 
+   */
+  private static final long serialVersionUID = -6342278651189202672L;
 
   /**
    * Reasons of stopping diffusion process.
@@ -108,6 +112,7 @@ public class SparseMatrixDevice extends SparseMatrix implements ICudaLibHandles 
   private Pointer rowIndPtr = new Pointer();
   private Pointer colIndPtr = new Pointer();
   private Pointer valPtr = new Pointer();
+  private int nnz; // number of nonzero elements, specific to GPU implementtion
 
   /**
    * Set up sparse engine. Should not be called directly.
@@ -119,7 +124,7 @@ public class SparseMatrixDevice extends SparseMatrix implements ICudaLibHandles 
   /**
    * 
    */
-  private void initialiseGpu() {
+  private void initialiseMatrixStruct() {
     cusparseCreateMatDescr(descr);
     cusparseSetMatType(descr, CUSPARSE_MATRIX_TYPE_GENERAL);
     cusparseSetMatIndexBase(descr, CUSPARSE_INDEX_BASE_ZERO);
@@ -140,25 +145,19 @@ public class SparseMatrixDevice extends SparseMatrix implements ICudaLibHandles 
    */
   public SparseMatrixDevice(int[] rowInd, int[] colInd, float[] val,
           SparseMatrixType matrixInputFormat) {
-    initialiseGpu();
+    initialiseMatrixStruct();
     if (matrixInputFormat == SparseMatrixType.MATRIX_FORMAT_COO
             && ((rowInd.length != colInd.length) || (rowInd.length != val.length))) {
       throw new IllegalArgumentException("Input arrays should have the same length in COO format");
     }
+    // FIXME sue super constructor
     this.matrixFormat = matrixInputFormat;
-    nnz = rowInd.length;
+    nnz = val.length;
     this.rowInd = rowInd;
     this.colInd = colInd;
     this.val = val;
     updateDimension();
-    cudaMalloc(colIndPtr, colInd.length * Sizeof.INT);
-    cudaMalloc(rowIndPtr, rowInd.length * Sizeof.INT);
-    cudaMalloc(valPtr, val.length * Sizeof.FLOAT);
-    cudaMemcpy(rowIndPtr, Pointer.to(rowInd), getElementNumber() * Sizeof.INT,
-            cudaMemcpyHostToDevice);
-    cudaMemcpy(colIndPtr, Pointer.to(colInd), getElementNumber() * Sizeof.INT,
-            cudaMemcpyHostToDevice);
-    cudaMemcpy(valPtr, Pointer.to(val), getElementNumber() * Sizeof.FLOAT, cudaMemcpyHostToDevice);
+    transferToGpu(rowInd, colInd, val);
   }
 
   /**
@@ -175,26 +174,51 @@ public class SparseMatrixDevice extends SparseMatrix implements ICudaLibHandles 
    */
   public SparseMatrixDevice(int[] rowInd, int[] colInd, float[] val, int rowNumber, int colNumber,
           SparseMatrixType matrixInputFormat) {
-    initialiseGpu();
+    initialiseMatrixStruct();
     if (matrixInputFormat == SparseMatrixType.MATRIX_FORMAT_COO
             && ((rowInd.length != colInd.length) || (rowInd.length != val.length))) {
       throw new IllegalArgumentException("Input arrays should have the same length in COO format");
     }
     this.matrixFormat = matrixInputFormat;
-    nnz = rowInd.length;
+    nnz = val.length;
     this.rowInd = rowInd;
     this.colInd = colInd;
     this.val = val;
     this.rowNumber = rowNumber;
     this.colNumber = colNumber;
-    cudaMalloc(colIndPtr, colInd.length * Sizeof.INT);
-    cudaMalloc(rowIndPtr, rowInd.length * Sizeof.INT);
-    cudaMalloc(valPtr, val.length * Sizeof.FLOAT);
-    cudaMemcpy(rowIndPtr, Pointer.to(rowInd), getElementNumber() * Sizeof.INT,
-            cudaMemcpyHostToDevice);
-    cudaMemcpy(colIndPtr, Pointer.to(colInd), getElementNumber() * Sizeof.INT,
-            cudaMemcpyHostToDevice);
-    cudaMemcpy(valPtr, Pointer.to(val), getElementNumber() * Sizeof.FLOAT, cudaMemcpyHostToDevice);
+    transferToGpu(rowInd, colInd, val);
+  }
+
+  /**
+   * Create sparse matrix on GPU. Copy constructor.
+   * 
+   * <p>Specified arrays must have proper size depending on <tt>SparseMatrixType</tt>.
+   * 
+   * @param rowInd indices of rows in matrixInputFormat
+   * @param colInd indices of cols in matrixInputFormat
+   * @param val values
+   * @param rowNumber number of rows
+   * @param colNumber number of columns
+   * @param matrixInputFormat format of input arrays
+   * @param uploadToGpu if true it will be transfered to gpu, otherwise will stay on cpu
+   */
+  SparseMatrixDevice(int[] rowInd, int[] colInd, float[] val, int rowNumber, int colNumber,
+          SparseMatrixType matrixInputFormat, boolean uploadToGpu) {
+    initialiseMatrixStruct();
+    if (matrixInputFormat == SparseMatrixType.MATRIX_FORMAT_COO
+            && ((rowInd.length != colInd.length) || (rowInd.length != val.length))) {
+      throw new IllegalArgumentException("Input arrays should have the same length in COO format");
+    }
+    this.matrixFormat = matrixInputFormat;
+    nnz = val.length;
+    this.rowInd = Arrays.copyOf(rowInd, rowInd.length);
+    this.colInd = Arrays.copyOf(colInd, colInd.length);
+    this.val = Arrays.copyOf(val, val.length);
+    this.rowNumber = rowNumber;
+    this.colNumber = colNumber;
+    if (uploadToGpu) {
+      transferToGpu(rowInd, colInd, val);
+    }
   }
 
   /**
@@ -213,7 +237,7 @@ public class SparseMatrixDevice extends SparseMatrix implements ICudaLibHandles 
    */
   public SparseMatrixDevice(Pointer rowIndPtr, Pointer colIndPtr, Pointer valPtr, int nrows,
           int ncols, int nnz, SparseMatrixType fmt) {
-    initialiseGpu();
+    initialiseMatrixStruct();
     this.rowIndPtr = rowIndPtr;
     this.colIndPtr = colIndPtr;
     this.valPtr = valPtr;
@@ -239,7 +263,7 @@ public class SparseMatrixDevice extends SparseMatrix implements ICudaLibHandles 
    */
   public SparseMatrixDevice(cusparseMatDescr descr, Pointer rowIndPtr, Pointer colIndPtr,
           Pointer valPtr, int nrows, int ncols, int nnz, SparseMatrixType fmt) {
-    initialiseGpu();
+    initialiseMatrixStruct();
     this.descr = descr;
     this.rowIndPtr = rowIndPtr;
     this.colIndPtr = colIndPtr;
@@ -266,6 +290,20 @@ public class SparseMatrixDevice extends SparseMatrix implements ICudaLibHandles 
   }
 
   /**
+   * @param rowInd
+   * @param colInd
+   * @param val
+   */
+  private void transferToGpu(int[] rowInd, int[] colInd, float[] val) {
+    cudaMalloc(colIndPtr, colInd.length * Sizeof.INT);
+    cudaMalloc(rowIndPtr, rowInd.length * Sizeof.INT);
+    cudaMalloc(valPtr, val.length * Sizeof.FLOAT);
+    cudaMemcpy(rowIndPtr, Pointer.to(rowInd), rowInd.length * Sizeof.INT, cudaMemcpyHostToDevice);
+    cudaMemcpy(colIndPtr, Pointer.to(colInd), colInd.length * Sizeof.INT, cudaMemcpyHostToDevice);
+    cudaMemcpy(valPtr, Pointer.to(val), val.length * Sizeof.FLOAT, cudaMemcpyHostToDevice);
+  }
+
+  /**
    * Compute sizes of indices arrays depending on matrix type.
    * 
    * @return currently number of row indices.
@@ -285,12 +323,9 @@ public class SparseMatrixDevice extends SparseMatrix implements ICudaLibHandles 
     return indRowSize;
   }
 
-  /*
-   * (non-Javadoc)
+  /**
    * 
-   * @see com.github.celldynamics.jcudarandomwalk.matrices.ISparseMatrixGpu#free()
    */
-  @Override
   public void free() {
     try {
       cudaFree(rowIndPtr);
@@ -312,6 +347,10 @@ public class SparseMatrixDevice extends SparseMatrix implements ICudaLibHandles 
     } catch (Exception e) {
       LOGGER.debug("descr already freed? " + e.getMessage());
     }
+    this.descr = new cusparseMatDescr();
+    this.rowIndPtr = new Pointer();
+    this.colIndPtr = new Pointer();
+    this.valPtr = new Pointer();
   }
 
   /**
@@ -357,17 +396,10 @@ public class SparseMatrixDevice extends SparseMatrix implements ICudaLibHandles 
    */
   @Override
   public int getElementNumber() {
-    // TODO Consider cusparse<t>nnz()
-    return super.getElementNumber();
+    return nnz;
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.github.celldynamics.jcudarandomwalk.matrices.ISparseMatrix#convert2csr()
-   */
-  @Override
-  public ISparseMatrix convert2csr() {
+  public SparseMatrixDevice convert2csr() {
     if (matrixFormat == SparseMatrixType.MATRIX_FORMAT_CSR) {
       return this;
     } else {
@@ -380,13 +412,7 @@ public class SparseMatrixDevice extends SparseMatrix implements ICudaLibHandles 
     }
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.github.celldynamics.jcudarandomwalk.matrices.ISparseMatrix#convert2coo()
-   */
-  @Override
-  public ISparseMatrix convert2coo() {
+  public SparseMatrixDevice convert2coo() {
     if (matrixFormat == SparseMatrixType.MATRIX_FORMAT_COO) {
       return this;
     } else {
@@ -399,24 +425,13 @@ public class SparseMatrixDevice extends SparseMatrix implements ICudaLibHandles 
     }
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see
-   * com.github.celldynamics.jcudarandomwalk.matrices.ISparseMatrixGpu#multiplyThisBy(com.github.
-   * celldynamics.jcudarandomwalk.matrices.ISparseMatrixGpu)
-   */
-  @Override
-  public IMatrix multiply(IMatrix in) {
+  public SparseMatrixDevice multiply(SparseMatrixDevice in) {
     if (this.getColNumber() != in.getRowNumber()) {
       throw new IllegalArgumentException("Incompatibile sizes");
     }
-    if (((ISparseMatrix) in).getSparseMatrixType() != SparseMatrixType.MATRIX_FORMAT_CSR) {
+    if (in.getSparseMatrixType() != SparseMatrixType.MATRIX_FORMAT_CSR) {
       throw new IllegalArgumentException("multiply requires CSR input format.");
     }
-    SparseMatrixDevice m2;
-    // if not instance og GPU try to convert it to GPU
-    m2 = (SparseMatrixDevice) in.toGpu();
 
     int m = this.getRowNumber();
 
@@ -428,14 +443,14 @@ public class SparseMatrixDevice extends SparseMatrix implements ICudaLibHandles 
     Pointer nnzOutPtr = new Pointer();
     Pointer rowIndOutPtr = new Pointer();
     int nt = CUSPARSE_OPERATION_NON_TRANSPOSE;
-    int n = m2.getColNumber();
+    int n = in.getColNumber();
     int k = this.getColNumber();
     int[] nnzOut = new int[1];
     cudaMalloc(nnzOutPtr, Sizeof.INT);
     cudaMalloc(rowIndOutPtr, (m + 1) * Sizeof.INT);
     cusparseXcsrgemmNnz(handle, nt, nt, m, n, k, this.getDescr(), this.getElementNumber(),
-            this.getRowIndPtr(), this.getColIndPtr(), m2.getDescr(), m2.getElementNumber(),
-            m2.getRowIndPtr(), m2.getColIndPtr(), descrOut, rowIndOutPtr, nnzOutPtr);
+            this.getRowIndPtr(), this.getColIndPtr(), in.getDescr(), in.getElementNumber(),
+            in.getRowIndPtr(), in.getColIndPtr(), descrOut, rowIndOutPtr, nnzOutPtr);
     JCuda.cudaDeviceSynchronize();
     Pointer colIndOutPtr = new Pointer();
     Pointer valOutPtr = new Pointer();
@@ -443,34 +458,27 @@ public class SparseMatrixDevice extends SparseMatrix implements ICudaLibHandles 
     cudaMalloc(colIndOutPtr, nnzOut[0] * Sizeof.INT);
     cudaMalloc(valOutPtr, nnzOut[0] * Sizeof.FLOAT);
     cusparseScsrgemm(handle, nt, nt, m, n, k, this.getDescr(), this.getElementNumber(),
-            this.getValPtr(), this.getRowIndPtr(), this.getColIndPtr(), m2.getDescr(),
-            m2.getElementNumber(), m2.getValPtr(), m2.getRowIndPtr(), m2.getColIndPtr(), descrOut,
+            this.getValPtr(), this.getRowIndPtr(), this.getColIndPtr(), in.getDescr(),
+            in.getElementNumber(), in.getValPtr(), in.getRowIndPtr(), in.getColIndPtr(), descrOut,
             valOutPtr, rowIndOutPtr, colIndOutPtr);
     JCuda.cudaDeviceSynchronize();
     return new SparseMatrixDevice(descrOut, rowIndOutPtr, colIndOutPtr, valOutPtr, m, n, nnzOut[0],
             SparseMatrixType.MATRIX_FORMAT_CSR);
   }
 
-  /*
-   * (non-Javadoc)
+  /**
+   * Download data from GPU.
    * 
-   * @see com.github.celldynamics.jcudarandomwalk.matrices.IMatrix#toCpu()
+   * @param isforce if true download always, otherwise only if local instances of arrays are empty.
    */
-  @Override
-  public ISparseMatrix toCpu() {
-    if (colInd == null || rowInd == null || val == null) {
+  public void toCpu(boolean isforce) {
+    if (isforce || colInd == null || colInd.length == 0 || rowInd == null || rowInd.length == 0
+            || val == null || val.length == 0) {
       retrieveFromDevice();
     }
-    return new SparseMatrixHost(getRowInd(), getColInd(), getVal(), matrixFormat);
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.github.celldynamics.jcudarandomwalk.matrices.ISparseMatrix#transpose()
-   */
-  @Override
-  public ISparseMatrix transpose() {
+  public SparseMatrixDevice transpose() {
     SparseMatrixDevice csrm = (SparseMatrixDevice) this.convert2csr();
 
     Pointer colIndPtr = new Pointer();
@@ -504,51 +512,41 @@ public class SparseMatrixDevice extends SparseMatrix implements ICudaLibHandles 
     return super.toString();
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.github.celldynamics.jcudarandomwalk.matrices.IMatrix#removeRows(int[])
-   */
-  @Override
-  public IMatrix removeRows(int[] rows) {
-    LOGGER.warn("RemoveRows run on CPU");
-    ISparseMatrix tmp = this.convert2coo();
-    IMatrix tmpCpu = tmp.toCpu();
-    IMatrix removed = tmpCpu.removeRows(rows);
-    tmp.free();
-    tmpCpu.free();
-    return removed; // return CPU version!
+  public SparseMatrixDevice removeRows(int[] rows) {
+    LOGGER.debug("RemoveRows run on CPU");
+    SparseMatrixDevice ttmp = this.convert2coo();
+    SparseMatrixDevice tmp =
+            new SparseMatrixDevice(ttmp.getRowInd(), ttmp.getColInd(), ttmp.getVal(),
+                    ttmp.getRowNumber(), ttmp.getColNumber(), ttmp.getSparseMatrixType(), false);
+    // tmp is on cpu
+    tmp.removeRowsIndices(rows);
+    tmp.nnz = tmp.val.length;
+    tmp.toGpu();
+    return tmp;
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.github.celldynamics.jcudarandomwalk.matrices.IMatrix#removeCols(int[])
-   */
-  @Override
-  public IMatrix removeCols(int[] cols) {
-    LOGGER.warn("removeCols run on CPU");
-    ISparseMatrix tmp = this.convert2coo();
-    IMatrix tmpCpu = tmp.toCpu();
-    IMatrix removed = tmpCpu.removeCols(cols);
-    tmp.free();
-    tmpCpu.free();
-    return removed; // return CPU version!
+  public SparseMatrixDevice removeCols(int[] cols) {
+    LOGGER.debug("removeCols run on CPU");
+    SparseMatrixDevice ttmp = this.convert2coo();
+    SparseMatrixDevice tmp =
+            new SparseMatrixDevice(ttmp.getRowInd(), ttmp.getColInd(), ttmp.getVal(),
+                    ttmp.getRowNumber(), ttmp.getColNumber(), ttmp.getSparseMatrixType(), false);
+    // tmp is on cpu
+    tmp.removeColsIndices(cols);
+    tmp.nnz = tmp.val.length;
+    tmp.toGpu();
+    return tmp;
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.github.celldynamics.jcudarandomwalk.matrices.IMatrix#toGpu()
-   */
-  @Override
-  public IMatrix toGpu() {
-    return this;
+  public void toGpu() {
+    free(); // free old, always valid as called in constructor
+    transferToGpu(rowInd, colInd, val);
   }
 
-  @Override
-  public IMatrix sumAlongRows() {
-    throw new NotImplementedException("Not implemented");
+  public DenseVectorDevice sumAlongRows() {
+    this.toCpu(true);
+    float[] sum = sumAlongRowsIndices();
+    return new DenseVectorDevice(getRowNumber(), 1, sum);
   }
 
   /*
@@ -558,7 +556,7 @@ public class SparseMatrixDevice extends SparseMatrix implements ICudaLibHandles 
    */
   @Override
   public int[] getRowInd() {
-    if (rowInd == null) {
+    if (rowInd == null || rowInd.length == 0) {
       retrieveFromDevice();
     }
     return super.getRowInd();
@@ -571,7 +569,7 @@ public class SparseMatrixDevice extends SparseMatrix implements ICudaLibHandles 
    */
   @Override
   public float[] getVal() {
-    if (val == null) {
+    if (val == null || val.length == 0) {
       retrieveFromDevice();
     }
     return super.getVal();
@@ -584,14 +582,21 @@ public class SparseMatrixDevice extends SparseMatrix implements ICudaLibHandles 
    */
   @Override
   public int[] getColInd() {
-    if (colInd == null) {
+    if (colInd == null || colInd.length == 0) {
       retrieveFromDevice();
     }
     return super.getColInd();
   }
 
-  @Override
-  public float[] luSolve(IDenseVector b_gpuPtrAny, boolean iLuBiCGStabSolve, int iter, float tol) {
+  /**
+   * @param b_gpuPtrAny
+   * @param iLuBiCGStabSolve
+   * @param iter
+   * @param tol
+   * @return
+   */
+  public float[] luSolve(DenseVectorDevice b_gpuPtrAny, boolean iLuBiCGStabSolve, int iter,
+          float tol) {
     LOGGER.info("Starting LU solver");
     StopWatch timer = StopWatch.createStarted();
     if (getColNumber() != getRowNumber()) {
@@ -601,7 +606,7 @@ public class SparseMatrixDevice extends SparseMatrix implements ICudaLibHandles 
       throw new IllegalArgumentException("Left matrix should be in CSR");
     }
     StoppedBy stoppedReason = StoppedBy.ITERATIONS; // default assumption
-    DenseVectorDevice b_gpuPtr = (DenseVectorDevice) b_gpuPtrAny.toGpu();
+    DenseVectorDevice b_gpuPtr = b_gpuPtrAny;
     int m = getRowNumber();
     int n = m;
     Pointer AcsrRowIndex_gpuPtr = getRowIndPtr();
@@ -663,6 +668,9 @@ public class SparseMatrixDevice extends SparseMatrix implements ICudaLibHandles 
     int policy_U = CUSPARSE_SOLVE_POLICY_USE_LEVEL;
     int trans_U = CUSPARSE_OPERATION_NON_TRANSPOSE;
 
+    timer.split();
+    LOGGER.info("... Step 1 accomplished in " + timer.toSplitString());
+    timer.unsplit();
     // step 2: create a empty info structure
     // we need one info for csrilu02 and two info's for csrsv2
     csrilu02Info info_iLU = new csrilu02Info();
@@ -689,6 +697,10 @@ public class SparseMatrixDevice extends SparseMatrix implements ICudaLibHandles 
     int pBufferSize;
     Pointer pBuffer = new Pointer();
 
+    timer.split();
+    LOGGER.info("... Step 2 accomplished in " + timer.toSplitString());
+    timer.unsplit();
+
     // step 3: query how much memory used in csrilu02 and csrsv2, and
     // allocate the buffer
     cusparseScsrilu02_bufferSize(handle, m, nnz, descr_iLU, AcooVal_gpuPtr, AcsrRowIndex_gpuPtr,
@@ -704,6 +716,10 @@ public class SparseMatrixDevice extends SparseMatrix implements ICudaLibHandles 
 
     // pBuffer returned by cudaMalloc is automatically aligned to 128 bytes.
     cudaMalloc(pBuffer, pBufferSize);
+
+    timer.split();
+    LOGGER.info("... Step 3 accomplished in " + timer.toSplitString());
+    timer.unsplit();
 
     // step 4: perform analysis of incomplete Cholesky on M
     // perform analysis of triangular solve on L
@@ -742,6 +758,10 @@ public class SparseMatrixDevice extends SparseMatrix implements ICudaLibHandles 
     cusparseScsrsv2_analysis(handle, trans_U, m, nnz, descr_U, AcooVal_gpuPtr, AcsrRowIndex_gpuPtr,
             AcooColIndex_gpuPtr, info_U, policy_U, pBuffer);
 
+    timer.split();
+    LOGGER.info("... Step 4 accomplished in " + timer.toSplitString());
+    timer.unsplit();
+
     // step 5: M = L * U
     cusparseScsrilu02(handle, m, nnz, descr_iLU, iLUcooVal_gpuPtr, iLUcsrRowIndex_gpuPtr,
             iLUcooColIndex_gpuPtr, info_iLU, policy_iLU, pBuffer);
@@ -761,15 +781,27 @@ public class SparseMatrixDevice extends SparseMatrix implements ICudaLibHandles 
     }
     cusparseSetPointerMode(handle, CUSPARSE_POINTER_MODE_HOST);
 
+    timer.split();
+    LOGGER.info("... Step 5 accomplished in " + timer.toSplitString());
+    timer.unsplit();
+
     // step 6: solve L*z = x
     cusparseScsrsv2_solve(handle, trans_L, m, nnz, Pointer.to(one_host), descr_L, iLUcooVal_gpuPtr,
             iLUcsrRowIndex_gpuPtr, iLUcooColIndex_gpuPtr, info_L, b_gpuPtr.getValPtr(), z_gpuPtr,
             policy_L, pBuffer);
 
+    timer.split();
+    LOGGER.info("... Step 6 accomplished in " + timer.toSplitString());
+    timer.unsplit();
+
     // step 7: solve U*y = z
     cusparseScsrsv2_solve(handle, trans_U, m, nnz, Pointer.to(one_host), descr_U, iLUcooVal_gpuPtr,
             iLUcsrRowIndex_gpuPtr, iLUcooColIndex_gpuPtr, info_U, z_gpuPtr, x_gpuPtr, policy_U,
             pBuffer);
+
+    timer.split();
+    LOGGER.info("... Step 7 accomplished in " + timer.toSplitString());
+    timer.unsplit();
 
     // CG routine
     if (iLuBiCGStabSolve) {
@@ -860,9 +892,13 @@ public class SparseMatrixDevice extends SparseMatrix implements ICudaLibHandles 
       // 3 : repeat until convergence (based on maximum number of
       // iterations and relative residual)
 
+      timer.split();
+      LOGGER.info("... Step pre CG accomplished in " + timer.toSplitString());
+      timer.unsplit();
+
       for (int i = 0; i < iter; i++) {
 
-        System.out.println("Iteration " + i);
+        System.out.print("Iteration " + i + "\r");
 
         // 4 : \rho = \tilde{ r }Ë†{T} r
         rhop[0] = rho[0];
@@ -973,6 +1009,7 @@ public class SparseMatrixDevice extends SparseMatrix implements ICudaLibHandles 
                 + " omega: " + omega[0]);
 
       }
+      System.out.println();
       LOGGER.info("Solver stopped by " + stoppedReason);
 
       cudaFree(p);
@@ -1014,6 +1051,11 @@ public class SparseMatrixDevice extends SparseMatrix implements ICudaLibHandles 
     timer.stop();
     LOGGER.info("LU solver finished in " + timer.toString());
     return result_host;
+  }
+
+  public static SparseMatrixDevice factory(SparseCoordinates raw) {
+    return new SparseMatrixDevice(raw.getRowInd(), raw.getColInd(), raw.getVal(),
+            raw.getRowNumber(), raw.getColNumber(), SparseMatrixType.MATRIX_FORMAT_COO);
   }
 
 }

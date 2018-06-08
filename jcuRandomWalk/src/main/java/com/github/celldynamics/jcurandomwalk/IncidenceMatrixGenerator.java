@@ -13,7 +13,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.celldynamics.jcudarandomwalk.matrices.sparse.SparseCoordinates;
-import com.github.celldynamics.jcudarandomwalk.matrices.sparse.SparseMatrixHost;
 import com.github.celldynamics.jcurandomwalk.RandomWalkOptions.AlgOptions;
 
 import ij.ImageStack;
