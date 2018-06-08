@@ -7,7 +7,6 @@ import static jcuda.runtime.cudaMemcpyKind.cudaMemcpyDeviceToHost;
 import static jcuda.runtime.cudaMemcpyKind.cudaMemcpyHostToDevice;
 
 import com.github.celldynamics.jcudarandomwalk.matrices.ICudaLibHandles;
-import com.github.celldynamics.jcudarandomwalk.matrices.IMatrix;
 
 import jcuda.Pointer;
 import jcuda.Sizeof;
@@ -38,6 +37,13 @@ public class DenseVectorDevice extends DenseVector implements ICudaLibHandles {
   public DenseVectorDevice(int rows, int cols, float[] val) {
     super(rows, cols);
     this.val = val;
+    transferToGpu(val);
+  }
+
+  /**
+   * @param val
+   */
+  private void transferToGpu(float[] val) {
     cudaMalloc(valPtr, getElementNumber() * Sizeof.FLOAT);
     cudaMemcpy(valPtr, Pointer.to(val), getElementNumber() * Sizeof.FLOAT, cudaMemcpyHostToDevice);
   }
@@ -58,7 +64,7 @@ public class DenseVectorDevice extends DenseVector implements ICudaLibHandles {
    */
   @Override
   public float[] getVal() {
-    if (val == null) {
+    if (val == null || val.length == 0) {
       retrieveFromDevice();
     }
     return super.getVal();
@@ -73,30 +79,31 @@ public class DenseVectorDevice extends DenseVector implements ICudaLibHandles {
             cudaMemcpyDeviceToHost);
   }
 
-  @Override
-  public IMatrix toGpu() {
-    return this;
+  public void toGpu() {
+    free();
+    transferToGpu(val);
   }
 
-  @Override
-  public IMatrix toCpu() {
-    if (val == null) {
+  /**
+   * Download data from GPU.
+   * 
+   * @param isforce if true download always, otherwise only if local instances of arrays are empty.
+   */
+  public void toCpu(boolean isforce) {
+    if (isforce || val == null || val.length == 0) {
       retrieveFromDevice();
     }
-    return new DenseVectorHost(getRowNumber(), getColNumber(), getVal());
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.github.celldynamics.jcudarandomwalk.matrices.ISparseMatrixGpu#free()
-   */
-  @Override
   public void free() {
     try {
       cudaFree(valPtr);
     } catch (Exception e) {
       LOGGER.debug("descr already freed? " + e.getMessage());
     }
+  }
+
+  public static DenseVectorDevice factory(int rows, int cols, float[] val) {
+    return new DenseVectorDevice(rows, cols, val);
   }
 }

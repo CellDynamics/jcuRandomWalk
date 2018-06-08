@@ -4,14 +4,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.lang3.ArrayUtils;
-import org.apache.commons.lang3.NotImplementedException;
 import org.ojalgo.access.ElementView1D;
 import org.ojalgo.matrix.store.MatrixStore;
 import org.ojalgo.matrix.store.PrimitiveDenseStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.github.celldynamics.jcudarandomwalk.matrices.IMatrix;
 
 /**
  * Dense vector for OjAlg backend.
@@ -19,7 +16,7 @@ import com.github.celldynamics.jcudarandomwalk.matrices.IMatrix;
  * @author baniu
  *
  */
-public class DenseVectorOj implements IDenseVector {
+public class DenseVectorOj {
 
   /**
    * The Constant LOGGER.
@@ -69,12 +66,6 @@ public class DenseVectorOj implements IDenseVector {
     mat = b;
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.github.celldynamics.jcudarandomwalk.matrices.IMatrix#getVal()
-   */
-  @Override
   public float[] getVal() {
     // this returns column ordered nonzero indices. Matrix is ok, but only getVal returns in
     // different order.
@@ -88,114 +79,16 @@ public class DenseVectorOj implements IDenseVector {
 
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.github.celldynamics.jcudarandomwalk.matrices.IMatrix#getRowNumber()
-   */
-  @Override
   public int getRowNumber() {
     return (int) mat.countRows();
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.github.celldynamics.jcudarandomwalk.matrices.IMatrix#getColNumber()
-   */
-  @Override
   public int getColNumber() {
     return (int) mat.countColumns();
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.github.celldynamics.jcudarandomwalk.matrices.IMatrix#getElementNumber()
-   */
-  @Override
   public int getElementNumber() {
     return (int) mat.count();
-  }
-
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.github.celldynamics.jcudarandomwalk.matrices.IMatrix#removeRows(int[])
-   */
-  @Override
-  public IMatrix removeRows(int[] rows) {
-    throw new NotImplementedException("not implemented");
-  }
-
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.github.celldynamics.jcudarandomwalk.matrices.IMatrix#removeCols(int[])
-   */
-  @Override
-  public IMatrix removeCols(int[] cols) {
-    throw new NotImplementedException("not implemented");
-  }
-
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.github.celldynamics.jcudarandomwalk.matrices.IMatrix#multiply(com.github.celldynamics.
-   * jcudarandomwalk.matrices.IMatrix)
-   */
-  @Override
-  public IMatrix multiply(IMatrix in) {
-    throw new NotImplementedException("not implemented");
-  }
-
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.github.celldynamics.jcudarandomwalk.matrices.IMatrix#transpose()
-   */
-  @Override
-  public IMatrix transpose() {
-    throw new NotImplementedException("not implemented");
-  }
-
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.github.celldynamics.jcudarandomwalk.matrices.IMatrix#toGpu()
-   */
-  @Override
-  public IMatrix toGpu() {
-    return this;
-  }
-
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.github.celldynamics.jcudarandomwalk.matrices.IMatrix#toCpu()
-   */
-  @Override
-  public IMatrix toCpu() {
-    return this;
-  }
-
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.github.celldynamics.jcudarandomwalk.matrices.IMatrix#free()
-   */
-  @Override
-  public void free() {
-  }
-
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.github.celldynamics.jcudarandomwalk.matrices.IMatrix#sumAlongRows()
-   */
-  @Override
-  public IMatrix sumAlongRows() {
-    throw new NotImplementedException("not implemented");
   }
 
 }

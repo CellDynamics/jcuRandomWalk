@@ -6,14 +6,11 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import org.apache.commons.lang3.ArrayUtils;
-import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.time.StopWatch;
 
 import com.github.celldynamics.jcudarandomwalk.matrices.ICudaLibHandles;
-import com.github.celldynamics.jcudarandomwalk.matrices.IMatrix;
-import com.github.celldynamics.jcudarandomwalk.matrices.dense.IDenseVector;
-import com.github.celldynamics.jcudarandomwalk.matrices.sparse.ISparseMatrix;
-import com.github.celldynamics.jcudarandomwalk.matrices.sparse.SparseMatrixDevice;
+import com.github.celldynamics.jcudarandomwalk.matrices.dense.DenseVectorOj;
+import com.github.celldynamics.jcudarandomwalk.matrices.sparse.SparseCoordinates;
 import com.github.celldynamics.jcudarandomwalk.matrices.sparse.SparseMatrixOj;
 
 import ij.ImagePlus;
@@ -31,9 +28,9 @@ import jcuda.runtime.JCuda;
  */
 public class RandomWalkAlgorithmOj extends RandomWalkSolver {
 
-  ISparseMatrix reducedLap; // reduced laplacian
-  ISparseMatrix lap; // full laplacian
-  List<IDenseVector> b = new ArrayList<>(); // right vector
+  SparseMatrixOj reducedLap; // reduced laplacian
+  SparseMatrixOj lap; // full laplacian
+  List<DenseVectorOj> b = new ArrayList<>(); // right vector
 
   private int[] mergedseeds; // Optimisation store
 
@@ -60,16 +57,19 @@ public class RandomWalkAlgorithmOj extends RandomWalkSolver {
    * @see #getLap()
    */
   void computeLaplacian() {
-    IMatrix incidence;
-    IMatrix incidenceT;
-    IMatrix weight;
+    SparseMatrixOj incidence;
+    SparseMatrixOj incidenceT;
+    SparseMatrixOj weight;
     LOGGER.info("Computing Laplacian");
     StopWatch timer = new StopWatch();
     timer.start();
     // IMatrix atw = null;
-    incidence = img.getIncidence().toSparse(new SparseMatrixOj());
+    SparseCoordinates incTmp = img.getIncidence();
+    SparseCoordinates weiTmp = img.getWeights();
+
+    incidence = SparseMatrixOj.factory(incTmp);
     incidenceT = incidence.transpose();
-    weight = img.getWeights().toSparse(new SparseMatrixOj());
+    weight = SparseMatrixOj.factory(weiTmp);
 
     // ElementsSupplier<Double> aTw = ((SparseMatrixOj) weight).mat
     // .premultiply(((SparseMatrixOj) incidence).mat.transpose());
@@ -82,12 +82,8 @@ public class RandomWalkAlgorithmOj extends RandomWalkSolver {
     // A'*W*A
     // ISparseMatrix ATW = incidenceGpuT.multiply(wGpu);
     // ISparseMatrix ATWA = ATW.multiply(incidenceGpu);
-    IMatrix atw = incidenceT.multiply(weight);// .multiply(incidenceGpu);
-    incidenceT.free();
-    weight.free();
-    this.lap = (ISparseMatrix) atw.multiply(incidence);
-    atw.free();
-    incidence.free();
+    SparseMatrixOj atw = incidenceT.multiply(weight);// .multiply(incidenceGpu);
+    this.lap = atw.multiply(incidence);
     timer.stop();
     LOGGER.info("Laplacian computed in " + timer.toString());
   }
@@ -120,14 +116,13 @@ public class RandomWalkAlgorithmOj extends RandomWalkSolver {
     // lapCoo.free();
     this.mergedseeds = mergeSeeds(source, sink);
     LOGGER.trace("Rows to be removed: " + this.mergedseeds.length);
-    IMatrix lapRowsRem = lap.removeRows(this.mergedseeds); // return is on cpu
+    SparseMatrixOj lapRowsRem = lap.removeRows(this.mergedseeds); // return is on cpu
 
     this.b.add(computeB(lapRowsRem, source));
     this.b.add(computeB(lapRowsRem, sink));
 
-    ISparseMatrix reducedL = (ISparseMatrix) lapRowsRem.removeCols(this.mergedseeds);
+    SparseMatrixOj reducedL = lapRowsRem.removeCols(this.mergedseeds);
 
-    lapRowsRem.free();
     timer.stop();
     LOGGER.info("Laplacian reduced in " + timer.toString());
     this.reducedLap = reducedL;
@@ -136,46 +131,40 @@ public class RandomWalkAlgorithmOj extends RandomWalkSolver {
   /**
    * Compute B.
    * 
-   * @param lap Laplacian with removed edges (rows).
+   * @param lapRowsRem Laplacian with removed edges (rows).
    * @param indexes indexes of either source or sink, sorted
    * @return B vector
    * @see #getB()
    */
-  IDenseVector computeB(IMatrix lap, Integer[] indexes) {
+  DenseVectorOj computeB(SparseMatrixOj lapRowsRem, Integer[] indexes) {
     LOGGER.info("Computing B");
     StopWatch timer = StopWatch.createStarted();
-    if (lap instanceof SparseMatrixDevice) {
-      // on gpu it could be completely different
-      timer.stop();
-      throw new NotImplementedException("not implemented");
-    } else {
-      // 49sec
-      // List<Integer> ilist = Arrays.asList(ArrayUtils.toObject(indexes));
-      // // all cols except indexes
-      // int[] colsRemove = IntStream.range(0, lap.getColNumber()).parallel()
-      // .filter(x -> !ilist.contains(x)).toArray();
+    // 49sec
+    // List<Integer> ilist = Arrays.asList(ArrayUtils.toObject(indexes));
+    // // all cols except indexes
+    // int[] colsRemove = IntStream.range(0, lap.getColNumber()).parallel()
+    // .filter(x -> !ilist.contains(x)).toArray();
 
-      // int[] indexescp = Arrays.copyOf(indexes, indexes.length);
-      // Arrays.sort(indexescp); // TODO sort on output and remove copy
-      List<Integer> colsRemovea = new ArrayList<Integer>(lap.getColNumber());
-      for (int i = 0; i < lap.getColNumber(); i++) {
-        int a = Arrays.binarySearch(indexes, i); // assuming indexes sorted
-        if (a < 0) { // not found
-          colsRemovea.add(i);
-        }
+    // int[] indexescp = Arrays.copyOf(indexes, indexes.length);
+    // Arrays.sort(indexescp); // TODO sort on output and remove copy
+    List<Integer> colsRemovea = new ArrayList<Integer>(lapRowsRem.getColNumber());
+    for (int i = 0; i < lapRowsRem.getColNumber(); i++) {
+      int a = Arrays.binarySearch(indexes, i); // assuming indexes sorted
+      if (a < 0) { // not found
+        colsRemovea.add(i);
       }
-      int[] colsRemove = ArrayUtils.toPrimitive(colsRemovea.toArray(new Integer[0]));
-
-      IMatrix tmp = lap.removeCols(colsRemove);
-      IMatrix ret = tmp.sumAlongRows();
-      int eln = ret.getElementNumber();
-      for (int i = 0; i < eln; i++) {
-        ret.getVal()[i] *= -1;
-      }
-      timer.stop();
-      LOGGER.info("B computed in " + timer.toString());
-      return (IDenseVector) ret;
     }
+    int[] colsRemove = ArrayUtils.toPrimitive(colsRemovea.toArray(new Integer[0]));
+
+    SparseMatrixOj tmp = lapRowsRem.removeCols(colsRemove);
+    DenseVectorOj ret = tmp.sumAlongRows();
+    int eln = ret.getElementNumber();
+    for (int i = 0; i < eln; i++) {
+      ret.getVal()[i] *= -1;
+    }
+    timer.stop();
+    LOGGER.info("B computed in " + timer.toString());
+    return ret;
   }
 
   /**
@@ -193,8 +182,8 @@ public class RandomWalkAlgorithmOj extends RandomWalkSolver {
     computeLaplacian(); // here there is first matrix created, decides CPU/GPU
     Integer[] seedIndices = getSourceIndices(seed, seedVal);
     computeReducedLaplacian(seedIndices, getIncidenceMatrix().getSinkBox());
-    ISparseMatrix reducedLapGpu = (ISparseMatrix) getReducedLap().toGpu();
-    ISparseMatrix reducedLapGpuCsr = reducedLapGpu.convert2csr();
+    SparseMatrixOj reducedLapGpu = getReducedLap();
+    SparseMatrixOj reducedLapGpuCsr = reducedLapGpu;
     // reducedLapGpu.free();
     LOGGER.info("Forward");
     float[] solved_fw = reducedLapGpuCsr.luSolve(b.get(0), true, options.getAlgOptions().maxit,
@@ -214,8 +203,6 @@ public class RandomWalkAlgorithmOj extends RandomWalkSolver {
     }
 
     ImageStack ret = getSegmentedStack(solvedSeeds);// solvedSeeds
-    reducedLapGpuCsr.free();
-    reducedLapGpu.free();
     return ret;
   }
 
@@ -280,7 +267,7 @@ public class RandomWalkAlgorithmOj extends RandomWalkSolver {
    * 
    * @return the reducedLap
    */
-  ISparseMatrix getReducedLap() {
+  SparseMatrixOj getReducedLap() {
     return reducedLap;
   }
 
@@ -289,7 +276,7 @@ public class RandomWalkAlgorithmOj extends RandomWalkSolver {
    * 
    * @return the b
    */
-  List<IDenseVector> getB() {
+  List<DenseVectorOj> getB() {
     return b;
   }
 
@@ -383,17 +370,6 @@ public class RandomWalkAlgorithmOj extends RandomWalkSolver {
    */
   @Override
   public void free() {
-    if (reducedLap != null) {
-      reducedLap.free();
-    }
-    if (lap != null) {
-      lap.free();
-    }
-    for (IDenseVector bv : this.b) {
-      if (bv != null) {
-        bv.free();
-      }
-    }
   }
 
   /**
@@ -421,7 +397,7 @@ public class RandomWalkAlgorithmOj extends RandomWalkSolver {
   /**
    * @return the lap
    */
-  ISparseMatrix getLap() {
+  SparseMatrixOj getLap() {
     return lap;
   }
 }
