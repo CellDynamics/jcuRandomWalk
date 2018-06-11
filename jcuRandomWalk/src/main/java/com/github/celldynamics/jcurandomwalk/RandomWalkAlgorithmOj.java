@@ -13,9 +13,7 @@ import com.github.celldynamics.jcudarandomwalk.matrices.dense.DenseVectorOj;
 import com.github.celldynamics.jcudarandomwalk.matrices.sparse.SparseCoordinates;
 import com.github.celldynamics.jcudarandomwalk.matrices.sparse.SparseMatrixOj;
 
-import ij.ImagePlus;
 import ij.ImageStack;
-import ij.process.StackStatistics;
 import jcuda.jcusparse.JCusparse;
 import jcuda.runtime.JCuda;
 
@@ -30,8 +28,9 @@ public class RandomWalkAlgorithmOj extends RandomWalkSolver {
 
   SparseMatrixOj reducedLap; // reduced laplacian
   SparseMatrixOj lap; // full laplacian
-  List<DenseVectorOj> b = new ArrayList<>(); // right vector
+  List<DenseVectorOj> bvector = new ArrayList<>(); // right vector
 
+  private List<float[]> rawSoultions = new ArrayList<>(2); // in case getRawProbs is called
   private int[] mergedseeds; // Optimisation store
 
   /**
@@ -118,8 +117,8 @@ public class RandomWalkAlgorithmOj extends RandomWalkSolver {
     LOGGER.trace("Rows to be removed: " + this.mergedseeds.length);
     SparseMatrixOj lapRowsRem = lap.removeRows(this.mergedseeds); // return is on cpu
 
-    this.b.add(computeB(lapRowsRem, source));
-    this.b.add(computeB(lapRowsRem, sink));
+    this.bvector.add(computeB(lapRowsRem, source));
+    this.bvector.add(computeB(lapRowsRem, sink));
 
     SparseMatrixOj reducedL = lapRowsRem.removeCols(this.mergedseeds);
 
@@ -170,7 +169,7 @@ public class RandomWalkAlgorithmOj extends RandomWalkSolver {
   /**
    * Main routine.
    * 
-   * <p>Require incidence matrix computed by {@link #computeIncidence(boolean)}.
+   * <p>Require incidence matrix computed by {@link #computeIncidence()}.
    * 
    * @param seed stack of size of segmented stack with pixel>0 for seeds.
    * @param seedVal value of seed in seed stack to solve for. Define seed pixels.
@@ -186,23 +185,27 @@ public class RandomWalkAlgorithmOj extends RandomWalkSolver {
     SparseMatrixOj reducedLapGpuCsr = reducedLapGpu;
     // reducedLapGpu.free();
     LOGGER.info("Forward");
-    float[] solved_fw = reducedLapGpuCsr.luSolve(b.get(0), true, options.getAlgOptions().maxit,
+    float[] solvedFw = reducedLapGpuCsr.luSolve(bvector.get(0), true, options.getAlgOptions().maxit,
             options.getAlgOptions().tol);
-    float[] solvedSeeds_fw = incorporateSeeds(solved_fw, seedIndices,
+    float[] solvedSeedsFw = incorporateSeeds(solvedFw, seedIndices,
             getIncidenceMatrix().getSinkBox(), lap.getColNumber());
 
     LOGGER.info("Backward");
-    float[] solved_bw = reducedLapGpuCsr.luSolve(b.get(1), true, options.getAlgOptions().maxit,
+    float[] solvedBw = reducedLapGpuCsr.luSolve(bvector.get(1), true, options.getAlgOptions().maxit,
             options.getAlgOptions().tol);
-    float[] solvedSeeds_bw = incorporateSeeds(solved_bw, getIncidenceMatrix().getSinkBox(),
+    float[] solvedSeedsBw = incorporateSeeds(solvedBw, getIncidenceMatrix().getSinkBox(),
             seedIndices, lap.getColNumber());
 
-    float[] solvedSeeds = new float[solvedSeeds_bw.length];
+    float[] solvedSeeds = new float[solvedSeedsBw.length];
     for (int i = 0; i < solvedSeeds.length; i++) {
-      solvedSeeds[i] = solvedSeeds_fw[i] > solvedSeeds_bw[i] ? 1.0f : 0.0f;
+      solvedSeeds[i] = solvedSeedsFw[i] > solvedSeedsBw[i] ? 1.0f : 0.0f;
     }
 
     ImageStack ret = getSegmentedStack(solvedSeeds);// solvedSeeds
+    // store raw solutions in case. Do not convert here as we do not know if getRawProbs will be
+    // called.
+    rawSoultions.add(solvedSeedsFw);
+    rawSoultions.add(solvedSeedsBw);
     return ret;
   }
 
@@ -277,7 +280,7 @@ public class RandomWalkAlgorithmOj extends RandomWalkSolver {
    * @return the b
    */
   List<DenseVectorOj> getB() {
-    return b;
+    return bvector;
   }
 
   /**
@@ -308,52 +311,6 @@ public class RandomWalkAlgorithmOj extends RandomWalkSolver {
     timer.stop();
     LOGGER.info("Result converted to stack in " + timer.toString());
     return ret;
-  }
-
-  /**
-   * Obtain indices of seed pixels from stack. Indices are computed in column-ordered manner.
-   * 
-   * <p>Ordering:
-   * 0 3
-   * 1 4
-   * 2 5
-   * 
-   * <p>It is possible to use this method for obtaining sink indices by reversing stack. Note that
-   * output is sorted.
-   * 
-   * @param seedStack Pixels with intensity >0 are considered as seed. Expect 8-bit binary stacks.
-   * @param value value of seed pixels
-   * @return sorted array of indices.
-   */
-  Integer[] getSourceIndices(ImageStack seedStack, int value) {
-    if (!seedStack.getProcessor(1).isBinary()) {
-      throw new IllegalArgumentException("Seed stack is not binary");
-    }
-    LOGGER.info("Converting seed stack to indices");
-    StopWatch timer = new StopWatch();
-    timer.start();
-    int l = 0;
-    StackStatistics stat = new StackStatistics(new ImagePlus("", seedStack));
-    int[] ret = new int[stat.histogram[stat.histogram.length - 1]];
-    int[] ind = new int[3];
-    for (int z = 0; z < seedStack.getSize(); z++) {
-      for (int x = 0; x < seedStack.getWidth(); x++) {
-        for (int y = 0; y < seedStack.getHeight(); y++) {
-          if (seedStack.getVoxel(x, y, z) == value) {
-            ind[0] = y; // row
-            ind[1] = x;
-            ind[2] = z;
-            ret[l++] = IncidenceMatrixGenerator.ind20lin(ind, seedStack.getHeight(),
-                    seedStack.getWidth(), seedStack.getSize());
-          }
-        }
-      }
-    }
-    Integer[] retob = ArrayUtils.toObject(ret);
-    Arrays.sort(retob);
-    timer.stop();
-    LOGGER.info("Seeds processed in " + timer.toString());
-    return retob;
   }
 
   /**
@@ -395,9 +352,20 @@ public class RandomWalkAlgorithmOj extends RandomWalkSolver {
   }
 
   /**
+   * Return GPU laplacian.
+   * 
    * @return the lap
    */
   SparseMatrixOj getLap() {
     return lap;
+  }
+
+  @Override
+  public List<ImageStack> getRawProbs() {
+    List<ImageStack> rawProbs = new ArrayList<>(2);
+    rawProbs.add(getSegmentedStack(rawSoultions.get(0)));
+    rawProbs.add(getSegmentedStack(rawSoultions.get(1))); // last is BG
+
+    return rawProbs;
   }
 }

@@ -44,6 +44,10 @@ public class RandomWalkOptions {
    */
   public boolean cpuOnly = false;
   /**
+   * Save probability maps.
+   */
+  public boolean rawProbMaps = false;
+  /**
    * Path to stack to segment.
    */
   public Path stack;

@@ -6,7 +6,10 @@ import static jcuda.runtime.JCuda.cudaSetDevice;
 import java.awt.Window;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.io.IOException;
+import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
 import org.apache.commons.cli.CommandLine;
@@ -97,6 +100,10 @@ public class JcuRandomWalk {
     Option outputOption = Option.builder("o").argName("output").hasArg().required()
             .desc("Output image").longOpt("output").build();
 
+    Option rawProbOption =
+            Option.builder().desc("Save raw probability maps. Default is " + rwOptions.rawProbMaps)
+                    .longOpt("probmaps").build();
+
     Option quietOption = Option.builder("q").desc("Mute output").longOpt("quiet").build();
     Option debugOption = Option.builder("d").desc("Debug stream").longOpt("debug").build();
     Option ddebugOption =
@@ -142,12 +149,14 @@ public class JcuRandomWalk {
     cliOptions.addOption(sigmaGradOption);
     cliOptions.addOption(sigmaMeanOption);
     cliOptions.addOption(meanSourceOption);
+    cliOptions.addOption(rawProbOption);
 
     Options helpOptions = new Options(); // 2nd group of options
     helpOptions.addOption(verOption); // these are repeated here to have showHelp working
     helpOptions.addOption(helpOption);
     try {
       if (parseForHelp(helpOptions, args)) { // check only for selected options
+        rwOptions.cpuOnly = true; // fake overriding to comply with finally
         return; // and finish
       }
       // process all but do not handle those from 2nd group
@@ -186,6 +195,9 @@ public class JcuRandomWalk {
       if (cmd.hasOption("dd")) {
         rwOptions.debugLevel = Level.TRACE;
       }
+      if (cmd.hasOption("probmaps")) {
+        rwOptions.rawProbMaps = true;
+      }
 
       setLogging();
       run();
@@ -197,13 +209,17 @@ public class JcuRandomWalk {
       return;
     } catch (NumberFormatException ne) {
       System.err.println("One of numeric parameters could not be parsed: " + ne.getMessage());
+      cliErrorStatus = 1; // finish with error
     } catch (Exception e) {
       System.err.println("Program failed with exception: " + e.getClass() + " : " + e.getMessage());
       if (rwOptions.debugLevel.toInt() < Level.INFO_INT) {
         e.printStackTrace();
       }
-    } finally {
-      RandomWalkAlgorithmGpu.finish();
+      cliErrorStatus = 1; // finish with error
+    } finally { // GPU clean up
+      if (rwOptions.cpuOnly == false) {
+        RandomWalkAlgorithmGpu.finish();
+      }
     }
   }
 
@@ -263,7 +279,7 @@ public class JcuRandomWalk {
     LOGGER.info("Stacks loaded in " + timer.toString());
     timer = StopWatch.createStarted();
     if (rwOptions.cpuOnly == false) {
-      selectGpu();
+      deviceAction();
       // create main object
       rwa = new RandomWalkAlgorithmGpu(stack, rwOptions);
     } else {
@@ -271,35 +287,83 @@ public class JcuRandomWalk {
     }
     // compute or load incidence or save, depending on options
     if (rwOptions.ifApplyProcessing) {
-      rwa.processStack();
+      applyProcessingAction(rwa);
     }
     ImageStack segmented = rwa.solve(seed, seedVal);
     ImagePlus segmentedImage = new ImagePlus("", segmented);
+    if (rwOptions.output.getParent() == null
+            || !rwOptions.output.getParent().toFile().isDirectory()) { // overcome IJ.savetiff
+      throw new IOException("Output folder does not exist");
+    }
     IJ.saveAsTiff(segmentedImage, rwOptions.output.toString());
+    LOGGER.info("File " + rwOptions.output.toString() + " saved");
     timer.stop();
     LOGGER.info("Solved in " + timer.toString());
     rwa.free();
+    // actions
     if (cmd != null && cmd.hasOption("show")) {
-      ij = new ImageJ();
-      segmentedImage.show();
+      showResultAction(segmentedImage);
+    }
+    if (rwOptions.rawProbMaps) {
+      rawProbMapsAction(rwa);
+    }
+  }
+
+  /**
+   * Action of apply processing to stack.
+   * 
+   * @param rwa instance of solver.
+   */
+  private void applyProcessingAction(IRandomWalkSolver rwa) {
+    rwa.processStack();
+  }
+
+  /**
+   * Action for show result.
+   * 
+   * @param segmentedImage result to show.
+   */
+  private void showResultAction(ImagePlus segmentedImage) {
+    ij = new ImageJ();
+    segmentedImage.show();
+  }
+
+  /**
+   * Action for rawProbMap.
+   * 
+   * @param rwa instance of solver.
+   * @throws IOException any error
+   */
+  private void rawProbMapsAction(IRandomWalkSolver rwa) throws IOException {
+    LOGGER.info("Saving probability maps");
+    List<ImageStack> maps = rwa.getRawProbs();
+    Path parent = rwOptions.output.getParent();
+    if (parent == null) {
+      parent = Paths.get("/");
+    }
+    if (!parent.toFile().isDirectory()) { // overcome IJ.savetiff
+      throw new IOException("Output folder does not exist");
+    }
+    Path name = rwOptions.output.getFileName();
+    int i = 1;
+    for (ImageStack is : maps) {
+      ImagePlus im = new ImagePlus("", is);
+      String nameToSave = parent.resolve(name + "Map_" + i + ".tif").toString();
+      IJ.saveAsTiff(im, nameToSave);
+      LOGGER.info("Map " + nameToSave + " saved");
+      i++;
     }
   }
 
   /**
    * Pick GPU selected in {@link RandomWalkOptions}.
    */
-  private void selectGpu() {
-    // try {
-    if (rwOptions.cpuOnly == false) {
-      RandomWalkAlgorithmGpu.initilizeGpu();
-      int[] devicecount = new int[1];
-      cudaGetDeviceCount(devicecount);
-      cudaSetDevice(rwOptions.device);
-      LOGGER.info(String.format("Using device %d/%d", rwOptions.device, devicecount[0]));
-    }
-    // } catch (UnsatisfiedLinkError | NoClassDefFoundError e) {
-    // LOGGER.error(e.getMessage());
-    // }
+  private void deviceAction() {
+    RandomWalkAlgorithmGpu.initilizeGpu();
+    int[] devicecount = new int[1];
+    cudaGetDeviceCount(devicecount);
+    cudaSetDevice(rwOptions.device);
+    LOGGER.info(String.format("Using device %d/%d", rwOptions.device, devicecount[0]));
   }
 
   /**
@@ -360,7 +424,9 @@ public class JcuRandomWalk {
         e1.printStackTrace();
       }
     }
-    LOGGER.info("Bye!");
+    if (app.cliErrorStatus == 0) {
+      LOGGER.info("Bye!");
+    }
     System.exit(app.cliErrorStatus);
   }
 
