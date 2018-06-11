@@ -5,6 +5,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.closeTo;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.junit.Assume.assumeTrue;
 
 import java.io.File;
 import java.util.Arrays;
@@ -20,11 +21,10 @@ import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.github.celldynamics.jcudarandomwalk.matrices.sparse.SparseMatrixDevice;
-
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.LoggerContext;
 import ij.ImageStack;
+import jcuda.jcusparse.JCusparse;
 
 // TODO: Auto-generated Javadoc
 /**
@@ -40,6 +40,22 @@ public class IncidenceMatrixGeneratorTest {
     Logger rootLogger = loggerContext.getLogger(IncidenceMatrixGeneratorTest.class.getName());
     ((ch.qos.logback.classic.Logger) rootLogger).setLevel(Level.DEBUG);
   }
+
+  /**
+   * Check if there is cuda.
+   * 
+   * @return true if it is
+   */
+  public static boolean checkCuda() {
+    try {
+      JCusparse.setExceptionsEnabled(true);
+    } catch (Error e) {
+      return false;
+    }
+    return true;
+  }
+
+  private static final boolean isCuda = checkCuda();
 
   /**
    * The Constant LOGGER.
@@ -93,6 +109,7 @@ public class IncidenceMatrixGeneratorTest {
    */
   @Test
   public void testIncidenceMatrix() throws Exception {
+    assumeTrue(isCuda);
     RandomWalkOptions options = new RandomWalkOptions();
     LOGGER.debug(
             ArrayTools.printArray(ArrayTools.array2Object(stack.getProcessor(1).getFloatArray())));
@@ -100,17 +117,17 @@ public class IncidenceMatrixGeneratorTest {
             ArrayTools.printArray(ArrayTools.array2Object(stack.getProcessor(2).getFloatArray())));
     IncidenceMatrixGenerator obj = new IncidenceMatrixGenerator(stack, options.getAlgOptions());
     // check sizes
-    SparseMatrixDevice incidence = SparseMatrixDevice.factory(obj.getIncidence());
-    assertThat(incidence.getRowNumber(), is(46)); // numbers for tes stack
-    assertThat(incidence.getColNumber(), is(24));
-    SparseMatrixDevice weights = SparseMatrixDevice.factory(obj.getWeights());
-    assertThat(weights.getRowNumber(), is(46));
-    assertThat(weights.getColNumber(), is(46));
+    // SparseMatrixDevice incidence = SparseMatrixDevice.factory(obj.getIncidence());
+    assertThat(obj.getIncidence().getRowNumber(), is(46)); // numbers for tes stack
+    assertThat(obj.getIncidence().getColNumber(), is(24));
+    // SparseMatrixDevice weights = SparseMatrixDevice.factory(obj.getWeights());
+    assertThat(obj.getWeights().getRowNumber(), is(46));
+    assertThat(obj.getWeights().getColNumber(), is(46));
 
-    double[][] f = incidence.full();
+    double[][] f = obj.getIncidence().full();
     LOGGER.debug(ArrayTools.printArray(ArrayTools.array2Object(f)));
-    LOGGER.debug("Incidence: " + incidence.toString());
-    double[][] w = weights.full();
+    LOGGER.debug("Incidence: " + obj.getIncidence().toString());
+    double[][] w = obj.getWeights().full();
     LOGGER.trace(ArrayTools.printArray(ArrayTools.array2Object(w)));
 
     assertThat(f[0].length, is(IncidenceMatrixGenerator.getEdgesNumber(height, width, nz)));
@@ -181,16 +198,14 @@ public class IncidenceMatrixGeneratorTest {
     // TODO use factory to get Host from incidence
     RandomWalkOptions options = new RandomWalkOptions();
     IncidenceMatrixGenerator obj = new IncidenceMatrixGenerator(stack, options.getAlgOptions());
-    SparseMatrixDevice incidence = SparseMatrixDevice.factory(obj.getIncidence());
-    double[][] objFull = incidence.full();
+    double[][] objFull = obj.getIncidence().full();
     File filename = folder.newFile();
     obj.saveObject(filename.toString());
     // restore
     IncidenceMatrixGenerator restored = IncidenceMatrixGenerator.restoreObject(filename.toString(),
             stack, options.getAlgOptions());
 
-    SparseMatrixDevice incidenceRes = SparseMatrixDevice.factory(restored.getIncidence());
-    double[][] resFull = incidenceRes.full();
+    double[][] resFull = restored.getIncidence().full();
     for (int c = 0; c < resFull.length; c++) {
       assertThat(Arrays.asList(resFull[c]), contains(objFull[c]));
     }
@@ -325,18 +340,18 @@ public class IncidenceMatrixGeneratorTest {
     inc.assignStack(ts);
     LOGGER.trace("Slice 1: "
             + ArrayTools.printArray(ArrayTools.array2Object(ts.getProcessor(1).getFloatArray())));
-    SparseMatrixDevice weights = SparseMatrixDevice.factory(inc.getWeights());
-    SparseMatrixDevice incidence = SparseMatrixDevice.factory(inc.getIncidence());
+    // SparseMatrixDevice weights = SparseMatrixDevice.factory(inc.getWeights());
+    // SparseMatrixDevice incidence = SparseMatrixDevice.factory(inc.getIncidence());
     // LOGGER.trace(ArrayTools.printArray(ArrayTools.array2Object(inicidence.full())));
     // LOGGER.trace(ArrayTools.printArray(ArrayTools.array2Object(weights.full())));
     LOGGER.trace("INC: " + inc.getIncidence());
-    LOGGER.trace("WEI: " + weights.toString());
+    LOGGER.trace("WEI: " + inc.getWeights().toString());
     // Arrays.sort(inc.getSinkBox());
     LOGGER.trace("BBX: " + ArrayUtils.toString(inc.getSinkBox()));
 
-    double[][] f = incidence.full();
+    double[][] f = inc.getIncidence().full();
     LOGGER.debug(ArrayTools.printArray(ArrayTools.array2Object(f)));
-    double[][] w = weights.full();
+    double[][] w = inc.getWeights().full();
     LOGGER.trace(ArrayTools.printArray(ArrayTools.array2Object(w)));
 
   }

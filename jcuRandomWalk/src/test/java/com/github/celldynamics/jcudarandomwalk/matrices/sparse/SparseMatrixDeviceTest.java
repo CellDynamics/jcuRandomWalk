@@ -4,6 +4,7 @@ import static com.github.baniuk.ImageJTestSuite.matchers.arrays.ArrayMatchers.ar
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.junit.Assume.assumeTrue;
 
 import java.util.Arrays;
 import java.util.stream.IntStream;
@@ -24,6 +25,8 @@ import jcuda.jcusparse.JCusparse;
 import jcuda.runtime.JCuda;
 
 /**
+ * GPU related tests.
+ * 
  * @author p.baniukiewicz
  *
  */
@@ -40,13 +43,31 @@ public class SparseMatrixDeviceTest {
   private TestDataGenerators gen;
 
   /**
+   * Check if there is cuda.
+   * 
+   * @return true if it is
+   */
+  public static boolean checkCuda() {
+    try {
+      JCusparse.setExceptionsEnabled(true);
+    } catch (Error e) {
+      return false;
+    }
+    return true;
+  }
+
+  private static final boolean isCuda = checkCuda();
+
+  /**
    * Enable exceptions.
    */
   @BeforeClass
   public static void before() {
-    JCusparse.setExceptionsEnabled(true);
-    JCuda.setExceptionsEnabled(true);
-    JCusparse.cusparseCreate(SparseMatrixDevice.handle);
+    if (isCuda) {
+      JCusparse.setExceptionsEnabled(true);
+      JCuda.setExceptionsEnabled(true);
+      JCusparse.cusparseCreate(SparseMatrixDevice.handle);
+    }
   }
 
   /**
@@ -54,10 +75,12 @@ public class SparseMatrixDeviceTest {
    */
   @AfterClass
   public static void after() {
-    // cusparseDestroy(SparseMatrixDevice.handle);
-    JCusparse.setExceptionsEnabled(false);
-    JCuda.setExceptionsEnabled(false);
-    JCusparse.cusparseDestroy(SparseMatrixDevice.handle);
+    if (isCuda) {
+      // cusparseDestroy(SparseMatrixDevice.handle);
+      JCusparse.setExceptionsEnabled(false);
+      JCuda.setExceptionsEnabled(false);
+      JCusparse.cusparseDestroy(SparseMatrixDevice.handle);
+    }
   }
 
   /**
@@ -65,11 +88,13 @@ public class SparseMatrixDeviceTest {
    */
   @Before
   public void setUp() throws Exception {
-    gen = new TestDataGenerators();
-    obj = new SparseMatrixDevice(gen.rowInd, gen.colInd, gen.valRowOrder,
-            SparseMatrixType.MATRIX_FORMAT_COO);
-    obj1 = new SparseMatrixDevice(gen.rowInd1, gen.colInd1, gen.val1RowOrder,
-            SparseMatrixType.MATRIX_FORMAT_COO);
+    if (isCuda) {
+      gen = new TestDataGenerators();
+      obj = new SparseMatrixDevice(gen.rowInd, gen.colInd, gen.valRowOrder,
+              SparseMatrixType.MATRIX_FORMAT_COO);
+      obj1 = new SparseMatrixDevice(gen.rowInd1, gen.colInd1, gen.val1RowOrder,
+              SparseMatrixType.MATRIX_FORMAT_COO);
+    }
   }
 
   /**
@@ -77,10 +102,12 @@ public class SparseMatrixDeviceTest {
    */
   @After
   public void tearDown() throws Exception {
-    obj.free();
-    obj1.free();
-    obj = null;
-    obj1 = null;
+    if (isCuda) {
+      obj.free();
+      obj1.free();
+      obj = null;
+      obj1 = null;
+    }
   }
 
   /**
@@ -93,6 +120,7 @@ public class SparseMatrixDeviceTest {
    */
   @Test(expected = IllegalArgumentException.class)
   public void testSparseMatrixDeviceIntArrayIntArrayDoubleArray() throws Exception {
+    assumeTrue(isCuda);
     @SuppressWarnings("unused")
     SparseMatrixDevice spd = new SparseMatrixDevice(new int[] { 1, 2 }, new int[] { 1, 2, 3 },
             new float[] { 1, 2 }, SparseMatrixType.MATRIX_FORMAT_COO);
@@ -108,6 +136,7 @@ public class SparseMatrixDeviceTest {
    */
   @Test(expected = IllegalArgumentException.class)
   public void testSparseMatrixDeviceIntArrayIntArrayDoubleArray_1() throws Exception {
+    assumeTrue(isCuda);
     @SuppressWarnings("unused")
     SparseMatrixDevice spd = new SparseMatrixDevice(new int[] { 1, 2, 4 }, new int[] { 1, 2, 3 },
             new float[] { 1, 2 }, SparseMatrixType.MATRIX_FORMAT_COO);
@@ -123,6 +152,7 @@ public class SparseMatrixDeviceTest {
    */
   @Test(expected = IllegalArgumentException.class)
   public void testSparseMatrixDeviceIntArrayIntArrayDoubleArray_2() throws Exception {
+    assumeTrue(isCuda);
     @SuppressWarnings("unused")
     SparseMatrixDevice spd = new SparseMatrixDevice(new int[] { 1, 2 }, new int[] { 1, 2, 3 },
             new float[] { 1, 2, 3 }, SparseMatrixType.MATRIX_FORMAT_COO);
@@ -135,6 +165,7 @@ public class SparseMatrixDeviceTest {
    */
   @Test
   public void testGetRowInd() throws Exception {
+    assumeTrue(isCuda);
     int[] r = obj.getRowInd();
     assertThat(Arrays.asList(r), contains(gen.rowInd));
   }
@@ -146,6 +177,7 @@ public class SparseMatrixDeviceTest {
    */
   @Test
   public void testGetColInd() throws Exception {
+    assumeTrue(isCuda);
     int[] c = obj.getColInd();
     assertThat(Arrays.asList(c), contains(gen.colInd));
   }
@@ -157,6 +189,7 @@ public class SparseMatrixDeviceTest {
    */
   @Test
   public void testgetVal() throws Exception {
+    assumeTrue(isCuda);
     float[] v = obj.getVal();
     assertThat(Arrays.asList(v), contains(gen.valRowOrder));
   }
@@ -168,6 +201,7 @@ public class SparseMatrixDeviceTest {
    */
   @Test
   public void testGetRowInd_1() throws Exception {
+    assumeTrue(isCuda);
     obj.retrieveFromDevice();
     assertThat(Arrays.asList(obj.getRowInd()), contains(gen.rowInd));
   }
@@ -179,6 +213,7 @@ public class SparseMatrixDeviceTest {
    */
   @Test
   public void testGetColInd_1() throws Exception {
+    assumeTrue(isCuda);
     obj.retrieveFromDevice();
     assertThat(Arrays.asList(obj.getColInd()), contains(gen.colInd));
   }
@@ -190,6 +225,7 @@ public class SparseMatrixDeviceTest {
    */
   @Test()
   public void testgetVal_1() throws Exception {
+    assumeTrue(isCuda);
     obj.retrieveFromDevice();
     assertThat(Arrays.asList(obj.getVal()), contains(gen.valRowOrder));
     LOGGER.debug(ArrayTools.printArray(ArrayTools.array2Object(obj.full())));
@@ -203,6 +239,7 @@ public class SparseMatrixDeviceTest {
    */
   @Test
   public void testToSparseMatrixHost() throws Exception {
+    assumeTrue(isCuda);
     obj.toCpu(false);
     assertThat(Arrays.asList(obj.getVal()), contains(gen.valRowOrder));
     assertThat(Arrays.asList(obj.getColInd()), contains(gen.colInd));
@@ -218,6 +255,7 @@ public class SparseMatrixDeviceTest {
    */
   @Test
   public void testMultiply() throws Exception {
+    assumeTrue(isCuda);
     SparseMatrixDevice objcsr = obj.convert2csr();
     SparseMatrixDevice obj1csr = obj1.convert2csr();
     SparseMatrixDevice ret = objcsr.multiply(obj1csr);
@@ -245,6 +283,7 @@ public class SparseMatrixDeviceTest {
    */
   @Test
   public void testSparseMatrixDevice() throws Exception {
+    assumeTrue(isCuda);
     assertThat(obj.getElementNumber(), is(gen.valRowOrder.length));
     assertThat(obj.getRowNumber(), is(4));
     assertThat(obj.getColNumber(), is(5));
@@ -264,6 +303,7 @@ public class SparseMatrixDeviceTest {
    */
   @Test
   public void testConvert2csr() throws Exception {
+    assumeTrue(isCuda);
     SparseMatrixDevice ret = obj.convert2csr();
     // obj.free(); // can not be free here
     assertThat(ret.getRowNumber(), is(4));
@@ -294,6 +334,7 @@ public class SparseMatrixDeviceTest {
    */
   @Test
   public void testTranspose() throws Exception {
+    assumeTrue(isCuda);
     SparseMatrixDevice tobj = obj.transpose().convert2coo();
     assertThat(tobj.getRowNumber(), is(obj1.getRowNumber()));
     assertThat(tobj.getColNumber(), is(obj1.getColNumber()));
@@ -326,6 +367,7 @@ public class SparseMatrixDeviceTest {
    */
   @Test
   public void testLuSolve() throws Exception {
+    assumeTrue(isCuda);
     int[] rows =
             new int[] { 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4 };
     int[] cols =
@@ -357,6 +399,7 @@ public class SparseMatrixDeviceTest {
    */
   @Test
   public void testToCpuToGpu() throws Exception {
+    assumeTrue(isCuda);
     SparseMatrixDevice objcsr = obj.convert2csr(); // on gpu
     SparseMatrixDevice obj1csr = obj1.convert2csr(); // on gpu
     SparseMatrixDevice ret = objcsr.multiply(obj1csr); // on gpu

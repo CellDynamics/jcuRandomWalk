@@ -5,6 +5,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.closeTo;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.junit.Assume.assumeTrue;
 
 import java.io.File;
 import java.util.Arrays;
@@ -37,6 +38,7 @@ import ij.IJ;
 import ij.ImagePlus;
 import ij.ImageStack;
 import ij.process.StackStatistics;
+import jcuda.jcusparse.JCusparse;
 
 /**
  * The Class RandomWalkAlgorithmTest.
@@ -50,6 +52,22 @@ public class RandomWalkAlgorithmGpuTest {
     Logger rootLogger = loggerContext.getLogger("com.github.celldynamics.jcurandomwalk");
     ((ch.qos.logback.classic.Logger) rootLogger).setLevel(Level.DEBUG);
   }
+
+  /**
+   * Check if there is cuda.
+   * 
+   * @return true if it is
+   */
+  public static boolean checkCuda() {
+    try {
+      JCusparse.setExceptionsEnabled(true);
+    } catch (Error e) {
+      return false;
+    }
+    return true;
+  }
+
+  private static final boolean isCuda = checkCuda();
 
   /** The Constant LOGGER. */
   static final Logger LOGGER = LoggerFactory.getLogger(RandomWalkAlgorithmGpuTest.class.getName());
@@ -156,6 +174,7 @@ public class RandomWalkAlgorithmGpuTest {
    */
   @Test
   public void testComputeLaplacian_1() throws Exception {
+    assumeTrue(isCuda);
     RandomWalkOptions options = new RandomWalkOptions();
     options.configFolder = folder.newFolder().toPath();
     // mocked IncidenceMatrixGenerator that return fixed weights
@@ -235,6 +254,7 @@ public class RandomWalkAlgorithmGpuTest {
    */
   @Test
   public void testComputeReducedLaplacian() throws Exception {
+    assumeTrue(isCuda);
     // Laplacian is square, assume diagonal only
     int[] ri = new int[] { 0, 0, 0, 1, 2, 3, 4, 4, 5 };
     int[] ci = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
@@ -290,6 +310,7 @@ public class RandomWalkAlgorithmGpuTest {
    */
   @Test
   public void testComputeB() throws Exception {
+    assumeTrue(isCuda);
     RandomWalkAlgorithmGpu obj = new RandomWalkAlgorithmGpu();
     int[] ri = new int[] { 0, 0, 0, 1, 2, 3, 4, 4, 5 };
     int[] ci = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
@@ -342,6 +363,7 @@ public class RandomWalkAlgorithmGpuTest {
    */
   @Test
   public void testSolve() throws Exception {
+    assumeTrue(isCuda);
     RandomWalkOptions options = new RandomWalkOptions();
     ImageStack org = IJ.openImage("src/test/test_data/segment_test_normalised.tif").getImageStack();
     ImageStack seeds = IJ.openImage("src/test/test_data/segment_test_seeds.tif").getImageStack();

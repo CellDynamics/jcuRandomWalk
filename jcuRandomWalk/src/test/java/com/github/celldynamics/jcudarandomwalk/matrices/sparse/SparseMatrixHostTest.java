@@ -4,6 +4,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.closeTo;
 import static org.hamcrest.Matchers.contains;
+import static org.junit.Assume.assumeTrue;
 
 import java.util.Arrays;
 
@@ -15,9 +16,10 @@ import org.slf4j.LoggerFactory;
 import com.github.celldynamics.jcudarandomwalk.matrices.dense.DenseVectorDevice;
 import com.github.celldynamics.jcurandomwalk.ArrayTools;
 
-// TODO: Auto-generated Javadoc
+import jcuda.jcusparse.JCusparse;
+
 /**
- * Test class for {@link SparseMatrixHost}.
+ * Test class for {@link SparseMatrixDevice} and {@link SparseCoordinates}.
  * 
  * @author baniu
  *
@@ -28,6 +30,22 @@ public class SparseMatrixHostTest {
    * The Constant LOGGER.
    */
   static final Logger LOGGER = LoggerFactory.getLogger(SparseMatrixHostTest.class.getName());
+
+  /**
+   * Check if there is cuda.
+   * 
+   * @return true if it is
+   */
+  public static boolean checkCuda() {
+    try {
+      JCusparse.setExceptionsEnabled(true);
+    } catch (Error e) {
+      return false;
+    }
+    return true;
+  }
+
+  private static final boolean isCuda = checkCuda();
 
   /**
    * Test of CCO format. Follow https://docs.nvidia.com/cuda/pdf/CUSPARSE_Library.pdf
@@ -126,6 +144,7 @@ public class SparseMatrixHostTest {
    */
   @Test
   public void testToSparseMatrixDevice() throws Exception {
+    assumeTrue(isCuda);
     int[] rowInd = new int[] { 0, 0, 1, 1, 2, 2, 2, 3, 3 };
     int[] colInd = new int[] { 0, 1, 1, 2, 0, 3, 4, 2, 4 };
     float[] val = new float[] { 1, 4, 2, 3, 5, 7, 8, 9, 6 };
@@ -149,6 +168,7 @@ public class SparseMatrixHostTest {
    */
   @Test
   public void testRemoveRows_2() throws Exception {
+    assumeTrue(isCuda);
     // Laplacian is square, assume diagonal only
     int[] ri = new int[] { 0, 0, 0, 1, 2, 3, 4, 4, 5 };
     int[] ci = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
@@ -193,6 +213,7 @@ public class SparseMatrixHostTest {
    */
   @Test
   public void testRemoveRows_3() throws Exception {
+    assumeTrue(isCuda);
     // Laplacian is square, assume diagonal only
     int[] ri = new int[] { 0, 0, 0, 1, 2, 3, 4, 4, 5 };
     int[] ci = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
@@ -232,6 +253,7 @@ public class SparseMatrixHostTest {
    */
   @Test
   public void testRemoveRows_4() throws Exception {
+    assumeTrue(isCuda);
     // Laplacian is square, assume diagonal only
     int[] ri = new int[] { 0, 0, 0, 1, 2, 3, 4, 4, 5 };
     int[] ci = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
@@ -265,6 +287,7 @@ public class SparseMatrixHostTest {
    */
   @Test
   public void testRemoveCols_2() throws Exception {
+    assumeTrue(isCuda);
     // Laplacian is square, assume diagonal only
     int[] ri = new int[] { 0, 0, 0, 1, 2, 3, 4, 4, 5 };
     int[] ci = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
@@ -304,6 +327,7 @@ public class SparseMatrixHostTest {
    */
   @Test
   public void testRemoveCols_3() throws Exception {
+    assumeTrue(isCuda);
     // Laplacian is square, assume diagonal only
     int[] ri = new int[] { 0, 0, 0, 1, 2, 3, 4, 4, 5 };
     int[] ci = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
@@ -343,6 +367,7 @@ public class SparseMatrixHostTest {
    */
   @Test
   public void testRemoveCols_4() throws Exception {
+    assumeTrue(isCuda);
     // Laplacian is square, assume diagonal only
     int[] ri = new int[] { 0, 0, 0, 1, 2, 3, 4, 4, 5 };
     int[] ci = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
@@ -373,6 +398,7 @@ public class SparseMatrixHostTest {
    */
   @Test
   public void testSumAlongRows() throws Exception {
+    assumeTrue(isCuda);
     int[] ri = new int[] { 0, 0, 0, 1, 2, 3, 4, 4, 5 };
     int[] ci = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
     float[] v = new float[] { 10, 101, 102, 11, 12, 13, 131, 14, 15 };
@@ -395,6 +421,7 @@ public class SparseMatrixHostTest {
    */
   @Test
   public void testSumAlongRows_1() throws Exception {
+    assumeTrue(isCuda);
     // like output from testRemoveCols_3
     int[] ri = new int[] { 0, 0, 1, 3, 4, 5 };
     int[] ci = new int[] { 0, 3, 0, 1, 2, 3 };
