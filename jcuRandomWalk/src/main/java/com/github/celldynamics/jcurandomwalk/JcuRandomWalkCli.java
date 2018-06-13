@@ -20,6 +20,7 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.time.StopWatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,19 +44,21 @@ import ij.ImageStack;
  * @author p.baniukiewicz
  * @author t.bretschneider
  */
-public class JcuRandomWalk {
+public class JcuRandomWalkCli {
 
   ImageJ ij;
-  static final Logger LOGGER = LoggerFactory.getLogger(JcuRandomWalk.class.getName());
+  static final Logger LOGGER = LoggerFactory.getLogger(JcuRandomWalkCli.class.getName());
   private int cliErrorStatus = 0; // returned to main
   private RandomWalkOptions rwOptions;
   private Options cliOptions = null;
   private CommandLine cmd;
+  private ImageStack seed;
+  private ImageStack stack;
 
   /**
    * Default constructor using default options.
    */
-  public JcuRandomWalk() {
+  public JcuRandomWalkCli() {
     rwOptions = new RandomWalkOptions();
   }
 
@@ -64,7 +67,7 @@ public class JcuRandomWalk {
    * 
    * @param args args passed from cli.
    */
-  public JcuRandomWalk(String[] args) {
+  public JcuRandomWalkCli(String[] args) {
     this();
     CommandLineParser parser = new DefaultParser();
 
@@ -86,6 +89,8 @@ public class JcuRandomWalk {
     Option defProcessOption = Option.builder()
             .desc("Apply default processing to stack. Default is " + rwOptions.ifApplyProcessing)
             .longOpt("defaultprocessing").build();
+    Option autoThOption = Option.builder("t").argName("level").hasArg().type(Integer.class)
+            .desc("Apply thresholding to stack and produce seeds.").longOpt("autoth").build();
 
     Option deviceOption = Option.builder().argName("device").hasArg()
             .desc("Select CUDA device. Default is " + rwOptions.device).type(Integer.class)
@@ -93,12 +98,16 @@ public class JcuRandomWalk {
     Option cpuOption = Option.builder().desc("Use CPU only. Default is " + rwOptions.cpuOnly)
             .longOpt("cpuonly").build();
 
-    Option imageOption = Option.builder("i").argName("image").hasArg().required()
-            .desc("Stack to process").longOpt("image").build();
-    Option seedOption = Option.builder("s").argName("seeds").hasArg().required()
-            .desc("Seeds as binary image of size of \"image\"").longOpt("seed").build();
-    Option outputOption = Option.builder("o").argName("output").hasArg().required()
-            .desc("Output image").longOpt("output").build();
+    Option imageOption = Option.builder("i").argName("input").hasArg().required()
+            .desc("Stack to process. Must be in range 0-1.").longOpt("image").build();
+    Option seedOption =
+            Option.builder("s").argName("seeds").hasArg()
+                    .desc("Seeds as binary image of size of \"input\". Default is \"input\""
+                            + rwOptions.seedSuffix + " (if there is no -t option)")
+                    .longOpt("seed").build();
+    Option outputOption = Option.builder("o").argName("output").hasArg()
+            .desc("Output image name. Default is input" + rwOptions.outSuffix).longOpt("output")
+            .build();
 
     Option rawProbOption =
             Option.builder().desc("Save raw probability maps. Default is " + rwOptions.rawProbMaps)
@@ -112,6 +121,9 @@ public class JcuRandomWalk {
     qd.addOption(debugOption);
     qd.addOption(quietOption);
     qd.addOption(ddebugOption);
+    OptionGroup seeds = new OptionGroup();
+    seeds.addOption(seedOption);
+    seeds.addOption(autoThOption);
 
     Option showOption = Option.builder().desc("Show resulting image").longOpt("show").build();
 
@@ -132,9 +144,11 @@ public class JcuRandomWalk {
             .longOpt("meanSource").build();
 
     cliOptions = new Options();
-    cliOptions.addOption(seedOption);
+    // cliOptions.addOption(seedOption);
+    cliOptions.addOptionGroup(seeds);
     cliOptions.addOptionGroup(gl);
     cliOptions.addOption(defProcessOption);
+    // cliOptions.addOption(autoThOption);
     cliOptions.addOption(deviceOption);
     cliOptions.addOption(cpuOption);
     cliOptions.addOption(imageOption);
@@ -170,12 +184,23 @@ public class JcuRandomWalk {
       }
       if (cmd.hasOption('i')) {
         rwOptions.stack = Paths.get(cmd.getOptionValue('i'));
+        loadImageAction();
       }
       if (cmd.hasOption('s')) {
         rwOptions.seeds = Paths.get(cmd.getOptionValue('s'));
+        loadSeedAction();
+      } else if (!cmd.hasOption("t")) { // use default seed source if no -t option
+        rwOptions.seeds = Paths.get(
+                FilenameUtils.removeExtension(rwOptions.stack.toString()) + rwOptions.seedSuffix);
+        LOGGER.warn("No -s option specified, assuming " + rwOptions.seeds.toString());
+        loadSeedAction();
       }
       if (cmd.hasOption('o')) {
         rwOptions.output = Paths.get(cmd.getOptionValue('o'));
+      } else { // default output
+        rwOptions.output = Paths.get(
+                FilenameUtils.removeExtension(rwOptions.stack.toString()) + rwOptions.outSuffix);
+        LOGGER.warn("No -o option specified, assuming " + rwOptions.output.toString());
       }
       if (cmd.hasOption("loadincidence")) {
         rwOptions.ifComputeIncidence = false;
@@ -197,6 +222,10 @@ public class JcuRandomWalk {
       }
       if (cmd.hasOption("probmaps")) {
         rwOptions.rawProbMaps = true;
+      }
+      if (cmd.hasOption("t")) {
+        rwOptions.thLevel = Double.parseDouble(cmd.getOptionValue("t").trim());
+        thresholdSeedAction();
       }
 
       setLogging();
@@ -273,11 +302,6 @@ public class JcuRandomWalk {
     IRandomWalkSolver rwa = null;
     final int seedVal = 255; // value of seed to look for, TODO multi seed option
     StopWatch timer = StopWatch.createStarted();
-    ImageStack stack = IJ.openImage(rwOptions.stack.toString()).getImageStack();
-    ImageStack seed = IJ.openImage(rwOptions.seeds.toString()).getImageStack();
-    timer.stop();
-    LOGGER.info("Stacks loaded in " + timer.toString());
-    timer = StopWatch.createStarted();
     if (rwOptions.cpuOnly == false) {
       deviceAction();
       // create main object
@@ -306,6 +330,58 @@ public class JcuRandomWalk {
     }
     if (rwOptions.rawProbMaps) {
       rawProbMapsAction(rwa);
+    }
+  }
+
+  /**
+   * Prepare seeds of -t option used.
+   */
+  private void thresholdSeedAction() {
+    StopWatch timer = StopWatch.createStarted();
+    seed = ImageStack.create(stack.getWidth(), stack.getHeight(), stack.getSize(), 8);
+    for (int x = 0; x < seed.getWidth(); x++) {
+      for (int y = 0; y < seed.getHeight(); y++) {
+        for (int z = 0; z < seed.size(); z++) {
+          if (seed.getVoxel(x, y, z) <= rwOptions.thLevel) {
+            seed.setVoxel(x, y, z, 0);
+          } else {
+            seed.setVoxel(x, y, z, 255);
+          }
+        }
+      }
+    }
+    LOGGER.info("Seeds created in " + timer.toString());
+  }
+
+  /**
+   * Action for -s option.
+   * 
+   * @throws IOException if file not found
+   */
+  private void loadSeedAction() throws IOException {
+    StopWatch timer = StopWatch.createStarted();
+    if (!rwOptions.seeds.toFile().exists()) {
+      throw new IOException("Seeds file not found");
+    } else {
+      seed = IJ.openImage(rwOptions.seeds.toString()).getImageStack();
+    }
+    timer.stop();
+    LOGGER.info("Seeds loaded in " + timer.toString());
+  }
+
+  /**
+   * Action for -s option.
+   * 
+   * @throws IOException if file not found
+   */
+  private void loadImageAction() throws IOException {
+    StopWatch timer = StopWatch.createStarted();
+    if (!rwOptions.stack.toFile().exists()) {
+      throw new IOException("Stack file not found");
+    } else {
+      stack = IJ.openImage(rwOptions.stack.toString()).getImageStack();
+      timer.stop();
+      LOGGER.info("image loaded in " + timer.toString());
     }
   }
 
@@ -403,8 +479,9 @@ public class JcuRandomWalk {
    * @param args cmd args
    */
   public static void main(String[] args) {
+    StopWatch timer = StopWatch.createStarted();
     CountDownLatch startSignal = new CountDownLatch(1);
-    JcuRandomWalk app = new JcuRandomWalk(args);
+    JcuRandomWalkCli app = new JcuRandomWalkCli(args);
     if (app.ij != null) {
       app.ij.addWindowListener(new WindowAdapter() {
 
@@ -425,7 +502,8 @@ public class JcuRandomWalk {
       }
     }
     if (app.cliErrorStatus == 0) {
-      LOGGER.info("Bye!");
+      timer.stop();
+      LOGGER.info("Bye! Total time spent: " + timer.toString());
     }
     System.exit(app.cliErrorStatus);
   }

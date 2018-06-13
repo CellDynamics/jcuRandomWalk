@@ -20,6 +20,10 @@ public class RandomWalkOptions {
   static String tmpdir = System.getProperty("java.io.tmpdir") + File.separator;
 
   /**
+   * Level of threshold. Negative value = option inacive.
+   */
+  Double thLevel = -1.0;
+  /**
    * Options specific to algorithm.
    */
   public AlgOptions algOptions = new AlgOptions();
@@ -31,6 +35,14 @@ public class RandomWalkOptions {
    * Extension of incidence file.
    */
   public String configBaseExt = ".ser";
+  /**
+   * Suffix of seed image (if not specified).
+   */
+  public String seedSuffix = "_seeds.tif";
+  /**
+   * Suffix of output image (if not specified).
+   */
+  public String outSuffix = "_segm.tif";
   /**
    * Default path to save incidence.
    */
@@ -133,12 +145,13 @@ public class RandomWalkOptions {
    */
   @Override
   public String toString() {
-    return "RandomWalkOptions [algOptions=" + algOptions + ", configBaseName=" + configBaseName
-            + ", configBaseExt=" + configBaseExt + ", configFolder=" + configFolder + ", device="
-            + device + ", useGPU=" + cpuOnly + ", stack=" + stack + ", seeds=" + seeds + ", output="
-            + output + ", ifComputeIncidence=" + ifComputeIncidence + ", ifSaveIncidence="
-            + ifSaveIncidence + ", ifApplyProcessing=" + ifApplyProcessing + ", debugLevel="
-            + debugLevel + "]";
+    return "RandomWalkOptions [thLevel=" + thLevel + ", algOptions=" + algOptions
+            + ", configBaseName=" + configBaseName + ", configBaseExt=" + configBaseExt
+            + ", seedSuffix=" + seedSuffix + ", outSuffix=" + outSuffix + ", configFolder="
+            + configFolder + ", device=" + device + ", cpuOnly=" + cpuOnly + ", rawProbMaps="
+            + rawProbMaps + ", stack=" + stack + ", seeds=" + seeds + ", output=" + output
+            + ", ifComputeIncidence=" + ifComputeIncidence + ", ifSaveIncidence=" + ifSaveIncidence
+            + ", ifApplyProcessing=" + ifApplyProcessing + ", debugLevel=" + debugLevel + "]";
   }
 
 }
