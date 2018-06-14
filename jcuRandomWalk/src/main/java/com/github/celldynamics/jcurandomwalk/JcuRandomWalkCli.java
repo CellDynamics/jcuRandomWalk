@@ -6,11 +6,16 @@ import static jcuda.runtime.JCuda.cudaSetDevice;
 import java.awt.Window;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.io.File;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -52,8 +57,7 @@ public class JcuRandomWalkCli {
   private RandomWalkOptions rwOptions;
   private Options cliOptions = null;
   private CommandLine cmd;
-  private ImageStack seed;
-  private ImageStack stack;
+  private boolean folderMode = false; // true if -i points to folder
 
   /**
    * Default constructor using default options.
@@ -184,23 +188,22 @@ public class JcuRandomWalkCli {
       }
       if (cmd.hasOption('i')) {
         rwOptions.stack = Paths.get(cmd.getOptionValue('i'));
-        loadImageAction();
       }
       if (cmd.hasOption('s')) {
         rwOptions.seeds = Paths.get(cmd.getOptionValue('s'));
-        loadSeedAction();
-      } else if (!cmd.hasOption("t")) { // use default seed source if no -t option
+      } else {
         rwOptions.seeds = Paths.get(
                 FilenameUtils.removeExtension(rwOptions.stack.toString()) + rwOptions.seedSuffix);
-        LOGGER.warn("No -s option specified, assuming " + rwOptions.seeds.toString());
-        loadSeedAction();
+        LOGGER.warn("No -s option specified, assuming "
+                + (cmd.hasOption("t") ? "generating seeds from input (-t)"
+                        : rwOptions.seeds.toString()));
       }
       if (cmd.hasOption('o')) {
         rwOptions.output = Paths.get(cmd.getOptionValue('o'));
       } else { // default output
         rwOptions.output = Paths.get(
                 FilenameUtils.removeExtension(rwOptions.stack.toString()) + rwOptions.outSuffix);
-        LOGGER.warn("No -o option specified, assuming " + rwOptions.output.toString());
+        LOGGER.warn("No -o option specified, assuming pattern inputFile_" + rwOptions.outSuffix);
       }
       if (cmd.hasOption("loadincidence")) {
         rwOptions.ifComputeIncidence = false;
@@ -225,11 +228,10 @@ public class JcuRandomWalkCli {
       }
       if (cmd.hasOption("t")) {
         rwOptions.thLevel = Double.parseDouble(cmd.getOptionValue("t").trim());
-        thresholdSeedAction();
       }
 
       setLogging();
-      run();
+      runner();
 
     } catch (org.apache.commons.cli.ParseException pe) {
       System.err.println("Parsing failed: " + pe.getMessage());
@@ -250,6 +252,59 @@ public class JcuRandomWalkCli {
         RandomWalkAlgorithmGpu.finish();
       }
     }
+  }
+
+  private void runner() throws Exception {
+    ImageStack seed;
+    List<Path> stacks = loadImagesAction();
+    for (Path stackPath : stacks) {
+      ImageStack stack = loadImage(stackPath);
+      if (folderMode) { // for folder mode ignore -o and set automatic output name for each image
+        rwOptions.output = Paths
+                .get(FilenameUtils.removeExtension(stackPath.toString()) + rwOptions.outSuffix);
+      }
+      if (rwOptions.thLevel >= 0) { // so -t was used
+        seed = thresholdSeedAction(stack);
+      } else { // load seed given or default
+        seed = loadSeedAction();
+      }
+      LOGGER.info("Processing file " + stackPath.getFileName().toString());
+      run(seed, stack);
+      if (stacks.size() > 1) {
+        LOGGER.info(
+                "-----------------------------------------------------------------------------");
+      }
+    }
+  }
+
+  /**
+   * Iterate over image or folder and return list of them.
+   * 
+   * <p>Set also folderMode.
+   * 
+   * @return list of images to process.
+   * @throws IOException if wrong folder or file
+   */
+  private List<Path> loadImagesAction() throws IOException {
+    List<Path> ret = new ArrayList<>();
+    if (rwOptions.stack.toFile().isDirectory()) {
+      File dir = rwOptions.stack.toFile();
+      File[] inFolder = dir.listFiles(new FilenameFilter() {
+
+        @Override
+        public boolean accept(File dir, String name) {
+          return name.endsWith(".tif");
+        }
+      });
+      ret.addAll(Stream.of(inFolder).map(f -> f.toPath()).collect(Collectors.toList()));
+      LOGGER.info("Discovered " + ret.size() + " files in " + rwOptions.stack.toString());
+      folderMode = true;
+    } else if (rwOptions.stack.toFile().isFile()) {
+      ret.add(rwOptions.stack); // just add this one
+    } else {
+      throw new IOException("Stack file not found");
+    }
+    return ret;
   }
 
   /**
@@ -295,10 +350,13 @@ public class JcuRandomWalkCli {
   /**
    * Run segmentation.
    * 
+   * @param seed seeds
+   * @param stack stack
+   * 
    * @throws Exception
    * 
    */
-  public void run() throws Exception {
+  public void run(ImageStack seed, ImageStack stack) throws Exception {
     IRandomWalkSolver rwa = null;
     final int seedVal = 255; // value of seed to look for, TODO multi seed option
     StopWatch timer = StopWatch.createStarted();
@@ -320,7 +378,7 @@ public class JcuRandomWalkCli {
       throw new IOException("Output folder does not exist");
     }
     IJ.saveAsTiff(segmentedImage, rwOptions.output.toString());
-    LOGGER.info("File " + rwOptions.output.toString() + " saved");
+    LOGGER.info("Output " + rwOptions.output.toString() + " saved");
     timer.stop();
     LOGGER.info("Solved in " + timer.toString());
     rwa.free();
@@ -335,8 +393,12 @@ public class JcuRandomWalkCli {
 
   /**
    * Prepare seeds of -t option used.
+   * 
+   * @param stack stack to threshold
+   * @return seeds
    */
-  private void thresholdSeedAction() {
+  private ImageStack thresholdSeedAction(ImageStack stack) {
+    ImageStack seed;
     StopWatch timer = StopWatch.createStarted();
     seed = ImageStack.create(stack.getWidth(), stack.getHeight(), stack.getSize(), 8);
     for (int x = 0; x < seed.getWidth(); x++) {
@@ -351,14 +413,18 @@ public class JcuRandomWalkCli {
       }
     }
     LOGGER.info("Seeds created in " + timer.toString());
+    return seed;
   }
 
   /**
    * Action for -s option.
    * 
+   * @return loaded seeds
+   * 
    * @throws IOException if file not found
    */
-  private void loadSeedAction() throws IOException {
+  private ImageStack loadSeedAction() throws IOException {
+    ImageStack seed;
     StopWatch timer = StopWatch.createStarted();
     if (!rwOptions.seeds.toFile().exists()) {
       throw new IOException("Seeds file not found");
@@ -367,21 +433,27 @@ public class JcuRandomWalkCli {
     }
     timer.stop();
     LOGGER.info("Seeds loaded in " + timer.toString());
+    return seed;
   }
 
   /**
    * Action for -s option.
    * 
+   * @param image Path to image to load
+   * 
+   * @return loaded stack
    * @throws IOException if file not found
    */
-  private void loadImageAction() throws IOException {
+  private ImageStack loadImage(Path image) throws IOException {
+    ImageStack stack;
     StopWatch timer = StopWatch.createStarted();
-    if (!rwOptions.stack.toFile().exists()) {
+    if (!image.toFile().exists()) {
       throw new IOException("Stack file not found");
     } else {
-      stack = IJ.openImage(rwOptions.stack.toString()).getImageStack();
+      stack = IJ.openImage(image.toString()).getImageStack();
       timer.stop();
-      LOGGER.info("image loaded in " + timer.toString());
+      LOGGER.info("image " + image.getFileName() + "loaded in " + timer.toString());
+      return stack;
     }
   }
 

@@ -28,8 +28,8 @@ public class JcuRandomWalkRun {
 //           + "-probmaps";
 
   String args1 =
-          "app -i src/test/test_data/img_original_normalised_small.tif "
-          + "-o C:\\Users\\baniu\\AppData\\Local\\Temp\\solution_small.tif "
+          "app -i src/test/test_data/ "
+          //+ "-o C:\\Users\\baniu\\AppData\\Local\\Temp\\solution_small.tif "
           + "-dd "
           + "-cpuonly "
           + "-probmaps "
