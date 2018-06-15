@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 
 import ij.ImagePlus;
 import ij.ImageStack;
+import ij.process.ImageProcessor;
 import ij.process.StackConverter;
 import ij.process.StackProcessor;
 import ij.process.StackStatistics;
@@ -152,6 +153,26 @@ public abstract class RandomWalkSolver implements IRandomWalkSolver {
     }
   }
 
+  /*
+   * (non-Javadoc)
+   * 
+   * @see com.github.celldynamics.jcurandomwalk.IRandomWalkSolver#validateSeeds(ij.ImageStack)
+   */
+  public void validateSeeds(ImageStack seed) {
+    int pixelsNum = 0;
+    int pixelHistNum = 0;
+    for (int i = 1; i <= seed.size(); i++) {
+      ImageProcessor ip = seed.getProcessor(i);
+      int[] histfg = ip.getHistogram();
+      pixelHistNum += histfg[0]; // background
+      pixelsNum += ip.getPixelCount(); // all pixels
+    }
+    if (pixelHistNum == pixelsNum) {
+      throw new IllegalArgumentException("Seed image is empty.");
+    }
+    LOGGER.debug("Seeds contain " + (pixelsNum - pixelHistNum) + " nonzero elements");
+  }
+
   /**
    * Apply default processing to stack. Assumes 8-bit imput.
    * 
@@ -203,6 +224,15 @@ public abstract class RandomWalkSolver implements IRandomWalkSolver {
             .distinct().mapToInt(i -> i).toArray();
     Arrays.sort(mergedseeds);
     return mergedseeds;
+  }
+
+  /*
+   * (non-Javadoc)
+   * 
+   * @see com.github.celldynamics.jcurandomwalk.IRandomWalkSolver#getStack()
+   */
+  public ImageStack getStack() {
+    return stack;
   }
 
 }
