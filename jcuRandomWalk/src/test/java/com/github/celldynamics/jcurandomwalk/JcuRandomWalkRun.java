@@ -18,7 +18,7 @@ public class JcuRandomWalkRun {
   public static void main(String[] args) {
     
     // String[] args = "app -s xx -i xxx -o yy -d".split(" ");
-//    String args1 = "app -h"; 
+    String args1 = "app -v"; 
 //    String args1 =
 //           "app -i src/test/test_data/img_original_normalised_small.tif "
 //           + "-s src/test/test_data/img_original_seeds_small.tif "
@@ -27,13 +27,13 @@ public class JcuRandomWalkRun {
 //           + "-cpuonly "
 //           + "-probmaps";
 
-  String args1 =
-          "app -i src/test/test_data/ "
-          //+ "-o C:\\Users\\baniu\\AppData\\Local\\Temp\\solution_small.tif "
-          + "-dd "
-          + "-cpuonly "
-          + "-probmaps "
-          + "--autoth 0.5";
+//  String args1 =
+//          "app -i src/test/test_data/ "
+//          //+ "-o C:\\Users\\baniu\\AppData\\Local\\Temp\\solution_small.tif "
+//          + "-dd "
+//          + "-cpuonly "
+//          + "-probmaps "
+//          + "--autoth 0.5";
       
   //   + "-s src/test/test_data/img_original_seeds_small.tif "
 //    String[] args1 =

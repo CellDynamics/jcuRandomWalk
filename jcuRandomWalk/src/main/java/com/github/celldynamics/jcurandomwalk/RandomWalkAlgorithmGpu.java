@@ -327,8 +327,8 @@ public class RandomWalkAlgorithmGpu extends RandomWalkSolver {
       JCusparse.setExceptionsEnabled(false);
       JCuda.setExceptionsEnabled(false);
       JCusparse.cusparseDestroy(ICudaLibHandles.handle);
-    } catch (Exception e) {
-      LOGGER.error("Exception caugh during cleaning: " + e.getMessage());
+    } catch (Error e) {
+      LOGGER.error("Exception caugh during cleaning: " + e.getMessage().split("\n")[0]);
     }
   }
 
