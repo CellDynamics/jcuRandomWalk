@@ -18,14 +18,13 @@ public class JcuRandomWalkRun {
   public static void main(String[] args) {
     
     // String[] args = "app -s xx -i xxx -o yy -d".split(" ");
-    String args1 = "app -v"; 
+//    String args1 = "app -v"; 
 //    String args1 =
-//           "app -i src/test/test_data/img_original_normalised_small.tif "
-//           + "-s src/test/test_data/img_original_seeds_small.tif "
-//           + "-o C:\\Users\\baniu\\AppData\\Local\\Temp\\solution_small.tif "
+//           "app -i src/test/test_data/img_original_normalised.tif "
+//           + "-o /tmp/solution_small.tif "
 //           + "-dd "
-//           + "-cpuonly "
-//           + "-probmaps";
+//           + "--autoth 0.9 "
+//           + "--defaultprocessing";
 
 //  String args1 =
 //          "app -i src/test/test_data/ "
@@ -40,6 +39,10 @@ public class JcuRandomWalkRun {
 //            "app -i src/test/test_data/img_original_normalised.tif -s src/test/test_data/img_original_seeds.tif -o /tmp/test.tif"
 //                    .split(" ");
     
+    String args1 =
+            "app -i src/test/test_data/sc/img_10.tif "
+            + "-s src/test/test_data/sc/img_10s.tif "
+            + "-o /tmp/solution_small.tif ";
     JcuRandomWalkCli.main(args1.split(" "));
 
   }

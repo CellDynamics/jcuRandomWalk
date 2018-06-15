@@ -367,6 +367,7 @@ public class JcuRandomWalkCli {
     } else {
       rwa = new RandomWalkAlgorithmOj(stack, rwOptions);
     }
+    rwa.validateSeeds(seed);
     // compute or load incidence or save, depending on options
     if (rwOptions.ifApplyProcessing) {
       applyProcessingAction(rwa);
@@ -404,7 +405,7 @@ public class JcuRandomWalkCli {
     for (int x = 0; x < seed.getWidth(); x++) {
       for (int y = 0; y < seed.getHeight(); y++) {
         for (int z = 0; z < seed.size(); z++) {
-          if (seed.getVoxel(x, y, z) <= rwOptions.thLevel) {
+          if (stack.getVoxel(x, y, z) <= rwOptions.thLevel) {
             seed.setVoxel(x, y, z, 0);
           } else {
             seed.setVoxel(x, y, z, 255);
@@ -413,6 +414,12 @@ public class JcuRandomWalkCli {
       }
     }
     LOGGER.info("Seeds created in " + timer.toString());
+    if (rwOptions.debugLevel.toInt() < Level.INFO_INT) {
+      ImagePlus tmpImg = new ImagePlus("", seed);
+      String tmpdir = System.getProperty("java.io.tmpdir") + File.separator;
+      IJ.saveAsTiff(tmpImg, tmpdir + "seeds.tif");
+      LOGGER.debug("Saved seeds in " + tmpdir + "seeds.tif");
+    }
     return seed;
   }
 
@@ -464,6 +471,12 @@ public class JcuRandomWalkCli {
    */
   private void applyProcessingAction(IRandomWalkSolver rwa) {
     rwa.processStack();
+    if (rwOptions.debugLevel.toInt() < Level.INFO_INT) {
+      ImagePlus tmpImg = new ImagePlus("", rwa.getStack());
+      String tmpdir = System.getProperty("java.io.tmpdir") + File.separator;
+      IJ.saveAsTiff(tmpImg, tmpdir + "object_stack.tif");
+      LOGGER.debug("Saved stack in " + tmpdir + "object_stack.tif");
+    }
   }
 
   /**

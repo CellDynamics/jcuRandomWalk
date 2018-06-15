@@ -40,4 +40,20 @@ public interface IRandomWalkSolver {
    * @return probability maps. BG always last.
    */
   public List<ImageStack> getRawProbs();
+
+  /**
+   * Check if there is at least non-zero pixel in seed map.
+   * 
+   * @param seed seed to test
+   * @throws IllegalArgumentException if seed map is empty
+   */
+  public void validateSeeds(ImageStack seed);
+
+  /**
+   * Return stack.
+   * 
+   * @return stack hold by this object
+   * @see #processStack()
+   */
+  public ImageStack getStack();
 }
