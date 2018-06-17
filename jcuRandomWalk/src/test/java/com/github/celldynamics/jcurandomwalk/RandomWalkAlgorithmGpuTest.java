@@ -37,7 +37,6 @@ import ch.qos.logback.classic.LoggerContext;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.ImageStack;
-import ij.process.StackStatistics;
 import jcuda.jcusparse.JCusparse;
 
 /**
@@ -205,26 +204,6 @@ public class RandomWalkAlgorithmGpuTest {
     // compare with jcuRandomWalk/JCudaMatrix/Matlab/tests.java
     LOGGER.debug("Laplacean" + lapcoo.toString());
     LOGGER.debug(ArrayTools.printArray(ArrayTools.array2Object(lapcoo.full())));
-  }
-
-  /**
-   * Test method for
-   * {@link com.github.celldynamics.jcurandomwalk.RandomWalkAlgorithmGpu#processStack()}.
-   * 
-   * <p>Process stack, save it to tmp and check if minmax is in range 0-1
-   *
-   * @throws Exception the exception
-   */
-  @Test
-  public void testProcessStack() throws Exception {
-    ImagePlus teststack = IJ.openImage("src/test/test_data/Stack_cut.tif");
-    RandomWalkOptions options = new RandomWalkOptions();
-    RandomWalkAlgorithmGpu obj = new RandomWalkAlgorithmGpu(teststack.getImageStack(), options);
-    obj.processStack();
-    IJ.saveAsTiff(new ImagePlus("", obj.stack), tmpdir + "testProcessStack.tiff");
-    StackStatistics st = new StackStatistics(new ImagePlus("", obj.stack));
-    assertThat(st.min, closeTo(0.0, 1e-8));
-    assertThat(st.max, closeTo(1.0, 1e-8));
   }
 
   /**
