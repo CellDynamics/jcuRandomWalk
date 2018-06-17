@@ -67,7 +67,7 @@ public class JcuRandomWalkCli {
   }
 
   /**
-   * Constructor - parser initialised by cli. Main runner
+   * Constructor - parser initialized by cli. Main runner
    * 
    * @param args args passed from cli.
    */
@@ -91,7 +91,8 @@ public class JcuRandomWalkCli {
     gl.addOption(loadIncOption);
 
     Option defProcessOption = Option.builder()
-            .desc("Apply default processing to stack. Default is " + rwOptions.ifApplyProcessing)
+            .desc("Apply default processing to stack. Input stack should be 8-bit. Default is "
+                    + rwOptions.ifApplyProcessing)
             .longOpt("defaultprocessing").build();
     Option autoThOption = Option.builder("t").argName("level").hasArg().type(Integer.class)
             .desc("Apply thresholding to stack and produce seeds.").longOpt("autoth").build();
@@ -258,13 +259,13 @@ public class JcuRandomWalkCli {
     ImageStack seed;
     List<Path> stacks = loadImagesAction();
     for (Path stackPath : stacks) {
-      ImageStack stack = loadImage(stackPath);
+      ImageStack stack = loadImage(stackPath); // load and process stack if option selected
       if (folderMode) { // for folder mode ignore -o and set automatic output name for each image
         rwOptions.output = Paths
                 .get(FilenameUtils.removeExtension(stackPath.toString()) + rwOptions.outSuffix);
       }
       if (rwOptions.thLevel >= 0) { // so -t was used
-        seed = thresholdSeedAction(stack);
+        seed = thresholdSeedAction(stack); // stack already processed
       } else { // load seed given or default
         seed = loadSeedAction();
       }
@@ -368,10 +369,6 @@ public class JcuRandomWalkCli {
       rwa = new RandomWalkAlgorithmOj(stack, rwOptions);
     }
     rwa.validateSeeds(seed);
-    // compute or load incidence or save, depending on options
-    if (rwOptions.ifApplyProcessing) {
-      applyProcessingAction(rwa);
-    }
     ImageStack segmented = rwa.solve(seed, seedVal);
     ImagePlus segmentedImage = new ImagePlus("", segmented);
     if (rwOptions.output.getParent() == null
@@ -444,7 +441,7 @@ public class JcuRandomWalkCli {
   }
 
   /**
-   * Action for -s option.
+   * Action for -s option and --defaultprocessing.
    * 
    * @param image Path to image to load
    * 
@@ -459,8 +456,8 @@ public class JcuRandomWalkCli {
     } else {
       stack = IJ.openImage(image.toString()).getImageStack();
       timer.stop();
-      LOGGER.info("image " + image.getFileName() + "loaded in " + timer.toString());
-      return stack;
+      LOGGER.info("image " + image.getFileName() + " loaded in " + timer.toString());
+      return applyProcessingAction(stack);
     }
   }
 
@@ -469,14 +466,15 @@ public class JcuRandomWalkCli {
    * 
    * @param rwa instance of solver.
    */
-  private void applyProcessingAction(IRandomWalkSolver rwa) {
-    rwa.processStack();
+  private ImageStack applyProcessingAction(ImageStack stack) {
+    ImageStack ret = new StackPreprocessor().processStack(stack);
     if (rwOptions.debugLevel.toInt() < Level.INFO_INT) {
-      ImagePlus tmpImg = new ImagePlus("", rwa.getStack());
+      ImagePlus tmpImg = new ImagePlus("", ret);
       String tmpdir = System.getProperty("java.io.tmpdir") + File.separator;
       IJ.saveAsTiff(tmpImg, tmpdir + "object_stack.tif");
       LOGGER.debug("Saved stack in " + tmpdir + "object_stack.tif");
     }
+    return ret;
   }
 
   /**

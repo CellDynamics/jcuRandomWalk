@@ -28,11 +28,6 @@ public interface IRandomWalkSolver {
   public void free();
 
   /**
-   * Process input stack. Called if specified option is active.
-   */
-  public void processStack();
-
-  /**
    * Return raw probability map for all initial seeds.
    * 
    * <p>At least two for FG and BG should be returned. Background map always last.

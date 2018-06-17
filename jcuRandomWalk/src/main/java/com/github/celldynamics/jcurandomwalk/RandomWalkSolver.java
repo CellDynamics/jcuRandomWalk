@@ -12,8 +12,6 @@ import org.slf4j.LoggerFactory;
 import ij.ImagePlus;
 import ij.ImageStack;
 import ij.process.ImageProcessor;
-import ij.process.StackConverter;
-import ij.process.StackProcessor;
 import ij.process.StackStatistics;
 
 /**
@@ -171,44 +169,6 @@ public abstract class RandomWalkSolver implements IRandomWalkSolver {
       throw new IllegalArgumentException("Seed image is empty.");
     }
     LOGGER.debug("Seeds contain " + (pixelsNum - pixelHistNum) + " nonzero elements");
-  }
-
-  /**
-   * Apply default processing to stack. Assumes 8-bit imput.
-   * 
-   * <p>Apply 3x3 median filer 2D in each slice and normalisation.
-   * 
-   */
-  @Override
-  public void processStack() {
-    StopWatch timer = new StopWatch();
-    timer.start();
-    LOGGER.info("Processing stack");
-    ImageStack filterOut =
-            ImageStack.create(stack.getWidth(), stack.getHeight(), stack.getSize(), 8);
-    new StackProcessor(this.stack).filter3D(filterOut, 1, 1, 1, 0, stack.getSize(),
-            StackProcessor.FILTER_MEDIAN);
-    ImagePlus ip = new ImagePlus("", filterOut);
-
-    StackStatistics stats = new StackStatistics(ip);
-    double min = stats.min;
-    double max = stats.max; // test if computed for the whole stack
-    // convert stack to Float
-    StackConverter stc = new StackConverter(ip);
-    stc.convertToGray32();
-
-    for (int z = 1; z <= ip.getImageStackSize(); z++) {
-      ip.getStack().getProcessor(z).subtract(min);
-      ip.getStack().getProcessor(z).sqrt();
-    }
-    stats = new StackStatistics(ip);
-    max = 1 / stats.max;
-    for (int z = 1; z <= ip.getImageStackSize(); z++) {
-      ip.getStack().getProcessor(z).multiply(max);
-    }
-    timer.stop();
-    this.stack = ip.getStack();
-    LOGGER.info("Stack normalised in " + timer.toString());
   }
 
   /**
