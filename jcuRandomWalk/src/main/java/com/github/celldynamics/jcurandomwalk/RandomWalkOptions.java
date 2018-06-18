@@ -106,15 +106,18 @@ public class RandomWalkOptions {
     /**
      * sigmaGrad.
      */
-    public double sigmaGrad = 0.1; // TODO expose
+    public double sigmaGrad = 0.1;
     /**
      * sigmaMean.
+     * 
      */
-    public double sigmaMean = 1e6;
+    public Double sigmaMean = 1e6;
     /**
      * meanSource.
+     * 
+     * <p>If null it is computed from current input image.
      */
-    public double meanSource = 0.6;
+    public Double meanSource = null;
 
     /*
      * (non-Javadoc)
@@ -145,7 +148,7 @@ public class RandomWalkOptions {
    */
   @Override
   public String toString() {
-    return "RandomWalkOptions [thLevel=" + thLevel + ", algOptions=" + algOptions
+    return "RandomWalkOptions [thLevel=" + thLevel + ", algOptions=" + algOptions.toString()
             + ", configBaseName=" + configBaseName + ", configBaseExt=" + configBaseExt
             + ", seedSuffix=" + seedSuffix + ", outSuffix=" + outSuffix + ", configFolder="
             + configFolder + ", device=" + device + ", cpuOnly=" + cpuOnly + ", rawProbMaps="
