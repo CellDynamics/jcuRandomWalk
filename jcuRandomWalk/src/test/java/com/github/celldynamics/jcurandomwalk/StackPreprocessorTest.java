@@ -25,7 +25,7 @@ public class StackPreprocessorTest {
 
   /**
    * Test method for
-   * {@link com.github.celldynamics.jcurandomwalk.RandomWalkAlgorithmGpu#processStack()}.
+   * {@link com.github.celldynamics.jcurandomwalk.StackPreprocessor#processStack(ImageStack)}.
    * 
    * <p>Process stack, save it to tmp and check if minmax is in range 0-1
    *
@@ -39,6 +39,22 @@ public class StackPreprocessorTest {
     StackStatistics st = new StackStatistics(new ImagePlus("", ret));
     assertThat(st.min, closeTo(0.0, 1e-8));
     assertThat(st.max, closeTo(1.0, 1e-8));
+  }
+
+  /**
+   * Test method for
+   * {@link com.github.celldynamics.jcurandomwalk.StackPreprocessor#getMean(ImageStack)}.
+   * 
+   * @throws Exception
+   */
+  @Test
+  public void testGetMean() throws Exception {
+    ImageStack stack = ImageStack.create(5, 5, 3, 8);
+    stack.setVoxel(0, 0, 0, 1);
+    stack.setVoxel(0, 0, 1, 2);
+    stack.setVoxel(0, 1, 2, 3);
+    double ret = new StackPreprocessor().getMean(stack);
+    assertThat(ret, closeTo(6.0 / (5 * 5 * 3), 1e-8));
   }
 
 }

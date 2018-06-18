@@ -94,7 +94,7 @@ public class JcuRandomWalkCli {
             .desc("Apply default processing to stack. Input stack should be 8-bit. Default is "
                     + rwOptions.ifApplyProcessing)
             .longOpt("defaultprocessing").build();
-    Option autoThOption = Option.builder("t").argName("level").hasArg().type(Integer.class)
+    Option autoThOption = Option.builder("t").argName("level").hasArg().type(Double.class)
             .desc("Apply thresholding to stack and produce seeds.").longOpt("autoth").build();
 
     Option deviceOption = Option.builder().argName("device").hasArg()
@@ -133,19 +133,23 @@ public class JcuRandomWalkCli {
     Option showOption = Option.builder().desc("Show resulting image").longOpt("show").build();
 
     // alg options
-    Option maxitOption = Option.builder().argName("iter").hasArg()
+    Option maxitOption = Option.builder().argName("iter").hasArg().type(Integer.class)
             .desc("Maximum number of iterations. Default is " + rwOptions.getAlgOptions().maxit)
             .longOpt("maxit").build();
-    Option tolOption = Option.builder().argName("tol").hasArg()
+    Option tolOption = Option.builder().argName("tol").hasArg().type(Double.class)
             .desc("Tolerance. Default is " + rwOptions.getAlgOptions().tol).longOpt("tol").build();
-    Option sigmaGradOption = Option.builder().argName("num").hasArg()
+    Option sigmaGradOption = Option.builder().argName("num").hasArg().type(Double.class)
             .desc("sigmaGrad. Default is " + rwOptions.getAlgOptions().sigmaGrad)
             .longOpt("sigmaGrad").build();
-    Option sigmaMeanOption = Option.builder().argName("num").hasArg()
-            .desc("sigmaMean. Default is " + rwOptions.getAlgOptions().sigmaMean)
+    Option sigmaMeanOption = Option.builder().argName("num").hasArg().type(Double.class)
+            .desc("sigmaMean. Default is "
+                    + (rwOptions.getAlgOptions().sigmaMean == null ? "computed"
+                            : rwOptions.getAlgOptions().sigmaMean))
             .longOpt("sigmaMean").build();
-    Option meanSourceOption = Option.builder().argName("num").hasArg()
-            .desc("meanSource. Default is " + rwOptions.getAlgOptions().meanSource)
+    Option meanSourceOption = Option.builder().argName("num").hasArg().type(Double.class)
+            .desc("meanSource. Default is "
+                    + (rwOptions.getAlgOptions().meanSource == null ? "computed"
+                            : rwOptions.getAlgOptions().meanSource))
             .longOpt("meanSource").build();
 
     cliOptions = new Options();
@@ -230,6 +234,25 @@ public class JcuRandomWalkCli {
       if (cmd.hasOption("t")) {
         rwOptions.thLevel = Double.parseDouble(cmd.getOptionValue("t").trim());
       }
+      if (cmd.hasOption("maxit")) {
+        rwOptions.getAlgOptions().maxit = Integer.parseInt(cmd.getOptionValue("maxit").trim());
+      }
+      if (cmd.hasOption("tol")) {
+        rwOptions.getAlgOptions().tol =
+                (float) Double.parseDouble(cmd.getOptionValue("tol").trim());
+      }
+      if (cmd.hasOption("sigmaGrad")) {
+        rwOptions.getAlgOptions().sigmaGrad =
+                Double.parseDouble(cmd.getOptionValue("sigmaGrad").trim());
+      }
+      if (cmd.hasOption("sigmaMean")) {
+        rwOptions.getAlgOptions().sigmaMean =
+                Double.parseDouble(cmd.getOptionValue("sigmaMean").trim());
+      }
+      if (cmd.hasOption("meanSource")) {
+        rwOptions.getAlgOptions().meanSource =
+                Double.parseDouble(cmd.getOptionValue("meanSource").trim());
+      }
 
       setLogging();
       runner();
@@ -263,6 +286,9 @@ public class JcuRandomWalkCli {
       if (folderMode) { // for folder mode ignore -o and set automatic output name for each image
         rwOptions.output = Paths
                 .get(FilenameUtils.removeExtension(stackPath.toString()) + rwOptions.outSuffix);
+      }
+      if (rwOptions.getAlgOptions().meanSource == null) {
+        rwOptions.getAlgOptions().meanSource = new StackPreprocessor().getMean(stack);
       }
       if (rwOptions.thLevel >= 0) { // so -t was used
         seed = thresholdSeedAction(stack); // stack already processed
@@ -358,6 +384,7 @@ public class JcuRandomWalkCli {
    * 
    */
   public void run(ImageStack seed, ImageStack stack) throws Exception {
+    LOGGER.trace(rwOptions.toString());
     IRandomWalkSolver rwa = null;
     final int seedVal = 255; // value of seed to look for, TODO multi seed option
     StopWatch timer = StopWatch.createStarted();

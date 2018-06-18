@@ -57,4 +57,17 @@ public class StackPreprocessor {
     return ip.getStack();
   }
 
+  /**
+   * MEan intensity of stack.
+   * 
+   * @param stack stack to process
+   * @return mean of intensity
+   */
+  public double getMean(ImageStack stack) {
+    ImagePlus ip = new ImagePlus("", stack);
+    StackStatistics stats = new StackStatistics(ip);
+    LOGGER.debug("Computed mean: " + stats.mean);
+    return stats.mean;
+  }
+
 }
