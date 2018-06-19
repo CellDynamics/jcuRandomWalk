@@ -57,7 +57,7 @@ public class JcuRandomWalkCli {
   private RandomWalkOptions rwOptions;
   private Options cliOptions = null;
   private CommandLine cmd;
-  private boolean folderMode = false; // true if -i points to folder
+  // private boolean folderMode = false; // true if -i points to folder
 
   /**
    * Default constructor using default options.
@@ -111,8 +111,9 @@ public class JcuRandomWalkCli {
                             + rwOptions.seedSuffix + " (if there is no -t option)")
                     .longOpt("seed").build();
     Option outputOption = Option.builder("o").argName("output").hasArg()
-            .desc("Output image name. Default is input" + rwOptions.outSuffix).longOpt("output")
-            .build();
+            .desc("Output image name or folder where image will be stored. Default is input"
+                    + rwOptions.outSuffix)
+            .longOpt("output").build();
 
     Option rawProbOption =
             Option.builder().desc("Save raw probability maps. Default is " + rwOptions.rawProbMaps)
@@ -279,15 +280,40 @@ public class JcuRandomWalkCli {
     }
   }
 
+  /**
+   * Distribute jobs in parallel.
+   * 
+   * @throws Exception
+   */
   private void runner() throws Exception {
     ImageStack seed;
+    Path outputFolder;
     List<Path> stacks = loadImagesAction();
+    // set output paths
+    // if no -o option, output is already filled with default name in input folder
+    // if only folder given - set default name in this folder
+    if (rwOptions.output.toFile().isDirectory()) { // if only folder
+      outputFolder = rwOptions.output; // prepare default output in this folder
+      rwOptions.output = outputFolder
+              .resolve(FilenameUtils.removeExtension(rwOptions.stack.getFileName().toString())
+                      + rwOptions.outSuffix);
+    } else {
+      // output is filled with file name, take its path in case we need to enter in folderMode
+      // (file name will be ignored then)
+      outputFolder = rwOptions.output.getParent();
+    }
+
     for (Path stackPath : stacks) {
       ImageStack stack = loadImage(stackPath); // load and process stack if option selected
-      if (folderMode) { // for folder mode ignore -o and set automatic output name for each image
-        rwOptions.output = Paths
-                .get(FilenameUtils.removeExtension(stackPath.toString()) + rwOptions.outSuffix);
+      if (stacks.size() > 1) { // more than one? we need to adapt output to each separatelly
+        // for folder mode take only root of path -o and set automatic output name
+        // for each image
+        rwOptions.output = outputFolder
+                .resolve(FilenameUtils.removeExtension(stackPath.getFileName().toString())
+                        + rwOptions.outSuffix);
       }
+      // if no folder mode, output should contain filename given or automatic (automatic set in
+      // handling options)
       if (rwOptions.getAlgOptions().meanSource == null) {
         rwOptions.getAlgOptions().meanSource = new StackPreprocessor().getMean(stack);
       }
@@ -297,7 +323,7 @@ public class JcuRandomWalkCli {
         seed = loadSeedAction();
       }
       LOGGER.info("Processing file " + stackPath.getFileName().toString());
-      run(seed, stack);
+      run(seed, stack, rwOptions); // TODO Options can be copied and run in parallel
       if (stacks.size() > 1) {
         LOGGER.info(
                 "-----------------------------------------------------------------------------");
@@ -326,7 +352,7 @@ public class JcuRandomWalkCli {
       });
       ret.addAll(Stream.of(inFolder).map(f -> f.toPath()).collect(Collectors.toList()));
       LOGGER.info("Discovered " + ret.size() + " files in " + rwOptions.stack.toString());
-      folderMode = true;
+      // folderMode = true;
     } else if (rwOptions.stack.toFile().isFile()) {
       ret.add(rwOptions.stack); // just add this one
     } else {
@@ -380,11 +406,12 @@ public class JcuRandomWalkCli {
    * 
    * @param seed seeds
    * @param stack stack
+   * @param rwOptions own copy of options
    * 
    * @throws Exception
    * 
    */
-  public void run(ImageStack seed, ImageStack stack) throws Exception {
+  public void run(ImageStack seed, ImageStack stack, RandomWalkOptions rwOptions) throws Exception {
     LOGGER.trace(rwOptions.toString());
     IRandomWalkSolver rwa = null;
     final int seedVal = 255; // value of seed to look for, TODO multi seed option

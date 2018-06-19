@@ -147,11 +147,6 @@ public class RandomWalkOptions {
     return algOptions;
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see java.lang.Object#toString()
-   */
   @Override
   public String toString() {
     return "RandomWalkOptions [thLevel=" + thLevel + ", algOptions=" + algOptions.toString()
@@ -160,7 +155,8 @@ public class RandomWalkOptions {
             + configFolder + ", device=" + device + ", cpuOnly=" + cpuOnly + ", rawProbMaps="
             + rawProbMaps + ", stack=" + stack + ", seeds=" + seeds + ", output=" + output
             + ", ifComputeIncidence=" + ifComputeIncidence + ", ifSaveIncidence=" + ifSaveIncidence
-            + ", ifApplyProcessing=" + ifApplyProcessing + ", debugLevel=" + debugLevel + "]";
+            + ", ifApplyProcessing=" + ifApplyProcessing + ", gammaVal=" + gammaVal
+            + ", debugLevel=" + debugLevel + "]";
   }
 
 }
