@@ -111,6 +111,7 @@ public class IncidenceMatrixGeneratorTest {
   public void testIncidenceMatrix() throws Exception {
     assumeTrue(isCuda);
     RandomWalkOptions options = new RandomWalkOptions();
+    options.algOptions.meanSource = 0.6;
     LOGGER.debug(
             ArrayTools.printArray(ArrayTools.array2Object(stack.getProcessor(1).getFloatArray())));
     LOGGER.debug(
@@ -197,6 +198,7 @@ public class IncidenceMatrixGeneratorTest {
   public void testSaveObject() throws Exception {
     // TODO use factory to get Host from incidence
     RandomWalkOptions options = new RandomWalkOptions();
+    options.algOptions.meanSource = 0.6;
     IncidenceMatrixGenerator obj = new IncidenceMatrixGenerator(stack, options.getAlgOptions());
     double[][] objFull = obj.getIncidence().full();
     File filename = folder.newFile();
@@ -288,6 +290,7 @@ public class IncidenceMatrixGeneratorTest {
     int height = 3;
     int nz = 3;
     RandomWalkOptions options = new RandomWalkOptions();
+    options.algOptions.meanSource = 0.6;
     stack = TestDataGenerators.getTestStack(width, height, nz, "double");
     IncidenceMatrixGenerator obj = new IncidenceMatrixGenerator(stack, options.getAlgOptions());
     obj.computeSinkBox();
@@ -335,6 +338,7 @@ public class IncidenceMatrixGeneratorTest {
   @Test
   public void testAssignStack() throws Exception {
     RandomWalkOptions options = new RandomWalkOptions();
+    options.algOptions.meanSource = 0.6;
     ImageStack ts = TestDataGenerators.getTestStack_1();
     IncidenceMatrixGenerator inc = new IncidenceMatrixGenerator(ts, options.getAlgOptions());
     inc.assignStack(ts);

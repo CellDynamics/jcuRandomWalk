@@ -3,6 +3,8 @@ package com.github.celldynamics.jcurandomwalk;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import org.apache.commons.lang3.ArrayUtils;
@@ -136,21 +138,18 @@ public class RandomWalkAlgorithmGpu extends RandomWalkSolver {
     LOGGER.info("Computing B");
     StopWatch timer = StopWatch.createStarted();
     // on gpu it could be completely different
-    // 49sec
-    // List<Integer> ilist = Arrays.asList(ArrayUtils.toObject(indexes));
-    // // all cols except indexes
-    // int[] colsRemove = IntStream.range(0, lap.getColNumber()).parallel()
-    // .filter(x -> !ilist.contains(x)).toArray();
 
-    // int[] indexescp = Arrays.copyOf(indexes, indexes.length);
-    // Arrays.sort(indexescp); // TODO sort on output and remove copy
-    List<Integer> colsRemovea = new ArrayList<Integer>(lapRowsRem.getColNumber());
-    for (int i = 0; i < lapRowsRem.getColNumber(); i++) {
-      int a = Arrays.binarySearch(indexes, i); // assuming indexes sorted
-      if (a < 0) { // not found
-        colsRemovea.add(i);
-      }
-    }
+    // List<Integer> colsRemovea = new ArrayList<Integer>(lapRowsRem.getColNumber());
+    // for (int i = 0; i < lapRowsRem.getColNumber(); i++) {
+    // int a = Arrays.binarySearch(indexes, i); // assuming indexes sorted
+    // if (a < 0) { // not found
+    // colsRemovea.add(i);
+    // }
+    // }
+
+    List<Integer> colsRemovea = IntStream.range(0, lapRowsRem.getColNumber()).boxed().parallel()
+            .filter(i -> Arrays.binarySearch(indexes, i) < 0).collect(Collectors.toList());
+
     int[] colsRemove = ArrayUtils.toPrimitive(colsRemovea.toArray(new Integer[0]));
 
     SparseMatrixDevice tmp = lapRowsRem.removeCols(colsRemove);
@@ -159,6 +158,8 @@ public class RandomWalkAlgorithmGpu extends RandomWalkSolver {
       sum[i] *= -1;
     }
     DenseVectorDevice ret = new DenseVectorDevice(tmp.getRowNumber(), 1, sum);
+
+    // DenseVectorDevice ret = lapRowsRem.sumAlongRows(indexes);
     timer.stop();
     LOGGER.info("B computed in " + timer.toString());
     return ret;
