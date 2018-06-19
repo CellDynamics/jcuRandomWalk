@@ -84,6 +84,12 @@ public class RandomWalkOptions {
    */
   boolean ifApplyProcessing = false;
   /**
+   * Gamma for processing stack with defaultprocessing option.
+   * 
+   * @see #ifApplyProcessing
+   */
+  public double gammaVal = 0.5;
+  /**
    * Default debug level.
    */
   Level debugLevel = Level.INFO;

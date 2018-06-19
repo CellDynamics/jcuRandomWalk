@@ -24,7 +24,7 @@ public class JcuRandomWalkRun {
            + "-o /tmp/solution_small.tif "
            + "-dd "
            + "--autoth 0.95 "
-           + "--defaultprocessing "
+           + "--defaultprocessing 0.4 "
            + "--sigmaMean 0.05 "
            + "--sigmaGrad 0.1 "
            + "--probmaps";

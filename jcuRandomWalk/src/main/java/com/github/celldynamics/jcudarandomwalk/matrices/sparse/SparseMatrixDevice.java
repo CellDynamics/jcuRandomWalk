@@ -593,7 +593,7 @@ public class SparseMatrixDevice extends SparseCoordinates implements ICudaLibHan
    * @param iLuBiCGStabSolve
    * @param iter
    * @param tol
-   * @return
+   * @return solution
    */
   public float[] luSolve(DenseVectorDevice b_gpuPtrAny, boolean iLuBiCGStabSolve, int iter,
           float tol) {
@@ -875,7 +875,9 @@ public class SparseMatrixDevice extends SparseCoordinates implements ICudaLibHan
               iLUcooVal_gpuPtr, iLUcsrRowIndex_gpuPtr, iLUcooColIndex_gpuPtr, infoL);
       cusparseScsrsv_analysis(handle, CUSPARSE_OPERATION_NON_TRANSPOSE, n, nnz, descr_U,
               iLUcooVal_gpuPtr, iLUcsrRowIndex_gpuPtr, iLUcooColIndex_gpuPtr, infoU);
-
+      timer.split();
+      LOGGER.debug("... Step cusparseScsrsv_analysis accomplished in " + timer.toSplitString());
+      timer.unsplit();
       // 1 : compute initial residual r = b âˆ’ A x0 ( using initial guess in
       // x )
       cusparseScsrmv(handle, CUSPARSE_OPERATION_NON_TRANSPOSE, n, n, nnz, Pointer.to(one_host),
@@ -883,12 +885,17 @@ public class SparseMatrixDevice extends SparseCoordinates implements ICudaLibHan
               Pointer.to(zero_host), r);
       cublasSscal(cublashandle, n, Pointer.to(minus_one_host), r, 1);
       cublasSaxpy(cublashandle, n, Pointer.to(one_host), b_gpuPtr.getValPtr(), 1, r, 1);
+      timer.split();
+      LOGGER.debug("... Step cusparseScsrmv accomplished in " + timer.toSplitString());
+      timer.unsplit();
 
       // 2 : Set p=r and \tilde{r}=r
       cublasScopy(cublashandle, n, r, 1, p, 1);
       cublasScopy(cublashandle, n, r, 1, rw, 1);
       cublasSnrm2(cublashandle, n, r, 1, Pointer.to(nrmr0));
-
+      timer.split();
+      LOGGER.debug("... Step cublasSnrm2 accomplished in " + timer.toSplitString());
+      timer.unsplit();
       // 3 : repeat until convergence (based on maximum number of
       // iterations and relative residual)
 
