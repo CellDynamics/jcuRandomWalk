@@ -90,7 +90,7 @@ public class JcuRandomWalkCli {
     gl.addOption(saveIncOption);
     gl.addOption(loadIncOption);
 
-    Option defProcessOption = Option.builder()
+    Option defProcessOption = Option.builder().argName("gamma").hasArg().type(Double.class)
             .desc("Apply default processing to stack. Input stack should be 8-bit. Default is "
                     + rwOptions.ifApplyProcessing)
             .longOpt("defaultprocessing").build();
@@ -218,6 +218,7 @@ public class JcuRandomWalkCli {
       }
       if (cmd.hasOption("defaultprocessing")) {
         rwOptions.ifApplyProcessing = true;
+        rwOptions.gammaVal = Double.parseDouble(cmd.getOptionValue("defaultprocessing").trim());
       }
       if (cmd.hasOption("q")) {
         rwOptions.debugLevel = Level.WARN;
@@ -494,7 +495,10 @@ public class JcuRandomWalkCli {
    * @param rwa instance of solver.
    */
   private ImageStack applyProcessingAction(ImageStack stack) {
-    ImageStack ret = new StackPreprocessor().processStack(stack);
+    if (rwOptions.ifApplyProcessing == false) {
+      return stack;
+    }
+    ImageStack ret = new StackPreprocessor().processStack(stack, rwOptions.gammaVal);
     if (rwOptions.debugLevel.toInt() < Level.INFO_INT) {
       ImagePlus tmpImg = new ImagePlus("", ret);
       String tmpdir = System.getProperty("java.io.tmpdir") + File.separator;

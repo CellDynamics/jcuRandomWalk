@@ -18,6 +18,9 @@ import ij.process.StackStatistics;
  */
 public class StackPreprocessor {
 
+  /**
+   * Lgger.
+   */
   static final Logger LOGGER = LoggerFactory.getLogger(StackPreprocessor.class.getName());
 
   /**
@@ -25,8 +28,12 @@ public class StackPreprocessor {
    * 
    * <p>Apply 3x3 median filer 2D in each slice and normalisation.
    * 
+   * @param stack stack to process
+   * @param gammaVal gamma value
+   * @return processed stack
+   * 
    */
-  public ImageStack processStack(ImageStack stack) {
+  public ImageStack processStack(ImageStack stack, double gammaVal) {
     StopWatch timer = new StopWatch();
     timer.start();
     LOGGER.info("Processing stack");
@@ -45,7 +52,7 @@ public class StackPreprocessor {
 
     for (int z = 1; z <= ip.getImageStackSize(); z++) {
       ip.getStack().getProcessor(z).subtract(min);
-      ip.getStack().getProcessor(z).sqrt();
+      ip.getStack().getProcessor(z).gamma(gammaVal);
     }
     stats = new StackStatistics(ip);
     max = 1 / stats.max;

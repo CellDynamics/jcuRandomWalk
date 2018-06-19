@@ -34,7 +34,7 @@ public class StackPreprocessorTest {
   @Test
   public void testProcessStack() throws Exception {
     ImagePlus teststack = IJ.openImage("src/test/test_data/Stack_cut.tif");
-    ImageStack ret = new StackPreprocessor().processStack(teststack.getImageStack());
+    ImageStack ret = new StackPreprocessor().processStack(teststack.getImageStack(), 0.5);
     IJ.saveAsTiff(new ImagePlus("", ret), tmpdir + "testProcessStack.tiff");
     StackStatistics st = new StackStatistics(new ImagePlus("", ret));
     assertThat(st.min, closeTo(0.0, 1e-8));
