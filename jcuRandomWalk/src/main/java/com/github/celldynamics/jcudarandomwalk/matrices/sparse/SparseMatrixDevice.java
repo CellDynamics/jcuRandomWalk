@@ -543,6 +543,14 @@ public class SparseMatrixDevice extends SparseCoordinates implements ICudaLibHan
     transferToGpu(rowInd, colInd, val);
   }
 
+  /**
+   * Sum along all rows.
+   * 
+   * <p>It is faster to remove rows first and then call this method than to use
+   * {@link #sumAlongRows(Integer[])}.
+   * 
+   * @return sum
+   */
   public DenseVectorDevice sumAlongRows() {
     this.toCpu(true);
     float[] sum = sumAlongRowsIndices();

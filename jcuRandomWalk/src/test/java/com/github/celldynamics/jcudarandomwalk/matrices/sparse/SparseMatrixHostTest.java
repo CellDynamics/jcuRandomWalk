@@ -412,6 +412,27 @@ public class SparseMatrixHostTest {
     testL.free();
   }
 
+  // /**
+  // * Test sum along rows.
+  // *
+  // * @throws Exception the exception
+  // */
+  // @Test
+  // public void testSumAlongRowsIndices() throws Exception {
+  // assumeTrue(isCuda);
+  // int[] ri = new int[] { 0, 0, 0, 1, 2, 3, 4, 4, 5 };
+  // int[] ci = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
+  // float[] v = new float[] { 10, 101, 102, 11, 12, 13, 131, 14, 15 };
+  // SparseMatrixDevice testL =
+  // new SparseMatrixDevice(ri, ci, v, SparseMatrixType.MATRIX_FORMAT_COO);
+  //
+  // DenseVectorDevice ret = testL.sumAlongRows(new Integer[] { 0, 1, 2, 3, 4, 5 });
+  // assertThat(Arrays.asList(ret.getVal()),
+  // contains(new float[] { 213.0f, 11.0f, 12.0f, 13.0f, 145.0f, 15.0f }));
+  // ret.free();
+  // testL.free();
+  // }
+
   /**
    * Test sum along rows.
    *
@@ -435,5 +456,26 @@ public class SparseMatrixHostTest {
     ret.free();
     testL.free();
   }
+
+  // /**
+  // * Test sum along rows.
+  // *
+  // * @throws Exception the exception
+  // */
+  // @Test
+  // public void testSumAlongRowsIndices_1() throws Exception {
+  // assumeTrue(isCuda);
+  // int[] ri = new int[] { 0, 0, 1, 3, 4, 5 };
+  // int[] ci = new int[] { 0, 3, 0, 1, 2, 3 };
+  // float[] v = new float[] { 101.0f, 102.0f, 11.0f, 13.0f, 14.0f, 15.0f };
+  // SparseMatrixDevice testL =
+  // new SparseMatrixDevice(ri, ci, v, SparseMatrixType.MATRIX_FORMAT_COO);
+  //
+  // DenseVectorDevice ret = testL.sumAlongRows(new Integer[] { 0, 1, 2, 3, 4, 5 });
+  // assertThat(Arrays.asList(ret.getVal()),
+  // contains(new float[] { 203.0f, 11.0f, 0.0f, 13.0f, 14.0f, 15.0f }));
+  // ret.free();
+  // testL.free();
+  // }
 
 }

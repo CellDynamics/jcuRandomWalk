@@ -155,6 +155,7 @@ public class RandomWalkAlgorithmGpuTest {
   @Test
   public void testComputeIncidence() throws Exception {
     RandomWalkOptions options = new RandomWalkOptions();
+    options.algOptions.meanSource = 0.6;
     options.configFolder = folder.newFolder().toPath();
     options.ifComputeIncidence = false;
     RandomWalkAlgorithmGpu obj = new RandomWalkAlgorithmGpu(stack, options);
@@ -175,6 +176,7 @@ public class RandomWalkAlgorithmGpuTest {
   public void testComputeLaplacian_1() throws Exception {
     assumeTrue(isCuda);
     RandomWalkOptions options = new RandomWalkOptions();
+    options.algOptions.meanSource = 0.6;
     options.configFolder = folder.newFolder().toPath();
     // mocked IncidenceMatrixGenerator that return fixed weights
     IncidenceMatrixGenerator img =
@@ -344,6 +346,7 @@ public class RandomWalkAlgorithmGpuTest {
   public void testSolve() throws Exception {
     assumeTrue(isCuda);
     RandomWalkOptions options = new RandomWalkOptions();
+    options.algOptions.meanSource = 0.6;
     ImageStack org = IJ.openImage("src/test/test_data/segment_test_normalised.tif").getImageStack();
     ImageStack seeds = IJ.openImage("src/test/test_data/segment_test_seeds.tif").getImageStack();
     RandomWalkAlgorithmGpu obj = new RandomWalkAlgorithmGpu(org, options);

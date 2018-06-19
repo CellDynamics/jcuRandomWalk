@@ -244,9 +244,12 @@ public class SparseCoordinates implements Serializable {
     int[] ri = this.getRowInd();
     float[] v = this.getVal();
     float[] ret = new float[this.getRowNumber()];
-    for (int i = 0; i < ri.length; i++) { // along all row indices
-      ret[ri[i]] += v[i]; // sum all elements from the same row
-    }
+    // for (int i = 0; i < ri.length; i++) { // along all row indices
+    // ret[ri[i]] += v[i]; // sum all elements from the same row
+    // }
+    IntStream.range(0, ri.length).parallel().forEach(i -> {
+      ret[ri[i]] += v[i];
+    });
 
     return ret;
   }
