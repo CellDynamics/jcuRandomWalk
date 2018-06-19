@@ -1,5 +1,8 @@
 # Change Log
 
+## [v1.0.0](https://github.com/CellDynamics/jcuRandomWalk/tree/v1.0.0) (2018-06-19)
+[Full Changelog](https://github.com/CellDynamics/jcuRandomWalk/compare/v0.2.0...v1.0.0)
+
 ## [v0.2.0](https://github.com/CellDynamics/jcuRandomWalk/tree/v0.2.0) (2018-05-31)
 [Full Changelog](https://github.com/CellDynamics/jcuRandomWalk/compare/v0.1.0...v0.2.0)
 
