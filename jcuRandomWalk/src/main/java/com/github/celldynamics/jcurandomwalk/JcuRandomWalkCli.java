@@ -29,6 +29,7 @@ import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.apache.commons.lang3.time.StopWatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -336,7 +337,10 @@ public class JcuRandomWalkCli {
     } else {
       numThreads = 1;
     }
-    executor = Executors.newFixedThreadPool(numThreads);
+    // to have own naming pattern
+    BasicThreadFactory threadFacory =
+            new BasicThreadFactory.Builder().namingPattern("th-%d").build();
+    executor = Executors.newFixedThreadPool(numThreads, threadFacory);
     for (GpuRunner gpr : opt) {
       executor.submit(gpr);
     }
@@ -381,7 +385,13 @@ public class JcuRandomWalkCli {
     LoggerContext loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
     PatternLayoutEncoder logEncoder = new PatternLayoutEncoder();
     logEncoder.setContext(loggerContext);
-    logEncoder.setPattern("%highlight([%-5level]) %gray(%-25logger{0}) - %msg%n");
+    // for MT show thread as well
+    if (rwOptions.device < 0) {
+      logEncoder.setPattern(
+              "%highlight([%-5level]) %boldRed({%thread}) %gray(%-25logger{0}) - %msg%n");
+    } else {
+      logEncoder.setPattern("%highlight([%-5level]) %gray(%-25logger{0}) - %msg%n");
+    }
     logEncoder.start();
     ConsoleAppender<ILoggingEvent> logConsoleAppender = new ConsoleAppender<ILoggingEvent>();
     logConsoleAppender.setContext(loggerContext);
@@ -390,9 +400,22 @@ public class JcuRandomWalkCli {
     logConsoleAppender.setTarget("System.out");
     logConsoleAppender.start();
 
-    Logger rootLogger = loggerContext.getLogger("com.github.celldynamics");
-    ((ch.qos.logback.classic.Logger) rootLogger).setLevel(rwOptions.debugLevel);
-    if (rwOptions.debugLevel.toInt() >= Level.INFO_INT) {
+    // limit logging if -q AND MT
+    // reduce logs only from THIS class
+    Logger rootLogger = null;
+    if (rwOptions.debugLevel.toInt() >= Level.INFO_INT && rwOptions.device < 0) {
+      rootLogger = loggerContext.getLogger("com.github.celldynamics");
+      ((ch.qos.logback.classic.Logger) rootLogger).setLevel(Level.OFF);
+
+      rootLogger =
+              loggerContext.getLogger("com.github.celldynamics.jcurandomwalk.JcuRandomWalkCli");
+      ((ch.qos.logback.classic.Logger) rootLogger).setLevel(rwOptions.debugLevel);
+    } else {
+      rootLogger = loggerContext.getLogger("com.github.celldynamics");
+      ((ch.qos.logback.classic.Logger) rootLogger).setLevel(rwOptions.debugLevel);
+    }
+
+    if (rwOptions.debugLevel.toInt() >= Level.INFO_INT) {// activate for info and more only
       ((ch.qos.logback.classic.Logger) rootLogger).setAdditive(false);
       ((ch.qos.logback.classic.Logger) rootLogger).addAppender(logConsoleAppender);
     }
@@ -423,7 +446,6 @@ public class JcuRandomWalkCli {
    */
   public void run(RandomWalkOptions rwOptions) throws Exception {
     LOGGER.trace(rwOptions.toString());
-    LOGGER.info("Processing file " + rwOptions.stack.toString());
     ImageStack seed;
     IRandomWalkSolver rwa = null;
     final int seedVal = 255; // value of seed to look for, TODO multi seed option
@@ -440,18 +462,22 @@ public class JcuRandomWalkCli {
       seed = loadSeedAction(rwOptions.seeds);
     }
 
+    Integer dev = null;
     if (rwOptions.cpuOnly == false) {
       // create main object
       rwa = new RandomWalkAlgorithmGpu(stack, rwOptions);
       // if one thread use info from RandomWalkOptions, otherwise compute device from thread number
       if (numThreads == 1) {
         deviceAction(rwOptions.device);
+        dev = rwOptions.device;
       } else {
-        deviceAction((int) (Thread.currentThread().getId() % numThreads));
+        dev = (int) (Thread.currentThread().getId() % numThreads);
+        deviceAction(dev);
       }
     } else {
       rwa = new RandomWalkAlgorithmOj(stack, rwOptions);
     }
+    LOGGER.info("Processing file " + rwOptions.stack.toString() + " on device " + dev);
     rwa.initilize(); // TODO move to construcor
     rwa.validateSeeds(seed);
     ImageStack segmented = rwa.solve(seed, seedVal);
@@ -612,7 +638,7 @@ public class JcuRandomWalkCli {
    */
   private void deviceAction(int device) {
     cudaSetDevice(device);
-    LOGGER.info(String.format("Using device %d", device));
+    LOGGER.debug(String.format("Using device %d", device));
   }
 
   /**
