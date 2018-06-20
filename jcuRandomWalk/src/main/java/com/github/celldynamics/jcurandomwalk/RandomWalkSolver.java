@@ -156,6 +156,7 @@ public abstract class RandomWalkSolver implements IRandomWalkSolver {
    * 
    * @see com.github.celldynamics.jcurandomwalk.IRandomWalkSolver#validateSeeds(ij.ImageStack)
    */
+  @Override
   public void validateSeeds(ImageStack seed) {
     int pixelsNum = 0;
     int pixelHistNum = 0;
