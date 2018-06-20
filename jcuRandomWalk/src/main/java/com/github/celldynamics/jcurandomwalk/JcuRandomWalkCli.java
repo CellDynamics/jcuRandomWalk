@@ -8,6 +8,7 @@ import java.awt.event.WindowEvent;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -29,6 +30,7 @@ import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.apache.commons.lang3.time.StopWatch;
 import org.slf4j.Logger;
@@ -104,13 +106,13 @@ public class JcuRandomWalkCli {
 
     Option deviceOption = Option.builder().argName("device").hasArg()
             .desc("Select CUDA device. Negative number stands for number of threads to be used. It "
-                    + "should equal to the number of GPUS. Default is " + rwOptions.device)
+                    + "should equal to the number of GPUs. Default is " + rwOptions.device)
             .type(Integer.class).longOpt("device").build();
     Option cpuOption = Option.builder().desc("Use CPU only. Default is " + rwOptions.cpuOnly)
             .longOpt("cpuonly").build();
 
     Option imageOption = Option.builder("i").argName("input").hasArg().required()
-            .desc("Stack to process. Must be in range 0-1.").longOpt("image").build();
+            .desc("Stack or folder to process.").longOpt("image").build();
     Option seedOption =
             Option.builder("s").argName("seeds").hasArg()
                     .desc("Seeds as binary image of size of \"input\". Default is \"input\""
@@ -435,6 +437,14 @@ public class JcuRandomWalkCli {
     header = header.concat(tv.getToolversion(authors));
     String footer = "\n\n";
     formatter.printHelp("JcuRandomWalk", header, cliOptions, footer, true);
+
+    System.out.println("\n");
+    InputStream inputStream = getClass().getResourceAsStream("Readme.md");
+    try {
+      IOUtils.copy(inputStream, System.out);
+    } catch (IOException e) {
+      LOGGER.error(e.getMessage());
+    }
   }
 
   /**
