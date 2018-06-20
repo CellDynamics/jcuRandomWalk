@@ -38,6 +38,8 @@ import ij.IJ;
 import ij.ImagePlus;
 import ij.ImageStack;
 import jcuda.jcusparse.JCusparse;
+import jcuda.jcusparse.cusparseHandle;
+import jcuda.runtime.JCuda;
 
 /**
  * The Class RandomWalkAlgorithmTest.
@@ -75,6 +77,8 @@ public class RandomWalkAlgorithmGpuTest {
    * The tmpdir.
    */
   static String tmpdir = System.getProperty("java.io.tmpdir") + File.separator;
+
+  private static cusparseHandle handle;
 
   /** The folder. */
   @Rule
@@ -128,7 +132,10 @@ public class RandomWalkAlgorithmGpuTest {
   @BeforeClass
   public static void before() {
     try {
-      RandomWalkAlgorithmGpu.initilizeGpu();
+      handle = new cusparseHandle();
+      JCusparse.setExceptionsEnabled(true);
+      JCuda.setExceptionsEnabled(true);
+      JCusparse.cusparseCreate(handle);
     } catch (UnsatisfiedLinkError | NoClassDefFoundError e) {
       LOGGER.error(e.getMessage());
     }
@@ -140,7 +147,9 @@ public class RandomWalkAlgorithmGpuTest {
   @AfterClass
   public static void after() {
     try {
-      RandomWalkAlgorithmGpu.finish();
+      JCusparse.setExceptionsEnabled(false);
+      JCuda.setExceptionsEnabled(false);
+      JCusparse.cusparseDestroy(handle);
     } catch (UnsatisfiedLinkError | NoClassDefFoundError e) {
       LOGGER.error(e.getMessage());
     }
@@ -241,7 +250,7 @@ public class RandomWalkAlgorithmGpuTest {
     int[] ci = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
     float[] v = new float[] { 10, 101, 102, 11, 12, 13, 131, 14, 15 };
     SparseMatrixDevice testL =
-            new SparseMatrixDevice(ri, ci, v, SparseMatrixType.MATRIX_FORMAT_COO);
+            new SparseMatrixDevice(ri, ci, v, SparseMatrixType.MATRIX_FORMAT_COO, handle);
     LOGGER.debug("Laplacean" + testL.toString());
     RandomWalkAlgorithmGpu obj = new RandomWalkAlgorithmGpu();
 
@@ -297,7 +306,7 @@ public class RandomWalkAlgorithmGpuTest {
     int[] ci = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
     float[] v = new float[] { 10, 101, 102, 11, 12, 13, 131, 14, 15 };
     SparseMatrixDevice testL =
-            new SparseMatrixDevice(ri, ci, v, SparseMatrixType.MATRIX_FORMAT_COO);
+            new SparseMatrixDevice(ri, ci, v, SparseMatrixType.MATRIX_FORMAT_COO, handle);
     DenseVectorDevice ret = obj.computeB(testL, new Integer[] { 0, 1 });
     assertThat(Arrays.asList(ret.getVal()),
             contains(new float[] { -111.0f, -11.0f, -0f, -0f, -131.0f, -0.0f }));

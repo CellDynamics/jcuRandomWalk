@@ -39,6 +39,12 @@ public class RandomWalkSolverTest {
         return null;
       }
 
+      @Override
+      public void initilize() {
+        // TODO Auto-generated method stub
+
+      }
+
     };
     cli.validateSeeds(stack);
   }
@@ -69,6 +75,12 @@ public class RandomWalkSolverTest {
       public List<ImageStack> getRawProbs() {
         // TODO Auto-generated method stub
         return null;
+      }
+
+      @Override
+      public void initilize() {
+        // TODO Auto-generated method stub
+
       }
 
     };

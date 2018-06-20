@@ -1,6 +1,5 @@
 package com.github.celldynamics.jcurandomwalk;
 
-import static jcuda.runtime.JCuda.cudaGetDeviceCount;
 import static jcuda.runtime.JCuda.cudaSetDevice;
 
 import java.awt.Window;
@@ -13,7 +12,11 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -57,7 +60,8 @@ public class JcuRandomWalkCli {
   private RandomWalkOptions rwOptions;
   private Options cliOptions = null;
   private CommandLine cmd;
-  // private boolean folderMode = false; // true if -i points to folder
+  private int numThreads = 1;
+  ExecutorService executor = null;
 
   /**
    * Default constructor using default options.
@@ -98,8 +102,9 @@ public class JcuRandomWalkCli {
             .desc("Apply thresholding to stack and produce seeds.").longOpt("autoth").build();
 
     Option deviceOption = Option.builder().argName("device").hasArg()
-            .desc("Select CUDA device. Default is " + rwOptions.device).type(Integer.class)
-            .longOpt("device").build();
+            .desc("Select CUDA device. Negative number stands for number of threads to be used. It "
+                    + "should equal to the number of GPUS. Default is " + rwOptions.device)
+            .type(Integer.class).longOpt("device").build();
     Option cpuOption = Option.builder().desc("Use CPU only. Default is " + rwOptions.cpuOnly)
             .longOpt("cpuonly").build();
 
@@ -274,9 +279,9 @@ public class JcuRandomWalkCli {
       }
       cliErrorStatus = 1; // finish with error
     } finally { // GPU clean up
-      if (rwOptions.cpuOnly == false) {
-        RandomWalkAlgorithmGpu.finish();
-      }
+      // if (rwOptions.cpuOnly == false) {
+      // RandomWalkAlgorithmGpu.finish();
+      // }
     }
   }
 
@@ -286,8 +291,11 @@ public class JcuRandomWalkCli {
    * @throws Exception
    */
   private void runner() throws Exception {
-    ImageStack seed;
+    ArrayList<GpuRunner> opt = new ArrayList<GpuRunner>();
     Path outputFolder;
+    // this can be folder to seed if specified or folder to input image (if not specified - default
+    // action)
+    Path seedFolder = rwOptions.seeds.getParent();
     List<Path> stacks = loadImagesAction();
     // set output paths
     // if no -o option, output is already filled with default name in input folder
@@ -304,31 +312,36 @@ public class JcuRandomWalkCli {
     }
 
     for (Path stackPath : stacks) {
-      ImageStack stack = loadImage(stackPath); // load and process stack if option selected
+      RandomWalkOptions local = new RandomWalkOptions(rwOptions); // make copy
       if (stacks.size() > 1) { // more than one? we need to adapt output to each separatelly
         // for folder mode take only root of path -o and set automatic output name
         // for each image
-        rwOptions.output = outputFolder
+        local.output = outputFolder
                 .resolve(FilenameUtils.removeExtension(stackPath.getFileName().toString())
                         + rwOptions.outSuffix);
+        // and seed (from default folder - either given by user or input image)
+        local.seeds =
+                seedFolder.resolve(FilenameUtils.removeExtension(stackPath.getFileName().toString())
+                        + rwOptions.seedSuffix);
+        local.stack = stackPath;
       }
-      // if no folder mode, output should contain filename given or automatic (automatic set in
-      // handling options)
-      if (rwOptions.getAlgOptions().meanSource == null) {
-        rwOptions.getAlgOptions().meanSource = new StackPreprocessor().getMean(stack);
-      }
-      if (rwOptions.thLevel >= 0) { // so -t was used
-        seed = thresholdSeedAction(stack); // stack already processed
-      } else { // load seed given or default
-        seed = loadSeedAction();
-      }
-      LOGGER.info("Processing file " + stackPath.getFileName().toString());
-      run(seed, stack, rwOptions); // TODO Options can be copied and run in parallel
-      if (stacks.size() > 1) {
-        LOGGER.info(
-                "-----------------------------------------------------------------------------");
-      }
+      opt.add(new GpuRunner(local));
+      // if (stacks.size() > 1) {
+      // LOGGER.info(
+      // "-----------------------------------------------------------------------------");
+      // }
     }
+    if (rwOptions.device < 0) {
+      numThreads = Math.abs(rwOptions.device);
+    } else {
+      numThreads = 1;
+    }
+    executor = Executors.newFixedThreadPool(numThreads);
+    for (GpuRunner gpr : opt) {
+      executor.submit(gpr);
+    }
+    executor.shutdown();
+    executor.awaitTermination(1, TimeUnit.DAYS);
   }
 
   /**
@@ -404,25 +417,42 @@ public class JcuRandomWalkCli {
   /**
    * Run segmentation.
    * 
-   * @param seed seeds
-   * @param stack stack
    * @param rwOptions own copy of options
-   * 
    * @throws Exception
    * 
    */
-  public void run(ImageStack seed, ImageStack stack, RandomWalkOptions rwOptions) throws Exception {
+  public void run(RandomWalkOptions rwOptions) throws Exception {
     LOGGER.trace(rwOptions.toString());
+    LOGGER.info("Processing file " + rwOptions.stack.toString());
+    ImageStack seed;
     IRandomWalkSolver rwa = null;
     final int seedVal = 255; // value of seed to look for, TODO multi seed option
     StopWatch timer = StopWatch.createStarted();
+    ImageStack stack = loadImage(rwOptions.stack); // load and process stack if option selected
+    // if no folder mode, output should contain filename given or automatic (automatic set in
+    // handling options)
+    if (rwOptions.getAlgOptions().meanSource == null) {
+      rwOptions.getAlgOptions().meanSource = new StackPreprocessor().getMean(stack);
+    }
+    if (rwOptions.thLevel >= 0) { // so -t was used
+      seed = thresholdSeedAction(stack); // stack already processed
+    } else { // load seed given or default
+      seed = loadSeedAction(rwOptions.seeds);
+    }
+
     if (rwOptions.cpuOnly == false) {
-      deviceAction();
       // create main object
       rwa = new RandomWalkAlgorithmGpu(stack, rwOptions);
+      // if one thread use info from RandomWalkOptions, otherwise compute device from thread number
+      if (numThreads == 1) {
+        deviceAction(rwOptions.device);
+      } else {
+        deviceAction((int) (Thread.currentThread().getId() % numThreads));
+      }
     } else {
       rwa = new RandomWalkAlgorithmOj(stack, rwOptions);
     }
+    rwa.initilize(); // TODO move to construcor
     rwa.validateSeeds(seed);
     ImageStack segmented = rwa.solve(seed, seedVal);
     ImagePlus segmentedImage = new ImagePlus("", segmented);
@@ -434,14 +464,14 @@ public class JcuRandomWalkCli {
     LOGGER.info("Output " + rwOptions.output.toString() + " saved");
     timer.stop();
     LOGGER.info("Solved in " + timer.toString());
-    rwa.free();
     // actions
     if (cmd != null && cmd.hasOption("show")) {
       showResultAction(segmentedImage);
     }
     if (rwOptions.rawProbMaps) {
-      rawProbMapsAction(rwa);
+      rawProbMapsAction(rwa, rwOptions);
     }
+    rwa.free();
   }
 
   /**
@@ -478,17 +508,19 @@ public class JcuRandomWalkCli {
   /**
    * Action for -s option.
    * 
+   * @param seeds
+   * 
    * @return loaded seeds
    * 
    * @throws IOException if file not found
    */
-  private ImageStack loadSeedAction() throws IOException {
+  private ImageStack loadSeedAction(Path seeds) throws IOException {
     ImageStack seed;
     StopWatch timer = StopWatch.createStarted();
-    if (!rwOptions.seeds.toFile().exists()) {
+    if (!seeds.toFile().exists()) {
       throw new IOException("Seeds file not found");
     } else {
-      seed = IJ.openImage(rwOptions.seeds.toString()).getImageStack();
+      seed = IJ.openImage(seeds.toString()).getImageStack();
     }
     timer.stop();
     LOGGER.info("Seeds loaded in " + timer.toString());
@@ -519,7 +551,8 @@ public class JcuRandomWalkCli {
   /**
    * Action of apply processing to stack.
    * 
-   * @param rwa instance of solver.
+   * @param stack
+   * @return
    */
   private ImageStack applyProcessingAction(ImageStack stack) {
     if (rwOptions.ifApplyProcessing == false) {
@@ -549,23 +582,25 @@ public class JcuRandomWalkCli {
    * Action for rawProbMap.
    * 
    * @param rwa instance of solver.
+   * @param rwo
    * @throws IOException any error
    */
-  private void rawProbMapsAction(IRandomWalkSolver rwa) throws IOException {
+  private void rawProbMapsAction(IRandomWalkSolver rwa, RandomWalkOptions rwo) throws IOException {
     LOGGER.info("Saving probability maps");
     List<ImageStack> maps = rwa.getRawProbs();
-    Path parent = rwOptions.output.getParent();
+    Path parent = rwo.output.getParent();
     if (parent == null) {
       parent = Paths.get("/");
     }
     if (!parent.toFile().isDirectory()) { // overcome IJ.savetiff
       throw new IOException("Output folder does not exist");
     }
-    Path name = rwOptions.output.getFileName();
     int i = 1;
     for (ImageStack is : maps) {
       ImagePlus im = new ImagePlus("", is);
-      String nameToSave = parent.resolve(name + "Map_" + i + ".tif").toString();
+      String nameToSave =
+              parent.resolve(FilenameUtils.removeExtension(rwo.output.getFileName().toString())
+                      + "_Map_" + i + ".tif").toString();
       IJ.saveAsTiff(im, nameToSave);
       LOGGER.info("Map " + nameToSave + " saved");
       i++;
@@ -575,12 +610,9 @@ public class JcuRandomWalkCli {
   /**
    * Pick GPU selected in {@link RandomWalkOptions}.
    */
-  private void deviceAction() {
-    RandomWalkAlgorithmGpu.initilizeGpu();
-    int[] devicecount = new int[1];
-    cudaGetDeviceCount(devicecount);
-    cudaSetDevice(rwOptions.device);
-    LOGGER.info(String.format("Using device %d/%d", rwOptions.device, devicecount[0]));
+  private void deviceAction(int device) {
+    cudaSetDevice(device);
+    LOGGER.info(String.format("Using device %d", device));
   }
 
   /**
@@ -613,6 +645,44 @@ public class JcuRandomWalkCli {
   }
 
   /**
+   * Multi-threading run method.
+   * 
+   * @author baniuk
+   *
+   */
+  class GpuRunner implements Callable<Void> {
+
+    /**
+     * Personal copy of options for this thread.
+     * 
+     * <p>Note that many methods depended from {@link JcuRandomWalkCli#run(RandomWalkOptions)} will
+     * use global {@link RandomWalkOptions} as well but only those fields that are common for all.
+     */
+    private RandomWalkOptions options;
+
+    /**
+     * Create runner.
+     * 
+     * @param options personal copy of options.
+     */
+    public GpuRunner(RandomWalkOptions options) {
+      this.options = options;
+    }
+
+    /*
+     * (non-Javadoc)
+     * 
+     * @see java.util.concurrent.Callable#call()
+     */
+    @Override
+    public Void call() throws Exception {
+      run(options);
+      return null;
+    }
+
+  }
+
+  /**
    * Main entry point.
    * 
    * <p>See cmd help for options.
@@ -642,11 +712,11 @@ public class JcuRandomWalkCli {
         e1.printStackTrace();
       }
     }
-    if (app.cliErrorStatus == 0) {
+    if (app.cliErrorStatus == 0 && app.executor != null && app.executor.isTerminated()) {
       timer.stop();
       LOGGER.info("Bye! Total time spent: " + timer.toString());
     }
-    System.exit(app.cliErrorStatus);
+    // System.exit(app.cliErrorStatus);
   }
 
 }

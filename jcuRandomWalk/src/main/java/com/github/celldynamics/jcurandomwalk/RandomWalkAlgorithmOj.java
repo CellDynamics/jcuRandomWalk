@@ -8,14 +8,11 @@ import java.util.stream.Stream;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.time.StopWatch;
 
-import com.github.celldynamics.jcudarandomwalk.matrices.ICudaLibHandles;
 import com.github.celldynamics.jcudarandomwalk.matrices.dense.DenseVectorOj;
 import com.github.celldynamics.jcudarandomwalk.matrices.sparse.SparseCoordinates;
 import com.github.celldynamics.jcudarandomwalk.matrices.sparse.SparseMatrixOj;
 
 import ij.ImageStack;
-import jcuda.jcusparse.JCusparse;
-import jcuda.runtime.JCuda;
 
 /**
  * Main routine for RW segmentation.
@@ -330,28 +327,6 @@ public class RandomWalkAlgorithmOj extends RandomWalkSolver {
   }
 
   /**
-   * Must be called on very beginning.
-   */
-  public static void initilizeGpu() {
-    JCusparse.setExceptionsEnabled(true);
-    JCuda.setExceptionsEnabled(true);
-    JCusparse.cusparseCreate(ICudaLibHandles.handle);
-  }
-
-  /**
-   * Must be called at very end.
-   */
-  public static void finish() {
-    try {
-      JCusparse.setExceptionsEnabled(false);
-      JCuda.setExceptionsEnabled(false);
-      JCusparse.cusparseDestroy(ICudaLibHandles.handle);
-    } catch (Exception e) {
-      LOGGER.error("Exception caugh during cleaning: " + e.getMessage());
-    }
-  }
-
-  /**
    * Return GPU laplacian.
    * 
    * @return the lap
@@ -367,5 +342,11 @@ public class RandomWalkAlgorithmOj extends RandomWalkSolver {
     rawProbs.add(getSegmentedStack(rawSoultions.get(1))); // last is BG
 
     return rawProbs;
+  }
+
+  @Override
+  public void initilize() {
+    // TODO Auto-generated method stub
+
   }
 }

@@ -10,13 +10,13 @@ import java.util.stream.Stream;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.time.StopWatch;
 
-import com.github.celldynamics.jcudarandomwalk.matrices.ICudaLibHandles;
 import com.github.celldynamics.jcudarandomwalk.matrices.dense.DenseVectorDevice;
 import com.github.celldynamics.jcudarandomwalk.matrices.sparse.SparseCoordinates;
 import com.github.celldynamics.jcudarandomwalk.matrices.sparse.SparseMatrixDevice;
 
 import ij.ImageStack;
 import jcuda.jcusparse.JCusparse;
+import jcuda.jcusparse.cusparseHandle;
 import jcuda.runtime.JCuda;
 
 /**
@@ -28,6 +28,7 @@ import jcuda.runtime.JCuda;
  */
 public class RandomWalkAlgorithmGpu extends RandomWalkSolver {
 
+  private cusparseHandle handle = null;
   SparseMatrixDevice reducedLap; // reduced laplacian
   SparseMatrixDevice lap; // full laplacian
   List<DenseVectorDevice> bvector = new ArrayList<>(); // right vector
@@ -67,10 +68,10 @@ public class RandomWalkAlgorithmGpu extends RandomWalkSolver {
     // IMatrix atw = null;
     SparseCoordinates incTmp = img.getIncidence();
     // FIXME no chaining
-    incidence = SparseMatrixDevice.factory(incTmp).convert2csr();
+    incidence = SparseMatrixDevice.factory(incTmp, handle).convert2csr();
     incidenceT = incidence.transpose();
     SparseCoordinates weiTmp = img.getWeights();
-    weight = SparseMatrixDevice.factory(weiTmp).convert2csr();
+    weight = SparseMatrixDevice.factory(weiTmp, handle).convert2csr();
 
     LOGGER.info("Base class: " + incidence.getClass().getSimpleName());
     // A'*W*A
@@ -309,25 +310,35 @@ public class RandomWalkAlgorithmGpu extends RandomWalkSolver {
         bv.free();
       }
     }
+    finish();
   }
 
-  /**
-   * Must be called on very beginning.
+  /*
+   * (non-Javadoc)
+   * 
+   * @see com.github.celldynamics.jcurandomwalk.IRandomWalkSolver#initilize()
    */
-  public static void initilizeGpu() {
-    JCusparse.setExceptionsEnabled(true);
-    JCuda.setExceptionsEnabled(true);
-    JCusparse.cusparseCreate(ICudaLibHandles.handle);
+  @Override
+  public void initilize() {
+    if (handle == null) {
+      handle = new cusparseHandle();
+      JCusparse.setExceptionsEnabled(true);
+      JCuda.setExceptionsEnabled(true);
+      JCusparse.cusparseCreate(handle);
+    }
   }
 
   /**
    * Must be called at very end.
    */
-  public static void finish() {
+  public void finish() {
     try {
-      JCusparse.setExceptionsEnabled(false);
-      JCuda.setExceptionsEnabled(false);
-      JCusparse.cusparseDestroy(ICudaLibHandles.handle);
+      if (handle != null) {
+        JCusparse.setExceptionsEnabled(false);
+        JCuda.setExceptionsEnabled(false);
+        JCusparse.cusparseDestroy(handle);
+        handle = null;
+      }
     } catch (Error e) {
       LOGGER.error("Exception caugh during cleaning: " + e.getMessage().split("\n")[0]);
     }

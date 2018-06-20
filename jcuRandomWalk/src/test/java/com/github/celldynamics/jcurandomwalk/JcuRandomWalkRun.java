@@ -31,10 +31,11 @@ public class JcuRandomWalkRun {
 //           + "--probmaps";
 
     String args1 =
-            "app -i /local/internal_tmp/baniuk/rw/z_stack_deconvolved_t1.tif  "
+            "app -i /local/internal_tmp/baniuk/rw/folder "
             + "-o /local/internal_tmp/baniuk/rw/folder/res "
             + "-dd "
             + "--autoth 0.95 "
+            + "--device -2 "
             + "--defaultprocessing 0.4 "
             + "--sigmaMean 0.05 "
             + "--sigmaGrad 0.1 "
