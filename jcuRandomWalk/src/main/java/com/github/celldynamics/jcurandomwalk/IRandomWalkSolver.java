@@ -48,7 +48,6 @@ public interface IRandomWalkSolver {
    * Return stack.
    * 
    * @return stack hold by this object
-   * @see #processStack()
    */
   public ImageStack getStack();
 }

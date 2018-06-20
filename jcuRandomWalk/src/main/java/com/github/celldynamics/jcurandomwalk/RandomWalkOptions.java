@@ -15,6 +15,39 @@ import ch.qos.logback.classic.Level;
 public class RandomWalkOptions {
 
   /**
+   * Default options.
+   */
+  public RandomWalkOptions() {
+
+  }
+
+  /**
+   * Copy constructor.
+   * 
+   * @param src source
+   */
+  public RandomWalkOptions(RandomWalkOptions src) {
+    this.thLevel = src.thLevel;
+    this.algOptions = new AlgOptions(src.algOptions);
+    this.configBaseName = src.configBaseName;
+    this.configBaseExt = src.configBaseExt;
+    this.seedSuffix = src.seedSuffix;
+    this.outSuffix = src.outSuffix;
+    this.configFolder = src.configFolder;
+    this.device = src.device;
+    this.cpuOnly = src.cpuOnly;
+    this.rawProbMaps = src.rawProbMaps;
+    this.stack = src.stack;
+    this.seeds = src.seeds;
+    this.output = src.output;
+    this.ifComputeIncidence = src.ifComputeIncidence;
+    this.ifSaveIncidence = src.ifSaveIncidence;
+    this.ifApplyProcessing = src.ifApplyProcessing;
+    this.gammaVal = src.gammaVal;
+    this.debugLevel = src.debugLevel;
+  }
+
+  /**
    * The tmpdir.
    */
   static String tmpdir = System.getProperty("java.io.tmpdir") + File.separator;
@@ -101,6 +134,27 @@ public class RandomWalkOptions {
    *
    */
   public class AlgOptions {
+
+    /**
+     * Default options.
+     */
+    public AlgOptions() {
+
+    }
+
+    /**
+     * Copy constructor.
+     * 
+     * @param src source
+     */
+    public AlgOptions(AlgOptions src) {
+      this.maxit = src.maxit;
+      this.tol = src.tol;
+      this.sigmaGrad = src.sigmaGrad;
+      this.sigmaMean = src.sigmaMean;
+      this.meanSource = src.meanSource;
+    }
+
     /**
      * Maximum number of iterations.
      */
