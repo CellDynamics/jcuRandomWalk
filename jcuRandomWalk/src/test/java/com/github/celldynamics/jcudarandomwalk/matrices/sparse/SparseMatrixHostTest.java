@@ -9,6 +9,8 @@ import static org.junit.Assume.assumeTrue;
 import java.util.Arrays;
 
 import org.apache.commons.lang3.ArrayUtils;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,6 +19,8 @@ import com.github.celldynamics.jcudarandomwalk.matrices.dense.DenseVectorDevice;
 import com.github.celldynamics.jcurandomwalk.ArrayTools;
 
 import jcuda.jcusparse.JCusparse;
+import jcuda.jcusparse.cusparseHandle;
+import jcuda.runtime.JCuda;
 
 /**
  * Test class for {@link SparseMatrixDevice} and {@link SparseCoordinates}.
@@ -30,6 +34,33 @@ public class SparseMatrixHostTest {
    * The Constant LOGGER.
    */
   static final Logger LOGGER = LoggerFactory.getLogger(SparseMatrixHostTest.class.getName());
+  private static cusparseHandle handle;
+
+  /**
+   * Enable exceptions.
+   */
+  @BeforeClass
+  public static void before() {
+    if (isCuda) {
+      handle = new cusparseHandle();
+      JCusparse.setExceptionsEnabled(true);
+      JCuda.setExceptionsEnabled(true);
+      JCusparse.cusparseCreate(handle);
+    }
+  }
+
+  /**
+   * Disable exceptions.
+   */
+  @AfterClass
+  public static void after() {
+    if (isCuda) {
+      // cusparseDestroy(SparseMatrixDevice.handle);
+      JCusparse.setExceptionsEnabled(false);
+      JCuda.setExceptionsEnabled(false);
+      JCusparse.cusparseDestroy(handle);
+    }
+  }
 
   /**
    * Check if there is cuda.
@@ -149,7 +180,7 @@ public class SparseMatrixHostTest {
     int[] colInd = new int[] { 0, 1, 1, 2, 0, 3, 4, 2, 4 };
     float[] val = new float[] { 1, 4, 2, 3, 5, 7, 8, 9, 6 };
     SparseMatrixDevice test =
-            new SparseMatrixDevice(rowInd, colInd, val, SparseMatrixType.MATRIX_FORMAT_COO);
+            new SparseMatrixDevice(rowInd, colInd, val, SparseMatrixType.MATRIX_FORMAT_COO, handle);
     SparseMatrixDevice spd = test;
     assertThat(Arrays.asList(spd.getVal()), contains(val));
     assertThat(Arrays.asList(spd.getColInd()), contains(colInd));
@@ -174,7 +205,7 @@ public class SparseMatrixHostTest {
     int[] ci = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
     float[] v = new float[] { 10, 101, 102, 11, 12, 13, 131, 14, 15 };
     SparseMatrixDevice testL =
-            new SparseMatrixDevice(ri, ci, v, SparseMatrixType.MATRIX_FORMAT_COO);
+            new SparseMatrixDevice(ri, ci, v, SparseMatrixType.MATRIX_FORMAT_COO, handle);
     LOGGER.debug("Laplacean" + testL.toString());
 
     // remove row/co 1,2,3
@@ -219,7 +250,7 @@ public class SparseMatrixHostTest {
     int[] ci = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
     float[] v = new float[] { 10, 101, 102, 11, 12, 13, 131, 14, 15 };
     SparseMatrixDevice testL =
-            new SparseMatrixDevice(ri, ci, v, SparseMatrixType.MATRIX_FORMAT_COO);
+            new SparseMatrixDevice(ri, ci, v, SparseMatrixType.MATRIX_FORMAT_COO, handle);
     LOGGER.debug("Laplacean" + testL.toString());
 
     // remove row/co 1,2,3
@@ -259,7 +290,7 @@ public class SparseMatrixHostTest {
     int[] ci = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
     float[] v = new float[] { 10, 101, 102, 11, 12, 13, 131, 14, 15 };
     SparseMatrixDevice testL =
-            new SparseMatrixDevice(ri, ci, v, SparseMatrixType.MATRIX_FORMAT_COO);
+            new SparseMatrixDevice(ri, ci, v, SparseMatrixType.MATRIX_FORMAT_COO, handle);
     LOGGER.debug("Laplacian" + testL.toString());
 
     // remove row/co 1,2,3
@@ -293,7 +324,7 @@ public class SparseMatrixHostTest {
     int[] ci = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
     float[] v = new float[] { 10, 101, 102, 11, 12, 13, 131, 14, 15 };
     SparseMatrixDevice testL =
-            new SparseMatrixDevice(ri, ci, v, SparseMatrixType.MATRIX_FORMAT_COO);
+            new SparseMatrixDevice(ri, ci, v, SparseMatrixType.MATRIX_FORMAT_COO, handle);
     LOGGER.debug("Laplacean" + testL.toString());
 
     // remove row/co 1,2,3
@@ -333,7 +364,7 @@ public class SparseMatrixHostTest {
     int[] ci = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
     float[] v = new float[] { 10, 101, 102, 11, 12, 13, 131, 14, 15 };
     SparseMatrixDevice testL =
-            new SparseMatrixDevice(ri, ci, v, SparseMatrixType.MATRIX_FORMAT_COO);
+            new SparseMatrixDevice(ri, ci, v, SparseMatrixType.MATRIX_FORMAT_COO, handle);
     LOGGER.debug("Laplacean" + testL.toString());
 
     // remove row/co 1,2,3
@@ -373,7 +404,7 @@ public class SparseMatrixHostTest {
     int[] ci = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
     float[] v = new float[] { 10, 101, 102, 11, 12, 13, 131, 14, 15 };
     SparseMatrixDevice testL =
-            new SparseMatrixDevice(ri, ci, v, SparseMatrixType.MATRIX_FORMAT_COO);
+            new SparseMatrixDevice(ri, ci, v, SparseMatrixType.MATRIX_FORMAT_COO, handle);
     LOGGER.debug("Laplacean" + testL.toString());
 
     // remove row/co 1,2,3
@@ -403,7 +434,7 @@ public class SparseMatrixHostTest {
     int[] ci = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
     float[] v = new float[] { 10, 101, 102, 11, 12, 13, 131, 14, 15 };
     SparseMatrixDevice testL =
-            new SparseMatrixDevice(ri, ci, v, SparseMatrixType.MATRIX_FORMAT_COO);
+            new SparseMatrixDevice(ri, ci, v, SparseMatrixType.MATRIX_FORMAT_COO, handle);
 
     DenseVectorDevice ret = testL.sumAlongRows();
     assertThat(Arrays.asList(ret.getVal()),
@@ -448,7 +479,7 @@ public class SparseMatrixHostTest {
     int[] ci = new int[] { 0, 3, 0, 1, 2, 3 };
     float[] v = new float[] { 101.0f, 102.0f, 11.0f, 13.0f, 14.0f, 15.0f };
     SparseMatrixDevice testL =
-            new SparseMatrixDevice(ri, ci, v, SparseMatrixType.MATRIX_FORMAT_COO);
+            new SparseMatrixDevice(ri, ci, v, SparseMatrixType.MATRIX_FORMAT_COO, handle);
 
     DenseVectorDevice ret = testL.sumAlongRows();
     assertThat(Arrays.asList(ret.getVal()),

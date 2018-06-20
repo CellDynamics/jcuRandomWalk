@@ -3,6 +3,7 @@ package com.github.celldynamics.jcurandomwalk;
 import java.util.List;
 
 import ij.ImageStack;
+import jcuda.runtime.JCuda;
 
 /**
  * RW solver interface. All algorithms should implement this.
@@ -26,6 +27,13 @@ public interface IRandomWalkSolver {
    * Release resources (if needed).
    */
   public void free();
+
+  /**
+   * Set up.
+   * 
+   * <p>should be called after {@link JCuda#cudaSetDevice(int)}
+   */
+  public void initilize();
 
   /**
    * Return raw probability map for all initial seeds.

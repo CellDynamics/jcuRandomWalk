@@ -58,7 +58,6 @@ import java.util.Arrays;
 
 import org.apache.commons.lang3.time.StopWatch;
 
-import com.github.celldynamics.jcudarandomwalk.matrices.ICudaLibHandles;
 import com.github.celldynamics.jcudarandomwalk.matrices.dense.DenseVectorDevice;
 
 import jcuda.Pointer;
@@ -66,6 +65,7 @@ import jcuda.Sizeof;
 import jcuda.jcublas.cublasHandle;
 import jcuda.jcusparse.csrilu02Info;
 import jcuda.jcusparse.csrsv2Info;
+import jcuda.jcusparse.cusparseHandle;
 import jcuda.jcusparse.cusparseMatDescr;
 import jcuda.jcusparse.cusparseSolveAnalysisInfo;
 import jcuda.runtime.JCuda;
@@ -76,7 +76,7 @@ import jcuda.runtime.JCuda;
  * @author p.baniukiewicz
  *
  */
-public class SparseMatrixDevice extends SparseCoordinates implements ICudaLibHandles {
+public class SparseMatrixDevice extends SparseCoordinates {
 
   /**
    * 
@@ -113,12 +113,19 @@ public class SparseMatrixDevice extends SparseCoordinates implements ICudaLibHan
   private Pointer colIndPtr = new Pointer();
   private Pointer valPtr = new Pointer();
   private int nnz; // number of nonzero elements, specific to GPU implementtion
+  private cusparseHandle handle = null;
 
   /**
    * Set up sparse engine. Should not be called directly.
    */
   public SparseMatrixDevice() {
+  }
 
+  /**
+   * Set up sparse engine. Should not be called directly.
+   */
+  public SparseMatrixDevice(cusparseHandle handle) {
+    this.handle = handle;
   }
 
   /**
@@ -144,7 +151,8 @@ public class SparseMatrixDevice extends SparseCoordinates implements ICudaLibHan
    * @param matrixInputFormat format of input arrays
    */
   public SparseMatrixDevice(int[] rowInd, int[] colInd, float[] val,
-          SparseMatrixType matrixInputFormat) {
+          SparseMatrixType matrixInputFormat, cusparseHandle handle) {
+    this(handle);
     initialiseMatrixStruct();
     if (matrixInputFormat == SparseMatrixType.MATRIX_FORMAT_COO
             && ((rowInd.length != colInd.length) || (rowInd.length != val.length))) {
@@ -173,7 +181,8 @@ public class SparseMatrixDevice extends SparseCoordinates implements ICudaLibHan
    * @param matrixInputFormat format of input arrays
    */
   public SparseMatrixDevice(int[] rowInd, int[] colInd, float[] val, int rowNumber, int colNumber,
-          SparseMatrixType matrixInputFormat) {
+          SparseMatrixType matrixInputFormat, cusparseHandle handle) {
+    this(handle);
     initialiseMatrixStruct();
     if (matrixInputFormat == SparseMatrixType.MATRIX_FORMAT_COO
             && ((rowInd.length != colInd.length) || (rowInd.length != val.length))) {
@@ -203,7 +212,8 @@ public class SparseMatrixDevice extends SparseCoordinates implements ICudaLibHan
    * @param uploadToGpu if true it will be transfered to gpu, otherwise will stay on cpu
    */
   SparseMatrixDevice(int[] rowInd, int[] colInd, float[] val, int rowNumber, int colNumber,
-          SparseMatrixType matrixInputFormat, boolean uploadToGpu) {
+          SparseMatrixType matrixInputFormat, boolean uploadToGpu, cusparseHandle handle) {
+    this(handle);
     initialiseMatrixStruct();
     if (matrixInputFormat == SparseMatrixType.MATRIX_FORMAT_COO
             && ((rowInd.length != colInd.length) || (rowInd.length != val.length))) {
@@ -236,7 +246,8 @@ public class SparseMatrixDevice extends SparseCoordinates implements ICudaLibHan
    * @see SparseMatrixType
    */
   public SparseMatrixDevice(Pointer rowIndPtr, Pointer colIndPtr, Pointer valPtr, int nrows,
-          int ncols, int nnz, SparseMatrixType fmt) {
+          int ncols, int nnz, SparseMatrixType fmt, cusparseHandle handle) {
+    this(handle);
     initialiseMatrixStruct();
     this.rowIndPtr = rowIndPtr;
     this.colIndPtr = colIndPtr;
@@ -262,7 +273,9 @@ public class SparseMatrixDevice extends SparseCoordinates implements ICudaLibHan
    * @see SparseMatrixType
    */
   public SparseMatrixDevice(cusparseMatDescr descr, Pointer rowIndPtr, Pointer colIndPtr,
-          Pointer valPtr, int nrows, int ncols, int nnz, SparseMatrixType fmt) {
+          Pointer valPtr, int nrows, int ncols, int nnz, SparseMatrixType fmt,
+          cusparseHandle handle) {
+    this(handle);
     initialiseMatrixStruct();
     this.descr = descr;
     this.rowIndPtr = rowIndPtr;
@@ -408,7 +421,7 @@ public class SparseMatrixDevice extends SparseCoordinates implements ICudaLibHan
       cusparseXcoo2csr(handle, getRowIndPtr(), getElementNumber(), getRowNumber(), rowIndPtr,
               CUSPARSE_INDEX_BASE_ZERO);
       return new SparseMatrixDevice(rowIndPtr, getColIndPtr(), getValPtr(), getRowNumber(),
-              getColNumber(), getElementNumber(), SparseMatrixType.MATRIX_FORMAT_CSR);
+              getColNumber(), getElementNumber(), SparseMatrixType.MATRIX_FORMAT_CSR, handle);
     }
   }
 
@@ -421,7 +434,7 @@ public class SparseMatrixDevice extends SparseCoordinates implements ICudaLibHan
       cusparseXcsr2coo(handle, getRowIndPtr(), getElementNumber(), getRowNumber(), rowIndPtr,
               CUSPARSE_INDEX_BASE_ZERO);
       return new SparseMatrixDevice(rowIndPtr, getColIndPtr(), getValPtr(), getRowNumber(),
-              getColNumber(), getElementNumber(), SparseMatrixType.MATRIX_FORMAT_COO);
+              getColNumber(), getElementNumber(), SparseMatrixType.MATRIX_FORMAT_COO, handle);
     }
   }
 
@@ -463,7 +476,7 @@ public class SparseMatrixDevice extends SparseCoordinates implements ICudaLibHan
             valOutPtr, rowIndOutPtr, colIndOutPtr);
     JCuda.cudaDeviceSynchronize();
     return new SparseMatrixDevice(descrOut, rowIndOutPtr, colIndOutPtr, valOutPtr, m, n, nnzOut[0],
-            SparseMatrixType.MATRIX_FORMAT_CSR);
+            SparseMatrixType.MATRIX_FORMAT_CSR, handle);
   }
 
   /**
@@ -497,7 +510,7 @@ public class SparseMatrixDevice extends SparseCoordinates implements ICudaLibHan
     // return new SparseMatrixDevice(rowIndPtr, getColIndPtr(), getValPtr(), getRowNumber(),
     // getColNumber(), getElementNumber(), SparseMatrixType.MATRIX_FORMAT_CSR);
     return new SparseMatrixDevice(colIndPtr, rowIndPtr, valPtr, csrm.getColNumber(),
-            csrm.getRowNumber(), getElementNumber(), SparseMatrixType.MATRIX_FORMAT_CSR);
+            csrm.getRowNumber(), getElementNumber(), SparseMatrixType.MATRIX_FORMAT_CSR, handle);
 
   }
 
@@ -515,9 +528,9 @@ public class SparseMatrixDevice extends SparseCoordinates implements ICudaLibHan
   public SparseMatrixDevice removeRows(int[] rows) {
     LOGGER.debug("RemoveRows run on CPU");
     SparseMatrixDevice ttmp = this.convert2coo();
-    SparseMatrixDevice tmp =
-            new SparseMatrixDevice(ttmp.getRowInd(), ttmp.getColInd(), ttmp.getVal(),
-                    ttmp.getRowNumber(), ttmp.getColNumber(), ttmp.getSparseMatrixType(), false);
+    SparseMatrixDevice tmp = new SparseMatrixDevice(ttmp.getRowInd(), ttmp.getColInd(),
+            ttmp.getVal(), ttmp.getRowNumber(), ttmp.getColNumber(), ttmp.getSparseMatrixType(),
+            false, handle);
     // tmp is on cpu
     tmp.removeRowsIndices(rows);
     tmp.nnz = tmp.val.length;
@@ -528,9 +541,9 @@ public class SparseMatrixDevice extends SparseCoordinates implements ICudaLibHan
   public SparseMatrixDevice removeCols(int[] cols) {
     LOGGER.debug("removeCols run on CPU");
     SparseMatrixDevice ttmp = this.convert2coo();
-    SparseMatrixDevice tmp =
-            new SparseMatrixDevice(ttmp.getRowInd(), ttmp.getColInd(), ttmp.getVal(),
-                    ttmp.getRowNumber(), ttmp.getColNumber(), ttmp.getSparseMatrixType(), false);
+    SparseMatrixDevice tmp = new SparseMatrixDevice(ttmp.getRowInd(), ttmp.getColInd(),
+            ttmp.getVal(), ttmp.getRowNumber(), ttmp.getColNumber(), ttmp.getSparseMatrixType(),
+            false, handle);
     // tmp is on cpu
     tmp.removeColsIndices(cols);
     tmp.nnz = tmp.val.length;
@@ -1068,9 +1081,9 @@ public class SparseMatrixDevice extends SparseCoordinates implements ICudaLibHan
     return result_host;
   }
 
-  public static SparseMatrixDevice factory(SparseCoordinates raw) {
+  public static SparseMatrixDevice factory(SparseCoordinates raw, cusparseHandle handle) {
     return new SparseMatrixDevice(raw.getRowInd(), raw.getColInd(), raw.getVal(),
-            raw.getRowNumber(), raw.getColNumber(), SparseMatrixType.MATRIX_FORMAT_COO);
+            raw.getRowNumber(), raw.getColNumber(), SparseMatrixType.MATRIX_FORMAT_COO, handle);
   }
 
 }

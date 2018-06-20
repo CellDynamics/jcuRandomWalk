@@ -6,8 +6,6 @@ import static jcuda.runtime.JCuda.cudaMemcpy;
 import static jcuda.runtime.cudaMemcpyKind.cudaMemcpyDeviceToHost;
 import static jcuda.runtime.cudaMemcpyKind.cudaMemcpyHostToDevice;
 
-import com.github.celldynamics.jcudarandomwalk.matrices.ICudaLibHandles;
-
 import jcuda.Pointer;
 import jcuda.Sizeof;
 
@@ -17,7 +15,7 @@ import jcuda.Sizeof;
  * @author baniu
  *
  */
-public class DenseVectorDevice extends DenseVector implements ICudaLibHandles {
+public class DenseVectorDevice extends DenseVector {
 
   /**
    * Default UID.
