@@ -184,14 +184,14 @@ public class RandomWalkAlgorithmGpu extends RandomWalkSolver {
     SparseMatrixDevice reducedLapGpuCsr = getReducedLap();
 
     LOGGER.info("Forward");
-    float[] solvedFw = reducedLapGpuCsr.luSolve(bvector.get(0), true, options.getAlgOptions().maxit,
-            options.getAlgOptions().tol);
+    float[] solvedFw = reducedLapGpuCsr.luSolve1(bvector.get(0), true,
+            options.getAlgOptions().maxit, options.getAlgOptions().tol);
     float[] solvedSeedsFw = incorporateSeeds(solvedFw, seedIndices,
             getIncidenceMatrix().getSinkBox(), lap.getColNumber());
 
     LOGGER.info("Backward");
-    float[] solvedBw = reducedLapGpuCsr.luSolve(bvector.get(1), true, options.getAlgOptions().maxit,
-            options.getAlgOptions().tol);
+    float[] solvedBw = reducedLapGpuCsr.luSolve1(bvector.get(1), true,
+            options.getAlgOptions().maxit, options.getAlgOptions().tol);
     float[] solvedSeedsBw = incorporateSeeds(solvedBw, getIncidenceMatrix().getSinkBox(),
             seedIndices, lap.getColNumber());
 
