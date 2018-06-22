@@ -54,21 +54,31 @@ import static jcuda.runtime.cudaMemcpyKind.cudaMemcpyDeviceToDevice;
 import static jcuda.runtime.cudaMemcpyKind.cudaMemcpyDeviceToHost;
 import static jcuda.runtime.cudaMemcpyKind.cudaMemcpyHostToDevice;
 
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.Arrays;
 
 import org.apache.commons.lang3.time.StopWatch;
 
 import com.github.celldynamics.jcudarandomwalk.matrices.dense.DenseVectorDevice;
 
+import jcuda.LogLevel;
 import jcuda.Pointer;
 import jcuda.Sizeof;
 import jcuda.jcublas.cublasHandle;
+import jcuda.jcusolver.JCusolver;
+import jcuda.jcusolver.JCusolverSp;
+import jcuda.jcusolver.cusolverSpHandle;
+import jcuda.jcusparse.JCusparse;
 import jcuda.jcusparse.csrilu02Info;
 import jcuda.jcusparse.csrsv2Info;
 import jcuda.jcusparse.cusparseHandle;
 import jcuda.jcusparse.cusparseMatDescr;
 import jcuda.jcusparse.cusparseSolveAnalysisInfo;
 import jcuda.runtime.JCuda;
+import jcuda.runtime.cudaStream_t;
 
 /**
  * Represent sparse matrix on the GPU.
@@ -1076,6 +1086,108 @@ public class SparseMatrixDevice extends SparseCoordinates {
     cusparseDestroyCsrilu02Info(info_iLU);
     cusparseDestroyCsrsv2Info(info_L);
     cusparseDestroyCsrsv2Info(info_U);
+    timer.stop();
+    LOGGER.info("LU solver finished in " + timer.toString());
+    return result_host;
+  }
+
+  /**
+   * @param b_gpuPtrAny
+   * @param iLuBiCGStabSolve
+   * @param iter
+   * @param tol
+   * @return solution
+   */
+  public float[] luSolve1(DenseVectorDevice b_gpuPtrAny, boolean iLuBiCGStabSolve, int iter,
+          float tol) {
+    LOGGER.info("Starting LU solver");
+
+    JCusolver.setExceptionsEnabled(true);
+    JCusolver.setLogLevel(LogLevel.LOG_TRACE);
+
+    StopWatch timer = StopWatch.createStarted();
+    cusolverSpHandle sph = new cusolverSpHandle();
+    cusparseHandle cusparseHandle = new cusparseHandle();
+    cudaStream_t stream = new cudaStream_t();
+
+    JCusolverSp.cusolverSpCreate(sph);
+    JCusparse.cusparseCreate(cusparseHandle);
+    JCuda.cudaStreamCreate(stream);
+    JCusolverSp.cusolverSpSetStream(sph, stream);
+    JCusparse.cusparseSetStream(cusparseHandle, stream);
+
+    this.toCpu(true);
+    b_gpuPtrAny.toCpu(true);
+    //
+    // cusparseMatDescr descr_ = new cusparseMatDescr();
+    // cusparseCreateMatDescr(descr_);
+    // cusparseSetMatType(descr_, CUSPARSE_MATRIX_TYPE_GENERAL);
+    // cusparseSetMatIndexBase(descr_, CUSPARSE_INDEX_BASE_ZERO);
+    // Pointer val_ = new Pointer();
+    // Pointer col_ = new Pointer();
+    // Pointer row_ = new Pointer();
+    // Pointer b_ = new Pointer();
+    // cudaMalloc(col_, colInd.length * Sizeof.INT);
+    // cudaMalloc(row_, rowInd.length * Sizeof.INT);
+    // cudaMalloc(val_, val.length * Sizeof.FLOAT);
+    // cudaMalloc(b_, b_gpuPtrAny.getVal().length * Sizeof.FLOAT);
+    // cudaMemcpy(row_, Pointer.to(rowInd), rowInd.length * Sizeof.INT, cudaMemcpyHostToDevice);
+    // cudaMemcpy(col_, Pointer.to(colInd), colInd.length * Sizeof.INT, cudaMemcpyHostToDevice);
+    // cudaMemcpy(val_, Pointer.to(val), val.length * Sizeof.FLOAT, cudaMemcpyHostToDevice);
+    // cudaMemcpy(b_, Pointer.to(b_gpuPtrAny.getVal()), b_gpuPtrAny.getVal().length * Sizeof.FLOAT,
+    // cudaMemcpyHostToDevice);
+
+    int m = this.getRowNumber();
+    float[] result_host = new float[m]; // array to hold results
+    int[] sing = { -1 };
+    Pointer x_gpuPtr = new Pointer();
+    cudaMalloc(x_gpuPtr, m * Sizeof.FLOAT); // changed to DOUBLE
+    try {
+      PrintWriter rowIndout =
+              new PrintWriter(new BufferedWriter(new FileWriter("data/rowInd.txt")));
+      for (int x = 0; x < rowInd.length; x++) {
+        rowIndout.println(rowInd[x]);
+      }
+      rowIndout.close();
+      PrintWriter colIndout =
+              new PrintWriter(new BufferedWriter(new FileWriter("data/colInd.txt")));
+      for (int x = 0; x < colInd.length; x++) {
+        colIndout.println(colInd[x]);
+      }
+      colIndout.close();
+      PrintWriter valout = new PrintWriter(new BufferedWriter(new FileWriter("data/val.txt")));
+      for (int x = 0; x < val.length; x++) {
+        valout.println(val[x]);
+      }
+      valout.close();
+      PrintWriter bout = new PrintWriter(new BufferedWriter(new FileWriter("data/b.txt")));
+      for (int x = 0; x < b_gpuPtrAny.getVal().length; x++) {
+        bout.println(b_gpuPtrAny.getVal()[x]);
+      }
+      bout.close();
+
+    //!>
+//    JCusolverSp.cusolverSpScsrlsvqrHost(sph,
+//            this.getRowNumber(),
+//            this.getElementNumber(),
+//            descr_,
+//            Pointer.to(val),
+//            Pointer.to(rowInd),
+//            Pointer.to(colInd),
+//            Pointer.to(b_gpuPtrAny.getVal()),
+//            tol,
+//            0, 
+//            Pointer.to(result_host),
+//            sing);
+//    JCuda.cudaDeviceSynchronize();
+//    //!<
+      // cudaMemcpy(Pointer.to(result_host), x_gpuPtr, m * Sizeof.FLOAT, cudaMemcpyDeviceToHost);
+      // cudaFree(x_gpuPtr);
+      // JCusolverSp.cusolverSpDestroy(sph);
+    } catch (IOException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
     timer.stop();
     LOGGER.info("LU solver finished in " + timer.toString());
     return result_host;
