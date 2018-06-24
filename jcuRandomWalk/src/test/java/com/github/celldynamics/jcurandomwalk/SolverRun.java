@@ -1,9 +1,21 @@
 package com.github.celldynamics.jcurandomwalk;
 
+import static jcuda.jcusparse.cusparseIndexBase.CUSPARSE_INDEX_BASE_ZERO;
+import static jcuda.jcusparse.cusparseMatrixType.CUSPARSE_MATRIX_TYPE_GENERAL;
+import static jcuda.runtime.JCuda.cudaDeviceReset;
+import static jcuda.runtime.JCuda.cudaFree;
+import static jcuda.runtime.JCuda.cudaMalloc;
+import static jcuda.runtime.JCuda.cudaMemcpy;
+import static jcuda.runtime.cudaMemcpyKind.cudaMemcpyDeviceToHost;
+import static jcuda.runtime.cudaMemcpyKind.cudaMemcpyHostToDevice;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
+
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.stream.IntStream;
 
 import org.apache.commons.lang3.ArrayUtils;
 import org.slf4j.Logger;
@@ -11,9 +23,16 @@ import org.slf4j.LoggerFactory;
 
 import com.github.celldynamics.jcudarandomwalk.matrices.sparse.SparseMatrixDevice;
 
+import jcuda.Pointer;
+import jcuda.Sizeof;
 import jcuda.jcusolver.JCusolver;
+import jcuda.jcusolver.JCusolverSp;
+import jcuda.jcusolver.cusolverSpHandle;
 import jcuda.jcusparse.JCusparse;
+import jcuda.jcusparse.cusparseHandle;
+import jcuda.jcusparse.cusparseMatDescr;
 import jcuda.runtime.JCuda;
+import jcuda.runtime.cudaStream_t;
 
 /**
  * Solver test.
@@ -33,10 +52,11 @@ public class SolverRun {
    * @throws IOException
    */
   public static void main(String[] args) throws IOException {
-    int[] rowInd;
-    int[] colInd;
-    float[] val;
-    float[] b;
+    int[] h_csrRowPtrA;
+    int[] h_csrColIndA;
+    float[] h_csrValA;
+    float[] h_b;
+    int issym = 0;
 
     // read back data
     {
@@ -47,8 +67,10 @@ public class SolverRun {
         rowIndA.add(Integer.parseInt(line));
       }
       bf.close();
-      rowInd = ArrayUtils.toPrimitive(rowIndA.toArray(new Integer[0]));
-      LOGGER.debug(ArrayUtils.toString(rowInd));
+      h_csrRowPtrA = ArrayUtils.toPrimitive(rowIndA.toArray(new Integer[0]));
+      if (h_csrRowPtrA.length < 100) {
+        LOGGER.debug(ArrayUtils.toString(h_csrRowPtrA));
+      }
     }
     {
       BufferedReader bf = new BufferedReader(new FileReader("data/colInd.txt"));
@@ -58,8 +80,10 @@ public class SolverRun {
         colIndA.add(Integer.parseInt(line));
       }
       bf.close();
-      colInd = ArrayUtils.toPrimitive(colIndA.toArray(new Integer[0]));
-      LOGGER.debug(ArrayUtils.toString(colInd));
+      h_csrColIndA = ArrayUtils.toPrimitive(colIndA.toArray(new Integer[0]));
+      if (h_csrColIndA.length < 100) {
+        LOGGER.debug(ArrayUtils.toString(h_csrColIndA));
+      }
     }
     {
       BufferedReader bf = new BufferedReader(new FileReader("data/val.txt"));
@@ -69,8 +93,10 @@ public class SolverRun {
         valA.add(Float.parseFloat(line));
       }
       bf.close();
-      val = ArrayUtils.toPrimitive(valA.toArray(new Float[0]));
-      LOGGER.debug(ArrayUtils.toString(val));
+      h_csrValA = ArrayUtils.toPrimitive(valA.toArray(new Float[0]));
+      if (h_csrValA.length < 100) {
+        LOGGER.debug(ArrayUtils.toString(h_csrValA));
+      }
     }
     {
       BufferedReader bf = new BufferedReader(new FileReader("data/b.txt"));
@@ -80,14 +106,141 @@ public class SolverRun {
         bA.add(Float.parseFloat(line));
       }
       bf.close();
-      b = ArrayUtils.toPrimitive(bA.toArray(new Float[0]));
-      LOGGER.debug(ArrayUtils.toString(b));
+      h_b = ArrayUtils.toPrimitive(bA.toArray(new Float[0]));
+      for (int i = 0; i < h_b.length; i++) {
+        if (h_b[i] == -0.0) {
+          h_b[i] = 0;
+        }
+      }
+      if (h_b.length < 100) {
+        LOGGER.debug(ArrayUtils.toString(h_b));
+      }
     }
+    LOGGER.debug("Read");
 
     JCuda.setExceptionsEnabled(true);
     JCusparse.setExceptionsEnabled(true);
     JCusolver.setExceptionsEnabled(true);
 
+    cusolverSpHandle handle = new cusolverSpHandle();
+    cusparseHandle cusparseHandle = new cusparseHandle();
+    cudaStream_t stream = new cudaStream_t();
+    cusparseMatDescr descrA = new cusparseMatDescr();
+
+    int colsA = IntStream.of(h_csrColIndA).max().getAsInt() + 1;
+    assertThat(h_csrRowPtrA.length, is(colsA + 1)); // CSR format, row arrays is +1 length (+1)
+    int rowsA = colsA; // assume square
+    int nnzA = h_csrValA.length;
+    assertThat(nnzA, is(h_csrColIndA.length));
+
+    float[] h_x = new float[colsA];
+
+    // format matrix
+    Pointer d_csrRowPtrA = new Pointer();
+    Pointer d_csrColIndA = new Pointer();
+    Pointer d_csrValA = new Pointer();
+    Pointer d_x = new Pointer();
+    Pointer d_b = new Pointer();
+
+    int reorder = 0;
+    int singularity = 0;
+    int singularityArray[] = { -1 };
+    float tol = 1.e-10f;
+
+    JCusolverSp.cusolverSpCreate(handle);
+    JCusparse.cusparseCreate(cusparseHandle);
+    JCuda.cudaStreamCreate(stream);
+    JCusolverSp.cusolverSpSetStream(handle, stream);
+    JCusparse.cusparseSetStream(cusparseHandle, stream);
+    JCusparse.cusparseCreateMatDescr(descrA);
+    JCusparse.cusparseSetMatType(descrA, CUSPARSE_MATRIX_TYPE_GENERAL);
+    JCusparse.cusparseSetMatIndexBase(descrA, CUSPARSE_INDEX_BASE_ZERO);
+
+    cudaMalloc(d_csrRowPtrA, Sizeof.INT * (rowsA + 1));
+    cudaMalloc(d_csrColIndA, Sizeof.INT * nnzA);
+    cudaMalloc(d_csrValA, Sizeof.FLOAT * nnzA);
+    cudaMalloc(d_b, Sizeof.FLOAT * rowsA);
+    cudaMalloc(d_x, Sizeof.FLOAT * colsA);
+
+    // verify if A has symmetric pattern or not
+    int issymArray[] = new int[] { -1 };
+    JCusolverSp.cusolverSpXcsrissymHost(handle, rowsA, nnzA, descrA, Pointer.to(h_csrRowPtrA),
+            Pointer.to(h_csrRowPtrA).withByteOffset(1 * Sizeof.INT), Pointer.to(h_csrColIndA),
+            Pointer.to(issymArray));
+    issym = issymArray[0];
+
+    System.out.printf("step 2: reorder the matrix A to minimize zero fill-in\n");
+    int[] h_Q = new int[colsA];
+    int[] h_csrRowPtrB = new int[rowsA + 1];
+    int[] h_csrColIndB = new int[nnzA];
+    float[] h_csrValB = new float[nnzA];
+    int[] h_mapBfromA = new int[nnzA];
+    JCusolverSp.cusolverSpXcsrsymamdHost(handle, rowsA, nnzA, descrA, Pointer.to(h_csrRowPtrA),
+            Pointer.to(h_csrColIndA), Pointer.to(h_Q));
+    // B = Q*A*Q^T
+    memcpy(h_csrRowPtrB, h_csrRowPtrA, rowsA + 1);
+    memcpy(h_csrColIndB, h_csrColIndA, nnzA);
+    long size_permArray[] = { -1 };
+    JCusolverSp.cusolverSpXcsrperm_bufferSizeHost(handle, rowsA, colsA, nnzA, descrA,
+            Pointer.to(h_csrRowPtrB), Pointer.to(h_csrColIndB), Pointer.to(h_Q), Pointer.to(h_Q),
+            size_permArray);
+    long size_perm = size_permArray[0];
+    byte[] buffer_cpu = new byte[(int) size_perm];
+    // h_mapBfromA = Identity
+    for (int j = 0; j < nnzA; j++) {
+      h_mapBfromA[j] = j;
+    }
+    JCusolverSp.cusolverSpXcsrpermHost(handle, rowsA, colsA, nnzA, descrA, Pointer.to(h_csrRowPtrB),
+            Pointer.to(h_csrColIndB), Pointer.to(h_Q), Pointer.to(h_Q), Pointer.to(h_mapBfromA),
+            Pointer.to(buffer_cpu));
+    // B = A( mapBfromA )
+    for (int j = 0; j < nnzA; j++) {
+      h_csrValB[j] = h_csrValA[h_mapBfromA[j]];
+    }
+    // A := B
+    memcpy(h_csrRowPtrA, h_csrRowPtrB, rowsA + 1);
+    memcpy(h_csrColIndA, h_csrColIndB, nnzA);
+    memcpy(h_csrValA, h_csrValB, nnzA);
+
+    // copy to GPU reordered A
+    LOGGER.debug("Copy to GPU");
+    cudaMemcpy(d_csrRowPtrA, Pointer.to(h_csrRowPtrA), Sizeof.INT * (rowsA + 1),
+            cudaMemcpyHostToDevice);
+    cudaMemcpy(d_csrColIndA, Pointer.to(h_csrColIndA), Sizeof.INT * nnzA, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_csrValA, Pointer.to(h_csrValA), Sizeof.FLOAT * nnzA, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_b, Pointer.to(h_b), Sizeof.FLOAT * rowsA, cudaMemcpyHostToDevice);
+
+    LOGGER.debug("Solve");
+    JCusolverSp.cusolverSpScsrlsvqr(handle, rowsA, nnzA, descrA, d_csrValA, d_csrRowPtrA,
+            d_csrColIndA, d_b, tol, reorder, d_x, singularityArray);
+
+    cudaMemcpy(Pointer.to(h_x), d_x, Sizeof.FLOAT * colsA, cudaMemcpyDeviceToHost);
+    if (h_x.length < 100) {
+      LOGGER.debug(ArrayUtils.toString(h_x));
+    }
+    LOGGER.debug("Finished");
+
+    // Arrays.fill(h_x, 0);
+    // JCusolverSp.cusolverSpScsrlsvqrHost(handle, rowsA, nnzA, descrA, Pointer.to(val),
+    // Pointer.to(rowInd), Pointer.to(colInd), Pointer.to(b), tol, reorder, Pointer.to(h_x),
+    // singularityArray);
+    // LOGGER.debug(ArrayUtils.toString(h_x));
+
+    cudaFree(d_csrRowPtrA);
+    cudaFree(d_csrColIndA);
+    cudaFree(d_csrValA);
+    cudaFree(d_b);
+    cudaFree(d_x);
+    cudaDeviceReset();
+
+  }
+
+  private static void memcpy(int dst[], int src[], int n) {
+    System.arraycopy(src, 0, dst, 0, n);
+  }
+
+  private static void memcpy(float dst[], float src[], int n) {
+    System.arraycopy(src, 0, dst, 0, n);
   }
 
 }

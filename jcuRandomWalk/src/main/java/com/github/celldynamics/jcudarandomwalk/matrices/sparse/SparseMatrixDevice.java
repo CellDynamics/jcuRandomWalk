@@ -1166,6 +1166,26 @@ public class SparseMatrixDevice extends SparseCoordinates {
       }
       bout.close();
 
+      // to coo
+      SparseMatrixDevice coo = this.convert2coo();
+      coo.toCpu(true);
+      rowIndout = new PrintWriter(new BufferedWriter(new FileWriter("data/rowIndCOO.txt")));
+      for (int x = 0; x < coo.rowInd.length; x++) {
+        rowIndout.println(coo.rowInd[x]);
+      }
+      rowIndout.close();
+      colIndout = new PrintWriter(new BufferedWriter(new FileWriter("data/colIndCOO.txt")));
+      for (int x = 0; x < coo.colInd.length; x++) {
+        colIndout.println(coo.colInd[x]);
+      }
+      colIndout.close();
+      valout = new PrintWriter(new BufferedWriter(new FileWriter("data/valCOO.txt")));
+      for (int x = 0; x < coo.val.length; x++) {
+        valout.println(coo.val[x]);
+      }
+      valout.close();
+
+      throw new IllegalArgumentException("STOP");
     //!>
 //    JCusolverSp.cusolverSpScsrlsvqrHost(sph,
 //            this.getRowNumber(),
