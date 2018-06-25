@@ -637,7 +637,6 @@ public class SparseMatrixDevice extends SparseCoordinates {
     float[] one_host = { 1.f };
     float[] zero_host = { 0.f };
     float[] minus_one_host = { -1.f };
-
     // iLU part adapted from nvidia cusparse documentation
 
     // Suppose that A is m x m sparse matrix represented by CSR format,
