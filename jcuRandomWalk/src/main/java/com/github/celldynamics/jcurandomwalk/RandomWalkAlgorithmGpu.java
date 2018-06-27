@@ -182,6 +182,7 @@ public class RandomWalkAlgorithmGpu extends RandomWalkSolver {
     Integer[] seedIndices = getSourceIndices(seed, seedVal);
     computeReducedLaplacian(seedIndices, getIncidenceMatrix().getSinkBox());
     SparseMatrixDevice reducedLapGpuCsr = getReducedLap();
+    reducedLapGpuCsr.setUseCheating(options.useCheating);
 
     LOGGER.info("Forward");
     float[] solvedFw = reducedLapGpuCsr.luSolve(bvector.get(0), true, options.getAlgOptions().maxit,
