@@ -4,6 +4,8 @@ import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+import com.github.celldynamics.jcudarandomwalk.matrices.sparse.SparseMatrixDevice;
+
 import ch.qos.logback.classic.Level;
 
 /**
@@ -45,6 +47,7 @@ public class RandomWalkOptions {
     this.ifApplyProcessing = src.ifApplyProcessing;
     this.gammaVal = src.gammaVal;
     this.debugLevel = src.debugLevel;
+    this.useCheating = src.useCheating;
   }
 
   /**
@@ -125,7 +128,12 @@ public class RandomWalkOptions {
   /**
    * Default debug level.
    */
-  Level debugLevel = Level.INFO;
+  public Level debugLevel = Level.INFO;
+  /**
+   * Compute LU analysis only once per
+   * {@link SparseMatrixDevice#luSolve(com.github.celldynamics.jcudarandomwalk.matrices.dense.DenseVectorDevice, boolean, int, float)}
+   */
+  public boolean useCheating = false;
 
   /**
    * Specific options for algorithm.
@@ -201,16 +209,21 @@ public class RandomWalkOptions {
     return algOptions;
   }
 
+  /*
+   * (non-Javadoc)
+   * 
+   * @see java.lang.Object#toString()
+   */
   @Override
   public String toString() {
-    return "RandomWalkOptions [thLevel=" + thLevel + ", algOptions=" + algOptions.toString()
+    return "RandomWalkOptions [thLevel=" + thLevel + ", algOptions=" + algOptions
             + ", configBaseName=" + configBaseName + ", configBaseExt=" + configBaseExt
             + ", seedSuffix=" + seedSuffix + ", outSuffix=" + outSuffix + ", configFolder="
             + configFolder + ", device=" + device + ", cpuOnly=" + cpuOnly + ", rawProbMaps="
             + rawProbMaps + ", stack=" + stack + ", seeds=" + seeds + ", output=" + output
             + ", ifComputeIncidence=" + ifComputeIncidence + ", ifSaveIncidence=" + ifSaveIncidence
             + ", ifApplyProcessing=" + ifApplyProcessing + ", gammaVal=" + gammaVal
-            + ", debugLevel=" + debugLevel + "]";
+            + ", debugLevel=" + debugLevel + ", useCheating=" + useCheating + "]";
   }
 
 }

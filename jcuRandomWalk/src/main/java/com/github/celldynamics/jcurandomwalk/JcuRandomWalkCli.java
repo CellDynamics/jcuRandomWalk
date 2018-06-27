@@ -54,6 +54,7 @@ import ij.IJ;
 import ij.ImageJ;
 import ij.ImagePlus;
 import ij.ImageStack;
+import jcuda.runtime.JCuda;
 
 /**
  * Main application class. CLI frontend.
@@ -135,6 +136,10 @@ public class JcuRandomWalkCli {
             Option.builder().desc("Save raw probability maps. Default is " + rwOptions.rawProbMaps)
                     .longOpt("probmaps").build();
 
+    Option useCheating = Option.builder()
+            .desc("Skip LU analysis for backward problem. Default is " + rwOptions.useCheating)
+            .longOpt("usecheating").build();
+
     Option quietOption = Option.builder("q").desc("Mute output").longOpt("quiet").build();
     Option debugOption = Option.builder("d").desc("Debug stream").longOpt("debug").build();
     Option ddebugOption =
@@ -190,6 +195,7 @@ public class JcuRandomWalkCli {
     cliOptions.addOption(sigmaMeanOption);
     cliOptions.addOption(meanSourceOption);
     cliOptions.addOption(rawProbOption);
+    cliOptions.addOption(useCheating);
 
     Options helpOptions = new Options(); // 2nd group of options
     helpOptions.addOption(verOption); // these are repeated here to have showHelp working
@@ -248,6 +254,9 @@ public class JcuRandomWalkCli {
       }
       if (cmd.hasOption("probmaps")) {
         rwOptions.rawProbMaps = true;
+      }
+      if (cmd.hasOption("usecheating")) {
+        rwOptions.useCheating = true;
       }
       if (cmd.hasOption("t")) {
         rwOptions.thLevel = Double.parseDouble(cmd.getOptionValue("t").trim());
@@ -758,6 +767,7 @@ public class JcuRandomWalkCli {
   private void deviceAction(int device) {
     cudaSetDevice(device);
     LOGGER.debug(String.format("Using device %d", device));
+    JCuda.cudaDeviceReset();
   }
 
   /**
