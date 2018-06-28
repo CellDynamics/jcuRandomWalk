@@ -11,12 +11,18 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -48,6 +54,7 @@ import ij.IJ;
 import ij.ImageJ;
 import ij.ImagePlus;
 import ij.ImageStack;
+import jcuda.runtime.JCuda;
 
 /**
  * Main application class. CLI frontend.
@@ -65,6 +72,8 @@ public class JcuRandomWalkCli {
   private CommandLine cmd;
   private int numThreads = 1;
   ExecutorService executor = null;
+  // store exceptions from parallel pool
+  private List<SimpleEntry<Long, Throwable>> threadsExceptions = new ArrayList<>();
 
   /**
    * Default constructor using default options.
@@ -127,6 +136,10 @@ public class JcuRandomWalkCli {
             Option.builder().desc("Save raw probability maps. Default is " + rwOptions.rawProbMaps)
                     .longOpt("probmaps").build();
 
+    Option useCheating = Option.builder()
+            .desc("Skip LU analysis for backward problem. Default is " + rwOptions.useCheating)
+            .longOpt("usecheating").build();
+
     Option quietOption = Option.builder("q").desc("Mute output").longOpt("quiet").build();
     Option debugOption = Option.builder("d").desc("Debug stream").longOpt("debug").build();
     Option ddebugOption =
@@ -182,6 +195,7 @@ public class JcuRandomWalkCli {
     cliOptions.addOption(sigmaMeanOption);
     cliOptions.addOption(meanSourceOption);
     cliOptions.addOption(rawProbOption);
+    cliOptions.addOption(useCheating);
 
     Options helpOptions = new Options(); // 2nd group of options
     helpOptions.addOption(verOption); // these are repeated here to have showHelp working
@@ -241,6 +255,9 @@ public class JcuRandomWalkCli {
       if (cmd.hasOption("probmaps")) {
         rwOptions.rawProbMaps = true;
       }
+      if (cmd.hasOption("usecheating")) {
+        rwOptions.useCheating = true;
+      }
       if (cmd.hasOption("t")) {
         rwOptions.thLevel = Double.parseDouble(cmd.getOptionValue("t").trim());
       }
@@ -281,10 +298,15 @@ public class JcuRandomWalkCli {
         e.printStackTrace();
       }
       cliErrorStatus = 1; // finish with error
-    } finally { // GPU clean up
-      // if (rwOptions.cpuOnly == false) {
-      // RandomWalkAlgorithmGpu.finish();
-      // }
+    } finally {
+      if (!threadsExceptions.isEmpty()) {
+        for (SimpleEntry<Long, Throwable> s : threadsExceptions) {
+          System.err.println(
+                  "Error detected in thread " + s.getKey() + " : " + s.getValue().getMessage());
+          LOGGER.debug(s.getValue().getMessage(), s.getValue());
+          cliErrorStatus = 1; // finish with error
+        }
+      }
     }
   }
 
@@ -342,12 +364,108 @@ public class JcuRandomWalkCli {
     // to have own naming pattern
     BasicThreadFactory threadFacory =
             new BasicThreadFactory.Builder().namingPattern("th-%d").build();
-    executor = Executors.newFixedThreadPool(numThreads, threadFacory);
+    executor = new HandleExThreadPoolExecutor(numThreads, threadFacory);
     for (GpuRunner gpr : opt) {
       executor.submit(gpr);
     }
     executor.shutdown();
     executor.awaitTermination(1, TimeUnit.DAYS);
+  }
+
+  /**
+   * ThreadPoolExecutor with exception handling.
+   * 
+   * @author baniuk
+   *
+   */
+  class HandleExThreadPoolExecutor extends ThreadPoolExecutor {
+
+    /**
+     * Default constructor.
+     * 
+     * @param corePoolSize num of threads
+     * @param threadFactory thread factory
+     */
+    public HandleExThreadPoolExecutor(int corePoolSize, ThreadFactory threadFactory) {
+      super(corePoolSize, corePoolSize, 1, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(),
+              threadFactory);
+    }
+
+    /*
+     * (non-Javadoc)
+     * 
+     * @see java.util.concurrent.ThreadPoolExecutor#afterExecute(java.lang.Runnable,
+     * java.lang.Throwable)
+     */
+    @Override
+    protected void afterExecute(Runnable r, Throwable t) {
+      super.afterExecute(r, t);
+
+      if (t == null && r instanceof Future<?>) {
+        try {
+          Future<?> future = (Future<?>) r;
+          if (future.isDone()) {
+            future.get();
+          }
+        } catch (CancellationException ce) {
+          t = ce;
+        } catch (ExecutionException ee) {
+          t = ee.getCause();
+        } catch (InterruptedException ie) {
+          Thread.currentThread().interrupt(); // ignore/reset
+        }
+      }
+      if (t != null) {
+        System.err.println("Error in thread " + Thread.currentThread().getName());
+        // store info - will be read later on program exit
+        threadsExceptions.add(new SimpleEntry<Long, Throwable>(Thread.currentThread().getId(), t));
+      }
+    }
+
+  }
+
+  /**
+   * Multi-threading run method.
+   * 
+   * @author baniuk
+   *
+   */
+  class GpuRunner implements Callable<Void> {
+
+    /**
+     * Personal copy of options for this thread.
+     * 
+     * <p>Note that many methods depended from {@link JcuRandomWalkCli#run(RandomWalkOptions)} will
+     * use global {@link RandomWalkOptions} as well but only those fields that are common for all.
+     */
+    public RandomWalkOptions options;
+
+    /**
+     * Create runner.
+     * 
+     * @param options personal copy of options.
+     */
+    public GpuRunner(RandomWalkOptions options) {
+      this.options = options;
+    }
+
+    /*
+     * (non-Javadoc)
+     * 
+     * @see java.util.concurrent.Callable#call()
+     */
+    @Override
+    public Void call() throws Exception {
+      try {
+        run(options);
+      } catch (Exception e) {
+        // wrapper to have file name
+        throw new Exception("[" + options.stack.getFileName().toString() + "] " + e.getMessage(),
+                e);
+      }
+      return null;
+    }
+
   }
 
   /**
@@ -649,6 +767,7 @@ public class JcuRandomWalkCli {
   private void deviceAction(int device) {
     cudaSetDevice(device);
     LOGGER.debug(String.format("Using device %d", device));
+    JCuda.cudaDeviceReset();
   }
 
   /**
@@ -678,44 +797,6 @@ public class JcuRandomWalkCli {
       return true;
     }
     return false;
-  }
-
-  /**
-   * Multi-threading run method.
-   * 
-   * @author baniuk
-   *
-   */
-  class GpuRunner implements Callable<Void> {
-
-    /**
-     * Personal copy of options for this thread.
-     * 
-     * <p>Note that many methods depended from {@link JcuRandomWalkCli#run(RandomWalkOptions)} will
-     * use global {@link RandomWalkOptions} as well but only those fields that are common for all.
-     */
-    private RandomWalkOptions options;
-
-    /**
-     * Create runner.
-     * 
-     * @param options personal copy of options.
-     */
-    public GpuRunner(RandomWalkOptions options) {
-      this.options = options;
-    }
-
-    /*
-     * (non-Javadoc)
-     * 
-     * @see java.util.concurrent.Callable#call()
-     */
-    @Override
-    public Void call() throws Exception {
-      run(options);
-      return null;
-    }
-
   }
 
   /**

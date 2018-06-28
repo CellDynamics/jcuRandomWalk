@@ -124,6 +124,13 @@ public class SparseMatrixDevice extends SparseCoordinates {
   private Pointer valPtr = new Pointer();
   private int nnz; // number of nonzero elements, specific to GPU implementtion
   private cusparseHandle handle = null;
+  // preserving analysis between runs
+  private boolean done = false; // if true new analysis is skipped
+  private boolean useCheating = false;
+  // note that this should be called in order with other allocations. This is why destroying
+  // in free() does not work. To prevent memory leaks on GPU device is reseted on each job.
+  private cusparseSolveAnalysisInfo infoL = new cusparseSolveAnalysisInfo();
+  private cusparseSolveAnalysisInfo infoU = new cusparseSolveAnalysisInfo();
 
   /**
    * Set up sparse engine. Should not be called directly.
@@ -133,8 +140,11 @@ public class SparseMatrixDevice extends SparseCoordinates {
 
   /**
    * Set up sparse engine. Should not be called directly.
+   * 
+   * @param handle handle to library
    */
   public SparseMatrixDevice(cusparseHandle handle) {
+    this();
     this.handle = handle;
   }
 
@@ -159,6 +169,7 @@ public class SparseMatrixDevice extends SparseCoordinates {
    * @param colInd indices of cols in matrixInputFormat
    * @param val values
    * @param matrixInputFormat format of input arrays
+   * @param handle handle to library
    */
   public SparseMatrixDevice(int[] rowInd, int[] colInd, float[] val,
           SparseMatrixType matrixInputFormat, cusparseHandle handle) {
@@ -189,6 +200,7 @@ public class SparseMatrixDevice extends SparseCoordinates {
    * @param rowNumber number of rows
    * @param colNumber number of columns
    * @param matrixInputFormat format of input arrays
+   * @param handle handle to library
    */
   public SparseMatrixDevice(int[] rowInd, int[] colInd, float[] val, int rowNumber, int colNumber,
           SparseMatrixType matrixInputFormat, cusparseHandle handle) {
@@ -220,6 +232,7 @@ public class SparseMatrixDevice extends SparseCoordinates {
    * @param colNumber number of columns
    * @param matrixInputFormat format of input arrays
    * @param uploadToGpu if true it will be transfered to gpu, otherwise will stay on cpu
+   * @param handle handle to library
    */
   SparseMatrixDevice(int[] rowInd, int[] colInd, float[] val, int rowNumber, int colNumber,
           SparseMatrixType matrixInputFormat, boolean uploadToGpu, cusparseHandle handle) {
@@ -251,6 +264,7 @@ public class SparseMatrixDevice extends SparseCoordinates {
    * @param ncols number of columns
    * @param nnz number of non zero elements
    * @param fmt CUDA matrix format
+   * @param handle handle to library
    * 
    * @see cusparseMatDescr
    * @see SparseMatrixType
@@ -279,6 +293,7 @@ public class SparseMatrixDevice extends SparseCoordinates {
    * @param ncols number of columns
    * @param nnz number of non zero elements
    * @param fmt CUDA matrix format
+   * @param handle handle to library
    * @see cusparseMatDescr
    * @see SparseMatrixType
    */
@@ -295,6 +310,16 @@ public class SparseMatrixDevice extends SparseCoordinates {
     this.colNumber = ncols;
     this.nnz = nnz;
     this.matrixFormat = fmt;
+  }
+
+  /**
+   * If set,LU analysis is run only once during first call of
+   * {@link #luSolve(DenseVectorDevice, boolean, int, float)}.
+   * 
+   * @param useCheating the useCheating to set
+   */
+  public void setUseCheating(boolean useCheating) {
+    this.useCheating = useCheating;
   }
 
   /**
@@ -350,6 +375,14 @@ public class SparseMatrixDevice extends SparseCoordinates {
    * 
    */
   public void free() {
+    // try {
+    // if (useCheating) { // if false all released in code
+    // cusparseDestroySolveAnalysisInfo(infoL);
+    // cusparseDestroySolveAnalysisInfo(infoU);
+    // }
+    // } catch (Exception e) {
+    // LOGGER.debug("cusparseDestroySolveAnalysisInfo already freed? " + e.getMessage());
+    // }
     try {
       cudaFree(rowIndPtr);
     } catch (Exception e) {
@@ -647,7 +680,6 @@ public class SparseMatrixDevice extends SparseCoordinates {
     float[] one_host = { 1.f };
     float[] zero_host = { 0.f };
     float[] minus_one_host = { -1.f };
-
     // iLU part adapted from nvidia cusparse documentation
 
     // Suppose that A is m x m sparse matrix represented by CSR format,
@@ -897,15 +929,21 @@ public class SparseMatrixDevice extends SparseCoordinates {
 
       // create the info and analyse the lower and upper triangular
       // factors
-      cusparseSolveAnalysisInfo infoL = new cusparseSolveAnalysisInfo();
-      cusparseCreateSolveAnalysisInfo(infoL);
-      cusparseSolveAnalysisInfo infoU = new cusparseSolveAnalysisInfo();
-      cusparseCreateSolveAnalysisInfo(infoU);
+      // cusparseSolveAnalysisInfo infoL = new cusparseSolveAnalysisInfo();
+      // cusparseSolveAnalysisInfo infoU = new cusparseSolveAnalysisInfo();
+      // cusparseCreateSolveAnalysisInfo(infoL);
+      // cusparseCreateSolveAnalysisInfo(infoU);
 
-      cusparseScsrsv_analysis(handle, CUSPARSE_OPERATION_NON_TRANSPOSE, n, nnz, descr_L,
-              iLUcooVal_gpuPtr, iLUcsrRowIndex_gpuPtr, iLUcooColIndex_gpuPtr, infoL);
-      cusparseScsrsv_analysis(handle, CUSPARSE_OPERATION_NON_TRANSPOSE, n, nnz, descr_U,
-              iLUcooVal_gpuPtr, iLUcsrRowIndex_gpuPtr, iLUcooColIndex_gpuPtr, infoU);
+      // the slow one
+      if (!useCheating || !done) {
+        cusparseCreateSolveAnalysisInfo(infoL);
+        cusparseCreateSolveAnalysisInfo(infoU);
+        cusparseScsrsv_analysis(handle, CUSPARSE_OPERATION_NON_TRANSPOSE, n, nnz, descr_L,
+                iLUcooVal_gpuPtr, iLUcsrRowIndex_gpuPtr, iLUcooColIndex_gpuPtr, infoL);
+        cusparseScsrsv_analysis(handle, CUSPARSE_OPERATION_NON_TRANSPOSE, n, nnz, descr_U,
+                iLUcooVal_gpuPtr, iLUcsrRowIndex_gpuPtr, iLUcooColIndex_gpuPtr, infoU);
+        done = true;
+      }
       timer.split();
       LOGGER.debug("... Step cusparseScsrsv_analysis accomplished in " + timer.toSplitString());
       timer.unsplit();
@@ -1057,9 +1095,12 @@ public class SparseMatrixDevice extends SparseCoordinates {
       cudaFree(rw);
       cudaFree(s);
       cudaFree(t);
-
-      cusparseDestroySolveAnalysisInfo(infoL);
-      cusparseDestroySolveAnalysisInfo(infoU);
+      if (!useCheating) {
+        // note that this should be called in order with other allocations. This is why destroying
+        // in free() does not work. To prevent memory leaks on GPU device is reseted on each job.
+        cusparseDestroySolveAnalysisInfo(infoL);
+        cusparseDestroySolveAnalysisInfo(infoU);
+      }
 
       cublasDestroy(cublashandle);
 

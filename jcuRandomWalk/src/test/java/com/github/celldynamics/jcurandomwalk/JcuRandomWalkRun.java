@@ -20,15 +20,15 @@ public class JcuRandomWalkRun {
     // String[] args = "app -s xx -i xxx -o yy -d".split(" ");
 //    String args1 = "app -h"; 
     
-//    String args1 =
-//           "app -i /local/internal_tmp/baniuk/rw/z_stack_deconvolved_t1.tif "
-//           + "-o /tmp/solution_small.tif "
-//           + "-dd "
-//           + "--autoth 0.95 "
-//           + "--defaultprocessing 0.4 "
-//           + "--sigmaMean 0.05 "
-//           + "--sigmaGrad 0.1 "
-//           + "--probmaps";
+    String args1 =
+           "app -i /local/internal_tmp/baniuk/rw/z_stack_deconvolved_t7.tif "
+           + "-o /home/baniuk/external/rw/folder/res/solution_t7.tif "
+           + "-dd "
+           + "--autoth 0.95 "
+           + "--defaultprocessing 0.4 "
+           + "--sigmaMean 0.05 "
+           + "--sigmaGrad 0.1 "
+           + "--probmaps";
 //
 //    String args1 =
 //            "app -i /local/internal_tmp/baniuk/rw/folder "
@@ -38,7 +38,8 @@ public class JcuRandomWalkRun {
 //            + "--device -2 "
 //            + "--defaultprocessing 0.4 "
 //            + "--sigmaMean 0.05 "
-//            + "--sigmaGrad 0.1";
+//            + "--sigmaGrad 0.1 "
+//            + "--usecheating";
     
 //  String args1 =
 //          "app -i src/test/test_data/ "
