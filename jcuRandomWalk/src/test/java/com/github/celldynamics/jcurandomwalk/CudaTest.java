@@ -128,7 +128,7 @@ public class CudaTest {
             SparseMatrixType.MATRIX_FORMAT_COO, handle, cublasHandle);
     SparseMatrixDevice acsr = a.convert2csr();
 
-    float[] ret = acsr.luSolve1(b, true, 50, 1e-12f);
+    float[] ret = acsr.luSolve(b, true, 50, 1e-12f);
     // convert to double
     Double[] retd =
             IntStream.range(0, ret.length).mapToDouble(i -> ret[i]).boxed().toArray(Double[]::new);

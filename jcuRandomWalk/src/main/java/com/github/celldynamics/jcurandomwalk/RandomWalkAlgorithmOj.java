@@ -74,7 +74,6 @@ public class RandomWalkAlgorithmOj extends RandomWalkSolver {
     // aTw.supplyTo(mm);
     // atw = new SparseMatrixOj(mm, incidence.getColNumber(), incidence.getRowNumber());
 
-    LOGGER.info("Base class: " + incidence.getClass().getSimpleName());
     // A'*W*A
     // ISparseMatrix ATW = incidenceGpuT.multiply(wGpu);
     // ISparseMatrix ATWA = ATW.multiply(incidenceGpu);

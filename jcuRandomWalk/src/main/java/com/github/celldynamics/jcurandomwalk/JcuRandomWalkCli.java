@@ -591,9 +591,9 @@ public class JcuRandomWalkCli {
     }
 
     Integer dev = null;
-    if (rwOptions.cpuOnly == false) {
+    if (rwOptions.cpuOnly == false) { // TODO add selection LU or Chol (default)
       // create main object
-      rwa = new RandomWalkAlgorithmGpu(stack, rwOptions);
+      rwa = new RandomWalkAlgorithmGpuChol(stack, rwOptions);
       // if one thread use info from RandomWalkOptions, otherwise compute device from thread number
       if (numThreads == 1) {
         deviceAction(rwOptions.device);
@@ -606,6 +606,7 @@ public class JcuRandomWalkCli {
       rwa = new RandomWalkAlgorithmOj(stack, rwOptions);
     }
     LOGGER.info("Processing file " + rwOptions.stack.toString() + " on device " + dev);
+    LOGGER.info("Base class: " + rwa.getClass().getSimpleName());
     rwa.initilize(); // TODO move to construcor
     rwa.validateSeeds(seed);
     ImageStack segmented = rwa.solve(seed, seedVal);

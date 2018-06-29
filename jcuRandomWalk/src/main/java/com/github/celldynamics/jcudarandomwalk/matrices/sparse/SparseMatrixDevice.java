@@ -146,12 +146,21 @@ public class SparseMatrixDevice extends SparseCoordinates {
   }
 
   /**
-   * 
+   * Create basic matrix.
    */
   private void initialiseMatrixStruct() {
     cusparseCreateMatDescr(descr);
     cusparseSetMatType(descr, CUSPARSE_MATRIX_TYPE_GENERAL);
     cusparseSetMatIndexBase(descr, CUSPARSE_INDEX_BASE_ZERO);
+  }
+
+  /**
+   * Create basic matrix.
+   * 
+   * @param descr description
+   */
+  private void initialiseMatrixStruct(cusparseMatDescr descr) {
+    this.descr = descr;
   }
 
   /**
@@ -167,6 +176,7 @@ public class SparseMatrixDevice extends SparseCoordinates {
    * @param val values
    * @param matrixInputFormat format of input arrays
    * @param handle handle to library
+   * @param cublasHandle
    */
   public SparseMatrixDevice(int[] rowInd, int[] colInd, float[] val,
           SparseMatrixType matrixInputFormat, cusparseHandle handle, cublasHandle cublasHandle) {
@@ -198,6 +208,7 @@ public class SparseMatrixDevice extends SparseCoordinates {
    * @param colNumber number of columns
    * @param matrixInputFormat format of input arrays
    * @param handle handle to library
+   * @param cublasHandle
    */
   public SparseMatrixDevice(int[] rowInd, int[] colInd, float[] val, int rowNumber, int colNumber,
           SparseMatrixType matrixInputFormat, cusparseHandle handle, cublasHandle cublasHandle) {
@@ -230,6 +241,7 @@ public class SparseMatrixDevice extends SparseCoordinates {
    * @param matrixInputFormat format of input arrays
    * @param uploadToGpu if true it will be transfered to gpu, otherwise will stay on cpu
    * @param handle handle to library
+   * @param cublasHandle
    */
   SparseMatrixDevice(int[] rowInd, int[] colInd, float[] val, int rowNumber, int colNumber,
           SparseMatrixType matrixInputFormat, boolean uploadToGpu, cusparseHandle handle,
@@ -263,6 +275,7 @@ public class SparseMatrixDevice extends SparseCoordinates {
    * @param nnz number of non zero elements
    * @param fmt CUDA matrix format
    * @param handle handle to library
+   * @param cublasHandle
    * 
    * @see cusparseMatDescr
    * @see SparseMatrixType
@@ -284,7 +297,6 @@ public class SparseMatrixDevice extends SparseCoordinates {
   /**
    * Wrap matrix existing on GPU.
    * 
-   * @param descr matrix descriptor
    * @param rowIndPtr Pointer to rows indices vector
    * @param colIndPtr Pointer to columns indices vector
    * @param valPtr Pointer to values vector
@@ -293,15 +305,17 @@ public class SparseMatrixDevice extends SparseCoordinates {
    * @param nnz number of non zero elements
    * @param fmt CUDA matrix format
    * @param handle handle to library
+   * @param descr matrix description
+   * @param cublasHandle
+   * 
    * @see cusparseMatDescr
    * @see SparseMatrixType
    */
-  public SparseMatrixDevice(cusparseMatDescr descr, Pointer rowIndPtr, Pointer colIndPtr,
-          Pointer valPtr, int nrows, int ncols, int nnz, SparseMatrixType fmt,
-          cusparseHandle handle, cublasHandle cublasHandle) {
+  public SparseMatrixDevice(Pointer rowIndPtr, Pointer colIndPtr, Pointer valPtr, int nrows,
+          int ncols, int nnz, SparseMatrixType fmt, cusparseMatDescr descr, cusparseHandle handle,
+          cublasHandle cublasHandle) {
     this(handle, cublasHandle);
-    initialiseMatrixStruct();
-    this.descr = descr;
+    initialiseMatrixStruct(descr);
     this.rowIndPtr = rowIndPtr;
     this.colIndPtr = colIndPtr;
     this.valPtr = valPtr;
@@ -310,6 +324,36 @@ public class SparseMatrixDevice extends SparseCoordinates {
     this.nnz = nnz;
     this.matrixFormat = fmt;
   }
+
+  // /**
+  // * Wrap matrix existing on GPU.
+  // *
+  // * @param descr matrix descriptor
+  // * @param rowIndPtr Pointer to rows indices vector
+  // * @param colIndPtr Pointer to columns indices vector
+  // * @param valPtr Pointer to values vector
+  // * @param nrows number of rows (of full matrix)
+  // * @param ncols number of columns
+  // * @param nnz number of non zero elements
+  // * @param fmt CUDA matrix format
+  // * @param handle handle to library
+  // * @param cublasHandle
+  // * @see cusparseMatDescr
+  // * @see SparseMatrixType
+  // */
+  // public SparseMatrixDevice(cusparseMatDescr descr, Pointer rowIndPtr, Pointer colIndPtr,
+  // Pointer valPtr, int nrows, int ncols, int nnz, SparseMatrixType fmt,
+  // cusparseHandle handle, cublasHandle cublasHandle) {
+  // this(handle, cublasHandle);
+  // initialiseMatrixStruct(descr);
+  // this.rowIndPtr = rowIndPtr;
+  // this.colIndPtr = colIndPtr;
+  // this.valPtr = valPtr;
+  // this.rowNumber = nrows;
+  // this.colNumber = ncols;
+  // this.nnz = nnz;
+  // this.matrixFormat = fmt;
+  // }
 
   /**
    * If set,LU analysis is run only once during first call of
@@ -519,8 +563,8 @@ public class SparseMatrixDevice extends SparseCoordinates {
             in.getElementNumber(), in.getValPtr(), in.getRowIndPtr(), in.getColIndPtr(), descrOut,
             valOutPtr, rowIndOutPtr, colIndOutPtr);
     JCuda.cudaDeviceSynchronize();
-    return new SparseMatrixDevice(descrOut, rowIndOutPtr, colIndOutPtr, valOutPtr, m, n, nnzOut[0],
-            SparseMatrixType.MATRIX_FORMAT_CSR, cusparseHandle, cublasHandle);
+    return new SparseMatrixDevice(rowIndOutPtr, colIndOutPtr, valOutPtr, m, n, nnzOut[0],
+            SparseMatrixType.MATRIX_FORMAT_CSR, descrOut, cusparseHandle, cublasHandle);
   }
 
   /**
@@ -655,6 +699,8 @@ public class SparseMatrixDevice extends SparseCoordinates {
   }
 
   /**
+   * Solve linear system. Performs LU factorisation.
+   * 
    * @param b_gpuPtrAny
    * @param iLuBiCGStabSolve
    * @param iter
@@ -1135,32 +1181,20 @@ public class SparseMatrixDevice extends SparseCoordinates {
   }
 
   /**
-   * @param b_gpuPtrAny
-   * @param iLuBiCGStabSolve
-   * @param iter
-   * @param tol
-   * @return solution
+   * Return lower triangle from this matrix. Assume this symmetric.
+   * 
+   * @return lower triangle
    */
-  public float[] luSolve1(DenseVectorDevice b_gpuPtrAny, boolean iLuBiCGStabSolve, int iter,
-          float tol) {
-    LOGGER.info("Starting LU solver");
+  public SparseMatrixDevice getLowerTriangle() {
     StopWatch timer = StopWatch.createStarted();
-    if (getColNumber() != getRowNumber()) {
-      throw new IllegalArgumentException("Left matrix must be square");
-    }
-    if (this.matrixFormat != SparseMatrixType.MATRIX_FORMAT_CSR) {
-      throw new IllegalArgumentException("Left matrix should be in CSR");
-    }
-    StoppedBy stoppedReason = StoppedBy.ITERATIONS; // default assumption
     // helpers
+    // cut lower triangle from this array (on CPU)
+    this.toCpu(false);
     int nnzA = this.getElementNumber();
     int rowsA = this.getRowNumber();
-    int colsA = this.getColNumber();
     int[] h_csrRowPtrA = this.getRowInd();
     int[] h_csrColIndA = this.getColInd();
     float[] h_csrValA = this.getVal();
-    // cut lower triangle from this array (on CPU)
-    this.toCpu(true);
     int LOWER = (int) (0.5 * (nnzA + rowsA));
     float[] h_val = new float[LOWER];
     int[] h_col = new int[LOWER];
@@ -1181,12 +1215,6 @@ public class SparseMatrixDevice extends SparseCoordinates {
         }
       }
     }
-    // h_row. h_col. h_val are CPU coordinates of lower triangle of this matrix
-    timer.split();
-    LOGGER.debug("... Step LOWER triangle extraction accomplished in " + timer.toSplitString());
-    timer.unsplit();
-
-    // create LOWER triangle on the GPU
     cusparseMatDescr descrA = new cusparseMatDescr(); // description of triangle A
     cusparseCreateMatDescr(descrA);
     cusparseSetMatType(descrA, CUSPARSE_MATRIX_TYPE_SYMMETRIC);
@@ -1196,35 +1224,79 @@ public class SparseMatrixDevice extends SparseCoordinates {
     Pointer d_csrRowPtrA = ArrayTools.cudaMallocCopy(h_row, rowsA + 1);
     Pointer d_csrColIndA = ArrayTools.cudaMallocCopy(h_col, LOWER);
     Pointer d_csrValA = ArrayTools.cudaMallocCopy(h_val, LOWER);
-    timer.split();
-    LOGGER.debug("... Step LOWER triangle copying accomplished in " + timer.toSplitString());
-    timer.unsplit();
-    // d_csrRowPtrA, d_csrColIndA, d_csrValA -> lower triangle of this matrix on GPU
-    // make other allocations
+    // h_row. h_col. h_val are CPU coordinates of lower triangle of this matrix
+    timer.stop();
+    LOGGER.debug("getLowerTriangle accomplished in " + timer.toString());
+    return new SparseMatrixDevice(d_csrRowPtrA, d_csrColIndA, d_csrValA, rowsA, LOWER, LOWER,
+            SparseMatrixType.MATRIX_FORMAT_CSR, descrA, cusparseHandle, cublasHandle);
+  }
+
+  public DenseVectorDevice getCholesky() {
+    StopWatch timer = StopWatch.createStarted();
     Pointer d_valChol = new Pointer(); // values of lower triangle, will be modified
-    cudaMalloc(d_valChol, Sizeof.FLOAT * LOWER);
-    cudaMemcpy(d_valChol, d_csrValA, Sizeof.FLOAT * LOWER, cudaMemcpyDeviceToDevice);
-
-    float[] h_x = new float[colsA]; // result
-    Pointer d_x = ArrayTools.cudaMallocCopy(h_x, colsA);
-    Pointer d_b = b_gpuPtrAny.getValPtr();
-
+    cudaMalloc(d_valChol, Sizeof.FLOAT * colNumber);
+    cudaMemcpy(d_valChol, getValPtr(), Sizeof.FLOAT * colNumber, cudaMemcpyDeviceToDevice);
     // Cholesky factorization
     cusparseSolveAnalysisInfo infoA = new cusparseSolveAnalysisInfo();
     cusparseCreateSolveAnalysisInfo(infoA);
-    cusparseScsrsv_analysis(cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE, rowsA, LOWER, descrA,
-            d_csrValA, d_csrRowPtrA, d_csrColIndA, infoA);
+    cusparseScsrsv_analysis(cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE, rowNumber, colNumber,
+            descr, getValPtr(), getRowIndPtr(), getColIndPtr(), infoA);
     timer.split();
     LOGGER.debug("... Step cusparseScsrsv_analysis accomplished in " + timer.toSplitString());
     timer.unsplit();
-    cusparseScsric0(cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE, rowsA, descrA, d_valChol, // will
-            d_csrRowPtrA, d_csrColIndA, infoA);
+    cusparseScsric0(cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE, rowNumber, descr, d_valChol, // will
+            getRowIndPtr(), getColIndPtr(), infoA);
     cusparseDestroySolveAnalysisInfo(infoA);
-    timer.split();
-    LOGGER.debug("... Step cusparseScsric0 accomplished in " + timer.toSplitString());
-    timer.unsplit();
+    timer.stop();
+    LOGGER.debug("... Step cusparseScsric0 accomplished in " + timer.toString());
+    return new DenseVectorDevice(nnz, 1, d_valChol);
+  }
+
+  // public static cusparseMatDescr analyseU(cusparseHandle cusparseHandle, DenseVectorDevice chol)
+  // {
+  // StopWatch timer = StopWatch.createStarted();
+  // Pointer d_valChol = chol.getValPtr();
+  // cusparseMatDescr descrL = new cusparseMatDescr();
+  // cusparseCreateMatDescr(descrL);
+  // cusparseSetMatType(descrL, CUSPARSE_MATRIX_TYPE_TRIANGULAR);
+  // cusparseSetMatFillMode(descrL, CUSPARSE_FILL_MODE_LOWER);
+  // cusparseSetMatDiagType(descrL, CUSPARSE_DIAG_TYPE_NON_UNIT);
+  // cusparseSetMatIndexBase(descrL, CUSPARSE_INDEX_BASE_ZERO);
+  // cusparseSolveAnalysisInfo infoL = new cusparseSolveAnalysisInfo();
+  // cusparseCreateSolveAnalysisInfo(infoL);
+  // cusparseScsrsv_analysis(cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE,
+  // b_gpuPtrAny.getRowNumber(), getColNumber(), descrL, d_valChol, getRowIndPtr(),
+  // getColIndPtr(), infoL);
+  // timer.stop();;
+  // LOGGER.debug("... Step cusparseScsrsv_analysis accomplished in " + timer.toString());
+  // }
+  /**
+   * For symmetric matrices, performs Cholesky factorization. Require Lower triangle only.
+   * 
+   * @param b_gpuPtrAny RHS
+   * @param chol Cholesky decomposition or null to calculate it in place.
+   * @param iter max number of iter
+   * @param tol tolerance
+   * @return solution
+   */
+  public float[] luSolveSymmetric(DenseVectorDevice b_gpuPtrAny, DenseVectorDevice chol, int iter,
+          float tol) {
+    LOGGER.info("Starting LU solver");
+    StopWatch timer = StopWatch.createStarted();
+    if (this.matrixFormat != SparseMatrixType.MATRIX_FORMAT_CSR) {
+      throw new IllegalArgumentException("Left matrix should be in CSR");
+    }
+    // TODO test if this is triangle (from cusparseMatDescr)
+    if (chol == null) {
+      chol = getCholesky();
+    }
+
+    float[] h_x = new float[rowNumber]; // result
+    Pointer d_x = ArrayTools.cudaMallocCopy(h_x, rowNumber);
+    Pointer d_b = b_gpuPtrAny.getValPtr();
 
     // analyse L and U part of Cholesky result
+    Pointer d_valChol = chol.getValPtr();
     cusparseMatDescr descrL = new cusparseMatDescr();
     cusparseCreateMatDescr(descrL);
     cusparseSetMatType(descrL, CUSPARSE_MATRIX_TYPE_TRIANGULAR);
@@ -1233,25 +1305,26 @@ public class SparseMatrixDevice extends SparseCoordinates {
     cusparseSetMatIndexBase(descrL, CUSPARSE_INDEX_BASE_ZERO);
     cusparseSolveAnalysisInfo infoL = new cusparseSolveAnalysisInfo();
     cusparseCreateSolveAnalysisInfo(infoL);
-    cusparseScsrsv_analysis(cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE, rowsA, LOWER, descrL,
-            d_valChol, d_csrRowPtrA, d_csrColIndA, infoL);
+    cusparseScsrsv_analysis(cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE,
+            b_gpuPtrAny.getRowNumber(), getColNumber(), descrL, d_valChol, getRowIndPtr(),
+            getColIndPtr(), infoL);
     timer.split();
     LOGGER.debug("... Step cusparseScsrsv_analysis accomplished in " + timer.toSplitString());
     timer.unsplit();
 
     cusparseSolveAnalysisInfo infoU = new cusparseSolveAnalysisInfo();
     cusparseCreateSolveAnalysisInfo(infoU);
-    cusparseScsrsv_analysis(cusparseHandle, CUSPARSE_OPERATION_TRANSPOSE, rowsA, LOWER, descrL,
-            d_valChol, d_csrRowPtrA, d_csrColIndA, infoU);
+    cusparseScsrsv_analysis(cusparseHandle, CUSPARSE_OPERATION_TRANSPOSE, getRowNumber(),
+            getColNumber(), descrL, d_valChol, getRowIndPtr(), getColIndPtr(), infoU);
     timer.split();
     LOGGER.debug("... Step cusparseScsrsv_analysis accomplished in " + timer.toSplitString());
     timer.unsplit();
 
-    Pointer d_t = ArrayTools.cudaMallocCopy(new float[0], rowsA);
-    Pointer d_p = ArrayTools.cudaMallocCopy(new float[0], rowsA);
-    Pointer d_q = ArrayTools.cudaMallocCopy(new float[0], rowsA);
-    Pointer d_z = ArrayTools.cudaMallocCopy(new float[0], rowsA);
-    Pointer d_r = ArrayTools.cudaMallocCopy(new float[0], rowsA);
+    Pointer d_t = ArrayTools.cudaMallocCopy(new float[0], getRowNumber());
+    Pointer d_p = ArrayTools.cudaMallocCopy(new float[0], getRowNumber());
+    Pointer d_q = ArrayTools.cudaMallocCopy(new float[0], getRowNumber());
+    Pointer d_z = ArrayTools.cudaMallocCopy(new float[0], getRowNumber());
+    Pointer d_r = ArrayTools.cudaMallocCopy(new float[0], getRowNumber());
     float[] zero = new float[] { 0.0f };
     float[] one = new float[] { 1.0f };
     float[] negone = new float[] { -1.0f };
@@ -1266,14 +1339,14 @@ public class SparseMatrixDevice extends SparseCoordinates {
     //!>
     cusparseScsrmv(cusparseHandle,
             CUSPARSE_OPERATION_NON_TRANSPOSE,
-            rowsA,
-            colsA,
-            LOWER,
+            getRowNumber(),
+            getRowNumber(),
+            getColNumber(),
             Pointer.to(one),
-            descrA,
-            d_csrValA,
-            d_csrRowPtrA,
-            d_csrColIndA,
+            descr,
+            getValPtr(),
+            getRowIndPtr(),
+            getColIndPtr(),
             d_x,
             Pointer.to(zero),
             d_r);
@@ -1282,10 +1355,10 @@ public class SparseMatrixDevice extends SparseCoordinates {
     LOGGER.debug("... Step cusparseScsrmv accomplished in " + timer.toSplitString());
     timer.unsplit();
 
-    cublasSscal(cublasHandle, rowsA, Pointer.to(negone), d_r, 1);
-    cublasSaxpy(cublasHandle, rowsA, Pointer.to(one), d_b, 1, d_r, 1);
-    cublasSdot(cublasHandle, rowsA, d_r, 1, d_z, 1, Pointer.to(rho));
-    cublasSnrm2(cublasHandle, rowsA, d_r, 1, Pointer.to(normr0));
+    cublasSscal(cublasHandle, getRowNumber(), Pointer.to(negone), d_r, 1);
+    cublasSaxpy(cublasHandle, getRowNumber(), Pointer.to(one), d_b, 1, d_r, 1);
+    cublasSdot(cublasHandle, getRowNumber(), d_r, 1, d_z, 1, Pointer.to(rho));
+    cublasSnrm2(cublasHandle, getRowNumber(), d_r, 1, Pointer.to(normr0));
     normr[0] = normr0[0];
     timer.split();
     LOGGER.debug("... Step cublas accomplished in " + timer.toSplitString());
@@ -1296,54 +1369,54 @@ public class SparseMatrixDevice extends SparseCoordinates {
       System.out.print("Iteration " + i + "\r");
       cusparseScsrsv_solve(cusparseHandle,
               CUSPARSE_OPERATION_NON_TRANSPOSE,
-              rowsA,
+              getRowNumber(),
               Pointer.to(one),
               descrL,
               d_valChol,
-              d_csrRowPtrA,
-              d_csrColIndA,
+              getRowIndPtr(),
+              getColIndPtr(),
               infoL,
               d_r,
               d_t);
       cusparseScsrsv_solve(cusparseHandle,
               CUSPARSE_OPERATION_TRANSPOSE,
-              rowsA,
+              getRowNumber(),
               Pointer.to(one),
               descrL,
               d_valChol,
-              d_csrRowPtrA,
-              d_csrColIndA,
+              getRowIndPtr(),
+              getColIndPtr(),
               infoU,
               d_t,
               d_z);
       rhop[0] = rho[0];
-      cublasSdot(cublasHandle, rowsA, d_r, 1, d_z, 1, Pointer.to(rho));
+      cublasSdot(cublasHandle, getRowNumber(), d_r, 1, d_z, 1, Pointer.to(rho));
       if (i == 0) {
-        cublasScopy(cublasHandle, rowsA, d_z, 1, d_p, 1);
+        cublasScopy(cublasHandle, getRowNumber(), d_z, 1, d_p, 1);
       } else {
         beta[0] = rho[0]/rhop[0];
-        cublasSaxpy(cublasHandle, rowsA, Pointer.to(beta), d_p, 1, d_z, 1);
-        cublasScopy(cublasHandle, rowsA, d_z, 1, d_p, 1);
+        cublasSaxpy(cublasHandle, getRowNumber(), Pointer.to(beta), d_p, 1, d_z, 1);
+        cublasScopy(cublasHandle, getRowNumber(), d_z, 1, d_p, 1);
       }
       cusparseScsrmv(cusparseHandle,
               CUSPARSE_OPERATION_NON_TRANSPOSE,
-              rowsA,
-              rowsA,
-              LOWER,
+              getRowNumber(),
+              getRowNumber(),
+              getColNumber(),
               Pointer.to(one),
-              descrA,
-              d_csrValA,
-              d_csrRowPtrA,
-              d_csrColIndA,
+              descr,
+              getValPtr(),
+              getRowIndPtr(),
+              getColIndPtr(),
               d_p,
               Pointer.to(zero),
               d_q);
-      cublasSdot(cublasHandle, rowsA, d_p, 1, d_q, 1, Pointer.to(ptAp));
+      cublasSdot(cublasHandle, getRowNumber(), d_p, 1, d_q, 1, Pointer.to(ptAp));
       alpha[0] = rho[0] / ptAp[0];
-      cublasSaxpy(cublasHandle, rowsA, Pointer.to(alpha), d_p, 1, d_x, 1);
+      cublasSaxpy(cublasHandle, getRowNumber(), Pointer.to(alpha), d_p, 1, d_x, 1);
       negalpha[0] = -alpha[0];
-      cublasSaxpy(cublasHandle, rowsA, Pointer.to(negalpha), d_q, 1, d_r, 1);
-      cublasSnrm2(cublasHandle, rowsA, d_r, 1, Pointer.to(normr));
+      cublasSaxpy(cublasHandle, getRowNumber(), Pointer.to(negalpha), d_q, 1, d_r, 1);
+      cublasSnrm2(cublasHandle, getRowNumber(), d_r, 1, Pointer.to(normr));
       LOGGER.debug("Iter: "+ i + " Relerr: "+normr[0]/normr0[0]);
       i++;
     }
@@ -1353,7 +1426,7 @@ public class SparseMatrixDevice extends SparseCoordinates {
     } else {
       LOGGER.info("Solver stopped by " + StoppedBy.RELERR);
     }
-    cudaMemcpy(Pointer.to(h_x), d_x, Sizeof.FLOAT * colsA, cudaMemcpyDeviceToHost);
+    cudaMemcpy(Pointer.to(h_x), d_x, Sizeof.FLOAT * getRowNumber(), cudaMemcpyDeviceToHost);
 
     cudaFree(d_t);
     cudaFree(d_p);
@@ -1361,12 +1434,12 @@ public class SparseMatrixDevice extends SparseCoordinates {
     cudaFree(d_z);
     cudaFree(d_r);
     cudaFree(d_x);
-    cudaFree(d_valChol);
-    cudaFree(d_csrColIndA);
-    cudaFree(d_csrRowPtrA);
-    cudaFree(d_csrValA);
+    // cudaFree(d_valChol);
+    // cudaFree(d_csrColIndA);
+    // cudaFree(d_csrRowPtrA);
+    // cudaFree(d_csrValA);
 
-    cusparseDestroyMatDescr(descrA);
+    // cusparseDestroyMatDescr(descrA);
     cusparseDestroyMatDescr(descrL);
     cusparseDestroySolveAnalysisInfo(infoU);
     cusparseDestroySolveAnalysisInfo(infoL);
@@ -1375,6 +1448,14 @@ public class SparseMatrixDevice extends SparseCoordinates {
     return h_x;
   }
 
+  /**
+   * Produce instance of {@link SparseMatrixDevice}.
+   * 
+   * @param raw COO matrix on the CPU
+   * @param handle cusparse handle
+   * @param cublasHandle cublas handle
+   * @return instance
+   */
   public static SparseMatrixDevice factory(SparseCoordinates raw, cusparseHandle handle,
           cublasHandle cublasHandle) {
     return new SparseMatrixDevice(raw.getRowInd(), raw.getColInd(), raw.getVal(),
