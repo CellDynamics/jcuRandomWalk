@@ -39,6 +39,18 @@ public class DenseVectorDevice extends DenseVector {
   }
 
   /**
+   * Wrapper to GPU vector.
+   * 
+   * @param rows number of rows, rows or cols should be 1
+   * @param cols number of columns, rows or cols should be 1
+   * @param d_val pointer to GPU data
+   */
+  public DenseVectorDevice(int rows, int cols, Pointer d_val) {
+    super(rows, cols);
+    valPtr = d_val;
+  }
+
+  /**
    * @param val
    */
   private void transferToGpu(float[] val) {

@@ -28,7 +28,7 @@ import jcuda.runtime.JCuda;
  * @author t.bretschneider
  *
  */
-public class RandomWalkAlgorithmGpu extends RandomWalkSolver {
+public class RandomWalkAlgorithmGpuLU extends RandomWalkSolver {
 
   private cusparseHandle handle = null;
   private cublasHandle cublasHandle = null;
@@ -36,13 +36,13 @@ public class RandomWalkAlgorithmGpu extends RandomWalkSolver {
   SparseMatrixDevice lap; // full laplacian
   List<DenseVectorDevice> bvector = new ArrayList<>(); // right vector
 
-  private List<float[]> rawSoultions = new ArrayList<>(2); // in case getRawProbs is called
+  protected List<float[]> rawSoultions = new ArrayList<>(2); // in case getRawProbs is called
   private int[] mergedseeds; // Optimisation store
 
   /**
    * Constructor for tests.
    */
-  RandomWalkAlgorithmGpu() {
+  RandomWalkAlgorithmGpuLU() {
 
   }
 
@@ -52,7 +52,7 @@ public class RandomWalkAlgorithmGpu extends RandomWalkSolver {
    * @param stack stack to be segmented
    * @param options options
    */
-  public RandomWalkAlgorithmGpu(ImageStack stack, RandomWalkOptions options) {
+  public RandomWalkAlgorithmGpuLU(ImageStack stack, RandomWalkOptions options) {
     super(stack, options);
   }
 
@@ -76,7 +76,6 @@ public class RandomWalkAlgorithmGpu extends RandomWalkSolver {
     SparseCoordinates weiTmp = img.getWeights();
     weight = SparseMatrixDevice.factory(weiTmp, handle, cublasHandle).convert2csr();
 
-    LOGGER.info("Base class: " + incidence.getClass().getSimpleName());
     // A'*W*A
     // ISparseMatrix ATW = incidenceGpuT.multiply(wGpu);
     // ISparseMatrix ATWA = ATW.multiply(incidenceGpu);
@@ -188,14 +187,14 @@ public class RandomWalkAlgorithmGpu extends RandomWalkSolver {
     reducedLapGpuCsr.setUseCheating(options.useCheating);
 
     LOGGER.info("Forward");
-    float[] solvedFw = reducedLapGpuCsr.luSolve1(bvector.get(0), true,
-            options.getAlgOptions().maxit, options.getAlgOptions().tol);
+    float[] solvedFw = reducedLapGpuCsr.luSolve(bvector.get(0), true, options.getAlgOptions().maxit,
+            options.getAlgOptions().tol);
     float[] solvedSeedsFw = incorporateSeeds(solvedFw, seedIndices,
             getIncidenceMatrix().getSinkBox(), lap.getColNumber());
 
     LOGGER.info("Backward");
-    float[] solvedBw = reducedLapGpuCsr.luSolve1(bvector.get(1), true,
-            options.getAlgOptions().maxit, options.getAlgOptions().tol);
+    float[] solvedBw = reducedLapGpuCsr.luSolve(bvector.get(1), true, options.getAlgOptions().maxit,
+            options.getAlgOptions().tol);
     float[] solvedSeedsBw = incorporateSeeds(solvedBw, getIncidenceMatrix().getSinkBox(),
             seedIndices, lap.getColNumber());
 

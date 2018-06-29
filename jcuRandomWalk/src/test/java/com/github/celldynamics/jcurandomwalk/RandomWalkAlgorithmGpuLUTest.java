@@ -48,7 +48,7 @@ import jcuda.runtime.JCuda;
  *
  * @author p.baniukiewicz
  */
-public class RandomWalkAlgorithmGpuTest {
+public class RandomWalkAlgorithmGpuLUTest {
 
   static {
     LoggerContext loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
@@ -73,7 +73,7 @@ public class RandomWalkAlgorithmGpuTest {
   private static final boolean isCuda = checkCuda();
 
   /** The Constant LOGGER. */
-  static final Logger LOGGER = LoggerFactory.getLogger(RandomWalkAlgorithmGpuTest.class.getName());
+  static final Logger LOGGER = LoggerFactory.getLogger(RandomWalkAlgorithmGpuLUTest.class.getName());
 
   /**
    * The tmpdir.
@@ -165,7 +165,7 @@ public class RandomWalkAlgorithmGpuTest {
 
   /**
    * Test method for
-   * {@link com.github.celldynamics.jcurandomwalk.RandomWalkAlgorithmGpu#computeIncidence()}.
+   * {@link com.github.celldynamics.jcurandomwalk.RandomWalkAlgorithmGpuLU#computeIncidence()}.
    *
    * @throws Exception the exception
    */
@@ -175,14 +175,14 @@ public class RandomWalkAlgorithmGpuTest {
     options.algOptions.meanSource = 0.6;
     options.configFolder = folder.newFolder().toPath();
     options.ifComputeIncidence = false;
-    RandomWalkAlgorithmGpu obj = new RandomWalkAlgorithmGpu(stack, options);
+    RandomWalkAlgorithmGpuLU obj = new RandomWalkAlgorithmGpuLU(stack, options);
     obj.computeIncidence();
     assertThat(options.configFolder.resolve("incidence_stack[3x4x2].ser").toFile().exists(),
             is(true));
   }
 
   /**
-   * Test of {@link RandomWalkAlgorithmGpu#computeLaplacian()}.
+   * Test of {@link RandomWalkAlgorithmGpuLU#computeLaplacian()}.
    * 
    * <p>Compute laplacian for {@link TestDataGenerators#getTestStack(int, int, int, String)} and
    * mocked weights.
@@ -205,7 +205,7 @@ public class RandomWalkAlgorithmGpuTest {
     img.computeIncidence(); // repeated to use mocked (first is in constructor)
 
     // final object
-    RandomWalkAlgorithmGpu obj = Mockito.spy(new RandomWalkAlgorithmGpu(stack, options));
+    RandomWalkAlgorithmGpuLU obj = Mockito.spy(new RandomWalkAlgorithmGpuLU(stack, options));
     // assign mocked generator
     obj.img = img;
     obj.computeLaplacian();
@@ -227,7 +227,7 @@ public class RandomWalkAlgorithmGpuTest {
 
   /**
    * Test method for
-   * {@link RandomWalkAlgorithmGpu#getSourceIndices(ImageStack, int)}.
+   * {@link RandomWalkAlgorithmGpuLU#getSourceIndices(ImageStack, int)}.
    * 
    * <p>Output indexes are column-ordered
    *
@@ -236,7 +236,7 @@ public class RandomWalkAlgorithmGpuTest {
   @Test
   public void testGetSourceIndices() throws Exception {
     ImageStack seed = TestDataGenerators.getSeedStack_1();
-    RandomWalkAlgorithmGpu obj = new RandomWalkAlgorithmGpu();
+    RandomWalkAlgorithmGpuLU obj = new RandomWalkAlgorithmGpuLU();
     Integer[] ret = obj.getSourceIndices(seed, 255);
     List<Integer> blist = Arrays.asList(ret);
     boolean issorted = blist.stream().sorted().collect(Collectors.toList()).equals(blist);
@@ -246,7 +246,7 @@ public class RandomWalkAlgorithmGpuTest {
 
   /**
    * Test method for
-   * {@link RandomWalkAlgorithmGpu#computeReducedLaplacian(Integer[], Integer[])}.
+   * {@link RandomWalkAlgorithmGpuLU#computeReducedLaplacian(Integer[], Integer[])}.
    *
    * @throws Exception the exception
    */
@@ -260,7 +260,7 @@ public class RandomWalkAlgorithmGpuTest {
     SparseMatrixDevice testL = new SparseMatrixDevice(ri, ci, v, SparseMatrixType.MATRIX_FORMAT_COO,
             handle, cublasHandle);
     LOGGER.debug("Laplacean" + testL.toString());
-    RandomWalkAlgorithmGpu obj = new RandomWalkAlgorithmGpu();
+    RandomWalkAlgorithmGpuLU obj = new RandomWalkAlgorithmGpuLU();
 
     // remove row/co 1,2,3
     Integer[] source = new Integer[] { 1, 3 };
@@ -309,7 +309,7 @@ public class RandomWalkAlgorithmGpuTest {
   @Test
   public void testComputeB() throws Exception {
     assumeTrue(isCuda);
-    RandomWalkAlgorithmGpu obj = new RandomWalkAlgorithmGpu();
+    RandomWalkAlgorithmGpuLU obj = new RandomWalkAlgorithmGpuLU();
     int[] ri = new int[] { 0, 0, 0, 1, 2, 3, 4, 4, 5 };
     int[] ci = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
     float[] v = new float[] { 10, 101, 102, 11, 12, 13, 131, 14, 15 };
@@ -322,7 +322,7 @@ public class RandomWalkAlgorithmGpuTest {
 
   /**
    * Test method for
-   * {@link com.github.celldynamics.jcurandomwalk.RandomWalkAlgorithmGpu#getSegmentedStack(float[])}.
+   * {@link com.github.celldynamics.jcurandomwalk.RandomWalkAlgorithmGpuLU#getSegmentedStack(float[])}.
    * 
    * <p>Check if output stack converted from linear solution has proper orientation - column wise.
    * 
@@ -330,7 +330,7 @@ public class RandomWalkAlgorithmGpuTest {
    */
   @Test
   public void testGetSegmentedStack() throws Exception {
-    RandomWalkAlgorithmGpu obj = new RandomWalkAlgorithmGpu();
+    RandomWalkAlgorithmGpuLU obj = new RandomWalkAlgorithmGpuLU();
     ImageStack mockStack = Mockito.mock(ImageStack.class);
     obj.stack = mockStack;
     Mockito.doReturn(5).when(mockStack).getWidth();
@@ -355,7 +355,7 @@ public class RandomWalkAlgorithmGpuTest {
 
   /**
    * Test method for
-   * {@link com.github.celldynamics.jcurandomwalk.RandomWalkAlgorithmGpu#solve(ImageStack, int)}.
+   * {@link com.github.celldynamics.jcurandomwalk.RandomWalkAlgorithmGpuLU#solve(ImageStack, int)}.
    * 
    * @throws Exception
    */
@@ -366,7 +366,7 @@ public class RandomWalkAlgorithmGpuTest {
     options.algOptions.meanSource = 0.6;
     ImageStack org = IJ.openImage("src/test/test_data/segment_test_normalised.tif").getImageStack();
     ImageStack seeds = IJ.openImage("src/test/test_data/segment_test_seeds.tif").getImageStack();
-    RandomWalkAlgorithmGpu obj = new RandomWalkAlgorithmGpu(org, options);
+    RandomWalkAlgorithmGpuLU obj = new RandomWalkAlgorithmGpuLU(org, options);
     ImageStack segmented = obj.solve(seeds, 255);
     ImagePlus tmp = new ImagePlus("", segmented);
     IJ.saveAsTiff(tmp, "/tmp/solution.tif");
@@ -374,7 +374,7 @@ public class RandomWalkAlgorithmGpuTest {
 
   /**
    * Test method for
-   * {@link com.github.celldynamics.jcurandomwalk.RandomWalkAlgorithmGpu#incorporateSeeds(float[], Integer[], Integer[], int)}.
+   * {@link com.github.celldynamics.jcurandomwalk.RandomWalkAlgorithmGpuLU#incorporateSeeds(float[], Integer[], Integer[], int)}.
    * 
    * @throws Exception
    */
@@ -385,7 +385,7 @@ public class RandomWalkAlgorithmGpuTest {
     Integer[] sink = new Integer[] { 1, 9 }; // sink pixels
     // 5 pixels were given, 5 were calculated from reduced lap
     float[] solution = new float[] { 10, 11, 12, 13, 14 };
-    RandomWalkAlgorithmGpu obj = new RandomWalkAlgorithmGpu();
+    RandomWalkAlgorithmGpuLU obj = new RandomWalkAlgorithmGpuLU();
     float[] ret = obj.incorporateSeeds(solution, source, sink, 10);
     // expected are 1.0 at positions from source
     assertThat((double) ret[0], closeTo(1.0, 1e-6));
