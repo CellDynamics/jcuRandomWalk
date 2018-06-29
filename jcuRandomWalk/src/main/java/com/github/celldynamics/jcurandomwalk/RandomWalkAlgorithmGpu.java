@@ -15,6 +15,8 @@ import com.github.celldynamics.jcudarandomwalk.matrices.sparse.SparseCoordinates
 import com.github.celldynamics.jcudarandomwalk.matrices.sparse.SparseMatrixDevice;
 
 import ij.ImageStack;
+import jcuda.jcublas.JCublas2;
+import jcuda.jcublas.cublasHandle;
 import jcuda.jcusparse.JCusparse;
 import jcuda.jcusparse.cusparseHandle;
 import jcuda.runtime.JCuda;
@@ -29,6 +31,7 @@ import jcuda.runtime.JCuda;
 public class RandomWalkAlgorithmGpu extends RandomWalkSolver {
 
   private cusparseHandle handle = null;
+  private cublasHandle cublasHandle = null;
   SparseMatrixDevice reducedLap; // reduced laplacian
   SparseMatrixDevice lap; // full laplacian
   List<DenseVectorDevice> bvector = new ArrayList<>(); // right vector
@@ -68,10 +71,10 @@ public class RandomWalkAlgorithmGpu extends RandomWalkSolver {
     // IMatrix atw = null;
     SparseCoordinates incTmp = img.getIncidence();
     // FIXME no chaining
-    incidence = SparseMatrixDevice.factory(incTmp, handle).convert2csr();
+    incidence = SparseMatrixDevice.factory(incTmp, handle, cublasHandle).convert2csr();
     incidenceT = incidence.transpose();
     SparseCoordinates weiTmp = img.getWeights();
-    weight = SparseMatrixDevice.factory(weiTmp, handle).convert2csr();
+    weight = SparseMatrixDevice.factory(weiTmp, handle, cublasHandle).convert2csr();
 
     LOGGER.info("Base class: " + incidence.getClass().getSimpleName());
     // A'*W*A
@@ -327,6 +330,11 @@ public class RandomWalkAlgorithmGpu extends RandomWalkSolver {
       JCuda.setExceptionsEnabled(true);
       JCusparse.cusparseCreate(handle);
     }
+    if (cublasHandle == null) {
+      cublasHandle = new cublasHandle();
+      JCublas2.setExceptionsEnabled(true);
+      JCublas2.cublasCreate(cublasHandle);
+    }
   }
 
   /**
@@ -339,6 +347,11 @@ public class RandomWalkAlgorithmGpu extends RandomWalkSolver {
         JCuda.setExceptionsEnabled(false);
         JCusparse.cusparseDestroy(handle);
         handle = null;
+      }
+      if (cublasHandle != null) {
+        JCublas2.setExceptionsEnabled(false);
+        JCublas2.cublasDestroy(cublasHandle);
+        cublasHandle = null;
       }
     } catch (Error e) {
       LOGGER.error("Exception caugh during cleaning: " + e.getMessage().split("\n")[0]);

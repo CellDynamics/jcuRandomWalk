@@ -37,6 +37,8 @@ import ch.qos.logback.classic.LoggerContext;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.ImageStack;
+import jcuda.jcublas.JCublas2;
+import jcuda.jcublas.cublasHandle;
 import jcuda.jcusparse.JCusparse;
 import jcuda.jcusparse.cusparseHandle;
 import jcuda.runtime.JCuda;
@@ -79,6 +81,7 @@ public class RandomWalkAlgorithmGpuTest {
   static String tmpdir = System.getProperty("java.io.tmpdir") + File.separator;
 
   private static cusparseHandle handle;
+  private static cublasHandle cublasHandle;
 
   /** The folder. */
   @Rule
@@ -136,6 +139,9 @@ public class RandomWalkAlgorithmGpuTest {
       JCusparse.setExceptionsEnabled(true);
       JCuda.setExceptionsEnabled(true);
       JCusparse.cusparseCreate(handle);
+      cublasHandle = new cublasHandle();
+      JCublas2.setExceptionsEnabled(true);
+      JCublas2.cublasCreate(cublasHandle);
     } catch (UnsatisfiedLinkError | NoClassDefFoundError e) {
       LOGGER.error(e.getMessage());
     }
@@ -150,6 +156,8 @@ public class RandomWalkAlgorithmGpuTest {
       JCusparse.setExceptionsEnabled(false);
       JCuda.setExceptionsEnabled(false);
       JCusparse.cusparseDestroy(handle);
+      JCublas2.setExceptionsEnabled(false);
+      JCublas2.cublasDestroy(cublasHandle);
     } catch (UnsatisfiedLinkError | NoClassDefFoundError e) {
       LOGGER.error(e.getMessage());
     }
@@ -249,8 +257,8 @@ public class RandomWalkAlgorithmGpuTest {
     int[] ri = new int[] { 0, 0, 0, 1, 2, 3, 4, 4, 5 };
     int[] ci = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
     float[] v = new float[] { 10, 101, 102, 11, 12, 13, 131, 14, 15 };
-    SparseMatrixDevice testL =
-            new SparseMatrixDevice(ri, ci, v, SparseMatrixType.MATRIX_FORMAT_COO, handle);
+    SparseMatrixDevice testL = new SparseMatrixDevice(ri, ci, v, SparseMatrixType.MATRIX_FORMAT_COO,
+            handle, cublasHandle);
     LOGGER.debug("Laplacean" + testL.toString());
     RandomWalkAlgorithmGpu obj = new RandomWalkAlgorithmGpu();
 
@@ -305,8 +313,8 @@ public class RandomWalkAlgorithmGpuTest {
     int[] ri = new int[] { 0, 0, 0, 1, 2, 3, 4, 4, 5 };
     int[] ci = new int[] { 0, 1, 5, 1, 2, 3, 0, 4, 5 };
     float[] v = new float[] { 10, 101, 102, 11, 12, 13, 131, 14, 15 };
-    SparseMatrixDevice testL =
-            new SparseMatrixDevice(ri, ci, v, SparseMatrixType.MATRIX_FORMAT_COO, handle);
+    SparseMatrixDevice testL = new SparseMatrixDevice(ri, ci, v, SparseMatrixType.MATRIX_FORMAT_COO,
+            handle, cublasHandle);
     DenseVectorDevice ret = obj.computeB(testL, new Integer[] { 0, 1 });
     assertThat(Arrays.asList(ret.getVal()),
             contains(new float[] { -111.0f, -11.0f, -0f, -0f, -131.0f, -0.0f }));
