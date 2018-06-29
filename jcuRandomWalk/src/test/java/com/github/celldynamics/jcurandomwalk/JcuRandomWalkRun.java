@@ -52,11 +52,11 @@ public class JcuRandomWalkRun {
   //   + "-s src/test/test_data/img_original_seeds_small.tif "
     
     // test - save matrices in text file in data/
-    String args1 =
-            "app -i src/test/test_data/img_original_normalised.tif "
-            + "-s src/test/test_data/img_original_seeds.tif "
-            + " -o /tmp/test.tif "
-            + "-dd";
+//    String args1 =
+//            "app -i src/test/test_data/img_original_normalised.tif "
+//            + "-s src/test/test_data/img_original_seeds.tif "
+//            + " -o /tmp/test.tif "
+//            + "-dd";
 //    
 //    String args1 =
 //            "app -i src/test/test_data/sc/img_10.tif "

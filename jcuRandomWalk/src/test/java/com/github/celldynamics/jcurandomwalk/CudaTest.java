@@ -19,6 +19,8 @@ import com.github.celldynamics.jcudarandomwalk.matrices.sparse.SparseMatrixType;
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.LoggerContext;
 import jcuda.Pointer;
+import jcuda.jcublas.JCublas2;
+import jcuda.jcublas.cublasHandle;
 import jcuda.jcusparse.JCusparse;
 import jcuda.jcusparse.cusparseHandle;
 import jcuda.runtime.JCuda;
@@ -32,6 +34,7 @@ import jcuda.runtime.JCuda;
 public class CudaTest {
 
   private static cusparseHandle handle;
+  private static cublasHandle cublasHandle;
 
   static {
     LoggerContext loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
@@ -49,6 +52,9 @@ public class CudaTest {
       JCusparse.setExceptionsEnabled(true);
       JCuda.setExceptionsEnabled(true);
       JCusparse.cusparseCreate(handle);
+      cublasHandle = new cublasHandle();
+      JCublas2.setExceptionsEnabled(true);
+      JCublas2.cublasCreate(cublasHandle);
     }
   }
 
@@ -62,6 +68,8 @@ public class CudaTest {
       JCusparse.setExceptionsEnabled(false);
       JCuda.setExceptionsEnabled(false);
       JCusparse.cusparseDestroy(handle);
+      JCublas2.setExceptionsEnabled(false);
+      JCublas2.cublasDestroy(cublasHandle);
     }
   }
 
@@ -116,8 +124,8 @@ public class CudaTest {
         0.2f, 0.6f, 0.4f, 0.1f, 0.3f, 0.3f, 0.5f, 0.5f, 0.2f, 0.8f, 0.1f, 0.1f, 0.4f, 0.2f };
     DenseVectorDevice b = new DenseVectorDevice(5, 1, new float[] { 6.1f, 8f, 4.7f, 5.4f, 3.9f });
 
-    SparseMatrixDevice a =
-            new SparseMatrixDevice(rows, cols, vals, SparseMatrixType.MATRIX_FORMAT_COO, handle);
+    SparseMatrixDevice a = new SparseMatrixDevice(rows, cols, vals,
+            SparseMatrixType.MATRIX_FORMAT_COO, handle, cublasHandle);
     SparseMatrixDevice acsr = a.convert2csr();
 
     float[] ret = acsr.luSolve1(b, true, 50, 1e-12f);

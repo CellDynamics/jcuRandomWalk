@@ -21,6 +21,8 @@ import com.github.celldynamics.jcudarandomwalk.matrices.dense.DenseVectorDevice;
 import com.github.celldynamics.jcurandomwalk.ArrayTools;
 import com.github.celldynamics.jcurandomwalk.TestDataGenerators;
 
+import jcuda.jcublas.JCublas2;
+import jcuda.jcublas.cublasHandle;
 import jcuda.jcusparse.JCusparse;
 import jcuda.jcusparse.cusparseHandle;
 import jcuda.runtime.JCuda;
@@ -39,6 +41,7 @@ public class SparseMatrixDeviceTest {
   static final Logger LOGGER = LoggerFactory.getLogger(SparseMatrixDeviceTest.class.getName());
 
   private static cusparseHandle handle;
+  private static cublasHandle cublasHandle;
 
   private SparseMatrixDevice obj;
   private SparseMatrixDevice obj1;
@@ -71,6 +74,9 @@ public class SparseMatrixDeviceTest {
       JCusparse.setExceptionsEnabled(true);
       JCuda.setExceptionsEnabled(true);
       JCusparse.cusparseCreate(handle);
+      cublasHandle = new cublasHandle();
+      JCublas2.setExceptionsEnabled(true);
+      JCublas2.cublasCreate(cublasHandle);
     }
   }
 
@@ -84,6 +90,8 @@ public class SparseMatrixDeviceTest {
       JCusparse.setExceptionsEnabled(false);
       JCuda.setExceptionsEnabled(false);
       JCusparse.cusparseDestroy(handle);
+      JCublas2.setExceptionsEnabled(false);
+      JCublas2.cublasDestroy(cublasHandle);
     }
   }
 
@@ -95,9 +103,9 @@ public class SparseMatrixDeviceTest {
     if (isCuda) {
       gen = new TestDataGenerators();
       obj = new SparseMatrixDevice(gen.rowInd, gen.colInd, gen.valRowOrder,
-              SparseMatrixType.MATRIX_FORMAT_COO, handle);
+              SparseMatrixType.MATRIX_FORMAT_COO, handle, cublasHandle);
       obj1 = new SparseMatrixDevice(gen.rowInd1, gen.colInd1, gen.val1RowOrder,
-              SparseMatrixType.MATRIX_FORMAT_COO, handle);
+              SparseMatrixType.MATRIX_FORMAT_COO, handle, cublasHandle);
     }
   }
 
@@ -127,7 +135,7 @@ public class SparseMatrixDeviceTest {
     assumeTrue(isCuda);
     @SuppressWarnings("unused")
     SparseMatrixDevice spd = new SparseMatrixDevice(new int[] { 1, 2 }, new int[] { 1, 2, 3 },
-            new float[] { 1, 2 }, SparseMatrixType.MATRIX_FORMAT_COO, handle);
+            new float[] { 1, 2 }, SparseMatrixType.MATRIX_FORMAT_COO, handle, cublasHandle);
   }
 
   /**
@@ -143,7 +151,7 @@ public class SparseMatrixDeviceTest {
     assumeTrue(isCuda);
     @SuppressWarnings("unused")
     SparseMatrixDevice spd = new SparseMatrixDevice(new int[] { 1, 2, 4 }, new int[] { 1, 2, 3 },
-            new float[] { 1, 2 }, SparseMatrixType.MATRIX_FORMAT_COO, handle);
+            new float[] { 1, 2 }, SparseMatrixType.MATRIX_FORMAT_COO, handle, cublasHandle);
   }
 
   /**
@@ -159,7 +167,7 @@ public class SparseMatrixDeviceTest {
     assumeTrue(isCuda);
     @SuppressWarnings("unused")
     SparseMatrixDevice spd = new SparseMatrixDevice(new int[] { 1, 2 }, new int[] { 1, 2, 3 },
-            new float[] { 1, 2, 3 }, SparseMatrixType.MATRIX_FORMAT_COO, handle);
+            new float[] { 1, 2, 3 }, SparseMatrixType.MATRIX_FORMAT_COO, handle, cublasHandle);
   }
 
   /**
@@ -380,8 +388,8 @@ public class SparseMatrixDeviceTest {
         0.2f, 0.6f, 0.4f, 0.1f, 0.3f, 0.3f, 0.5f, 0.5f, 0.2f, 0.8f, 0.1f, 0.1f, 0.4f, 0.2f };
     DenseVectorDevice b = new DenseVectorDevice(5, 1, new float[] { 6.1f, 8f, 4.7f, 5.4f, 3.9f });
 
-    SparseMatrixDevice a =
-            new SparseMatrixDevice(rows, cols, vals, SparseMatrixType.MATRIX_FORMAT_COO, handle);
+    SparseMatrixDevice a = new SparseMatrixDevice(rows, cols, vals,
+            SparseMatrixType.MATRIX_FORMAT_COO, handle, cublasHandle);
     SparseMatrixDevice acsr = a.convert2csr();
 
     float[] ret = acsr.luSolve(b, true, 50, 1e-12f);
