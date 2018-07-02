@@ -43,10 +43,10 @@ public class RandomWalkAlgorithmGpuChol extends RandomWalkAlgorithmGpuLU {
     Integer[] seedIndices = getSourceIndices(seed, seedVal);
     computeReducedLaplacian(seedIndices, getIncidenceMatrix().getSinkBox());
     SparseMatrixDevice reducedLapGpuCsr = getReducedLap();
-    reducedLapGpuCsr.setUseCheating(options.useCheating);
 
     SparseMatrixDevice triangle = reducedLapGpuCsr.getLowerTriangle();
     DenseVectorDevice chol = triangle.getCholesky();
+    triangle.setUseCheating(options.useCheating);
 
     LOGGER.info("Forward");
     float[] solvedFw = triangle.luSolveSymmetric(bvector.get(0), chol,

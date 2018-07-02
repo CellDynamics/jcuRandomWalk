@@ -28,7 +28,9 @@ public class JcuRandomWalkRun {
            + "--defaultprocessing 0.4 "
            + "--sigmaMean 0.05 "
            + "--sigmaGrad 0.1 "
-           + "--probmaps";
+           + "--probmaps "
+           + "--usecheating "
+           + "--precond CHOL";
 //
 //    String args1 =
 //            "app -i /local/internal_tmp/baniuk/rw/folder "
@@ -39,7 +41,8 @@ public class JcuRandomWalkRun {
 //            + "--defaultprocessing 0.4 "
 //            + "--sigmaMean 0.05 "
 //            + "--sigmaGrad 0.1 "
-//            + "--usecheating";
+//            + "--usecheating "
+//            + "--precond CHOL";
     
 //  String args1 =
 //          "app -i src/test/test_data/ "

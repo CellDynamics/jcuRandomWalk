@@ -1,0 +1,8 @@
+# Eclipse Core
+!.project
+
+# CDT-specific
+!.cproject
+
+Debug
+Release

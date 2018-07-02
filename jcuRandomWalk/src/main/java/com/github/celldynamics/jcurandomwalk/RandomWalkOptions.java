@@ -9,6 +9,23 @@ import com.github.celldynamics.jcudarandomwalk.matrices.sparse.SparseMatrixDevic
 import ch.qos.logback.classic.Level;
 
 /**
+ * Pre-conditioner.
+ * 
+ * @author baniuk
+ *
+ */
+enum Preconds {
+  /**
+   * Cholesky - symmetric.
+   */
+  CHOL,
+  /**
+   * LU.
+   */
+  LU
+}
+
+/**
  * Program and segmentation options.
  * 
  * @author p.baniukiewicz
@@ -48,6 +65,7 @@ public class RandomWalkOptions {
     this.gammaVal = src.gammaVal;
     this.debugLevel = src.debugLevel;
     this.useCheating = src.useCheating;
+    this.preconditioner = src.preconditioner;
   }
 
   /**
@@ -56,7 +74,7 @@ public class RandomWalkOptions {
   static String tmpdir = System.getProperty("java.io.tmpdir") + File.separator;
 
   /**
-   * Level of threshold. Negative value = option inacive.
+   * Level of threshold. Negative value = option inactive.
    */
   Double thLevel = -1.0;
   /**
@@ -134,6 +152,19 @@ public class RandomWalkOptions {
    * {@link SparseMatrixDevice#luSolve(com.github.celldynamics.jcudarandomwalk.matrices.dense.DenseVectorDevice, boolean, int, float)}
    */
   public boolean useCheating = false;
+  /**
+   * Preconditioner used.
+   */
+  public Preconds preconditioner = Preconds.CHOL;
+
+  /**
+   * Set preconditioner from string.
+   * 
+   * @param preconditioner the preconditioner to set
+   */
+  public void setPreconditioner(String preconditioner) {
+    this.preconditioner = Preconds.valueOf(preconditioner.trim().toUpperCase());
+  }
 
   /**
    * Specific options for algorithm.
@@ -223,7 +254,8 @@ public class RandomWalkOptions {
             + rawProbMaps + ", stack=" + stack + ", seeds=" + seeds + ", output=" + output
             + ", ifComputeIncidence=" + ifComputeIncidence + ", ifSaveIncidence=" + ifSaveIncidence
             + ", ifApplyProcessing=" + ifApplyProcessing + ", gammaVal=" + gammaVal
-            + ", debugLevel=" + debugLevel + ", useCheating=" + useCheating + "]";
+            + ", debugLevel=" + debugLevel + ", useCheating=" + useCheating + ", preconditioner="
+            + preconditioner + "]";
   }
 
 }
