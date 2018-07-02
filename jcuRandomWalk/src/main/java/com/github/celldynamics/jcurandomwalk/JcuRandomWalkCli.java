@@ -119,6 +119,9 @@ public class JcuRandomWalkCli {
             .type(Integer.class).longOpt("device").build();
     Option cpuOption = Option.builder().desc("Use CPU only. Default is " + rwOptions.cpuOnly)
             .longOpt("cpuonly").build();
+    Option condOption = Option.builder().argName("CHOL|LU").hasArg().type(String.class)
+            .desc("Preconditioner. Default is " + rwOptions.preconditioner).longOpt("precond")
+            .build();
 
     Option imageOption = Option.builder("i").argName("input").hasArg().required()
             .desc("Stack or folder to process.").longOpt("image").build();
@@ -182,6 +185,7 @@ public class JcuRandomWalkCli {
     // cliOptions.addOption(autoThOption);
     cliOptions.addOption(deviceOption);
     cliOptions.addOption(cpuOption);
+    cliOptions.addOption(condOption);
     cliOptions.addOption(imageOption);
     cliOptions.addOption(verOption);
     cliOptions.addOption(helpOption);
@@ -213,6 +217,9 @@ public class JcuRandomWalkCli {
       }
       if (cmd.hasOption("cpuonly")) {
         rwOptions.cpuOnly = true;
+      }
+      if (cmd.hasOption("precond")) {
+        rwOptions.setPreconditioner(cmd.getOptionValue("precond"));
       }
       if (cmd.hasOption('i')) {
         rwOptions.stack = Paths.get(cmd.getOptionValue('i'));
@@ -591,9 +598,18 @@ public class JcuRandomWalkCli {
     }
 
     Integer dev = null;
-    if (rwOptions.cpuOnly == false) { // TODO add selection LU or Chol (default)
+    if (rwOptions.cpuOnly == false) {
       // create main object
-      rwa = new RandomWalkAlgorithmGpuChol(stack, rwOptions);
+      switch (rwOptions.preconditioner) {
+        case CHOL:
+          rwa = new RandomWalkAlgorithmGpuChol(stack, rwOptions);
+          break;
+        case LU:
+          rwa = new RandomWalkAlgorithmGpuLU(stack, rwOptions);
+          break;
+        default:
+          throw new IllegalStateException("Unknown algorithm");
+      }
       // if one thread use info from RandomWalkOptions, otherwise compute device from thread number
       if (numThreads == 1) {
         deviceAction(rwOptions.device);

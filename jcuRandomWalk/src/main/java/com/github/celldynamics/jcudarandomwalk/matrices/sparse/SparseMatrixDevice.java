@@ -579,6 +579,9 @@ public class SparseMatrixDevice extends SparseCoordinates {
     }
   }
 
+  /**
+   * @return Transposed matrix
+   */
   public SparseMatrixDevice transpose() {
     SparseMatrixDevice csrm = (SparseMatrixDevice) this.convert2csr();
 
@@ -991,6 +994,8 @@ public class SparseMatrixDevice extends SparseCoordinates {
         cusparseScsrsv_analysis(cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE, n, nnz, descr_U,
                 iLUcooVal_gpuPtr, iLUcsrRowIndex_gpuPtr, iLUcooColIndex_gpuPtr, infoU);
         done = true;
+      } else {
+        LOGGER.warn("Cheating is enabled. Using structure from previous analysis.");
       }
       timer.split();
       LOGGER.debug("... Step cusparseScsrsv_analysis accomplished in " + timer.toSplitString());
@@ -1187,6 +1192,7 @@ public class SparseMatrixDevice extends SparseCoordinates {
    */
   public SparseMatrixDevice getLowerTriangle() {
     StopWatch timer = StopWatch.createStarted();
+    LOGGER.info("Extracting lower triangle from symmetric L");
     // helpers
     // cut lower triangle from this array (on CPU)
     this.toCpu(false);
@@ -1231,8 +1237,12 @@ public class SparseMatrixDevice extends SparseCoordinates {
             SparseMatrixType.MATRIX_FORMAT_CSR, descrA, cusparseHandle, cublasHandle);
   }
 
+  /**
+   * @return Cholesky decomposition.
+   */
   public DenseVectorDevice getCholesky() {
     StopWatch timer = StopWatch.createStarted();
+    LOGGER.info("Performing Cholesky decomposition");
     Pointer d_valChol = new Pointer(); // values of lower triangle, will be modified
     cudaMalloc(d_valChol, Sizeof.FLOAT * colNumber);
     cudaMemcpy(d_valChol, getValPtr(), Sizeof.FLOAT * colNumber, cudaMemcpyDeviceToDevice);
@@ -1303,22 +1313,26 @@ public class SparseMatrixDevice extends SparseCoordinates {
     cusparseSetMatFillMode(descrL, CUSPARSE_FILL_MODE_LOWER);
     cusparseSetMatDiagType(descrL, CUSPARSE_DIAG_TYPE_NON_UNIT);
     cusparseSetMatIndexBase(descrL, CUSPARSE_INDEX_BASE_ZERO);
-    cusparseSolveAnalysisInfo infoL = new cusparseSolveAnalysisInfo();
-    cusparseCreateSolveAnalysisInfo(infoL);
-    cusparseScsrsv_analysis(cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE,
-            b_gpuPtrAny.getRowNumber(), getColNumber(), descrL, d_valChol, getRowIndPtr(),
-            getColIndPtr(), infoL);
-    timer.split();
-    LOGGER.debug("... Step cusparseScsrsv_analysis accomplished in " + timer.toSplitString());
-    timer.unsplit();
 
-    cusparseSolveAnalysisInfo infoU = new cusparseSolveAnalysisInfo();
-    cusparseCreateSolveAnalysisInfo(infoU);
-    cusparseScsrsv_analysis(cusparseHandle, CUSPARSE_OPERATION_TRANSPOSE, getRowNumber(),
-            getColNumber(), descrL, d_valChol, getRowIndPtr(), getColIndPtr(), infoU);
-    timer.split();
-    LOGGER.debug("... Step cusparseScsrsv_analysis accomplished in " + timer.toSplitString());
-    timer.unsplit();
+    if (!useCheating || !done) {
+      cusparseCreateSolveAnalysisInfo(infoL);
+      cusparseScsrsv_analysis(cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE,
+              b_gpuPtrAny.getRowNumber(), getColNumber(), descrL, d_valChol, getRowIndPtr(),
+              getColIndPtr(), infoL);
+      timer.split();
+      LOGGER.debug("... Step cusparseScsrsv_analysis accomplished in " + timer.toSplitString());
+      timer.unsplit();
+
+      cusparseCreateSolveAnalysisInfo(infoU);
+      cusparseScsrsv_analysis(cusparseHandle, CUSPARSE_OPERATION_TRANSPOSE, getRowNumber(),
+              getColNumber(), descrL, d_valChol, getRowIndPtr(), getColIndPtr(), infoU);
+      timer.split();
+      LOGGER.debug("... Step cusparseScsrsv_analysis accomplished in " + timer.toSplitString());
+      timer.unsplit();
+      done = true;
+    } else {
+      LOGGER.warn("Cheating is enabled. Using structure from previous analysis.");
+    }
 
     Pointer d_t = ArrayTools.cudaMallocCopy(new float[0], getRowNumber());
     Pointer d_p = ArrayTools.cudaMallocCopy(new float[0], getRowNumber());
@@ -1434,15 +1448,11 @@ public class SparseMatrixDevice extends SparseCoordinates {
     cudaFree(d_z);
     cudaFree(d_r);
     cudaFree(d_x);
-    // cudaFree(d_valChol);
-    // cudaFree(d_csrColIndA);
-    // cudaFree(d_csrRowPtrA);
-    // cudaFree(d_csrValA);
-
-    // cusparseDestroyMatDescr(descrA);
     cusparseDestroyMatDescr(descrL);
-    cusparseDestroySolveAnalysisInfo(infoU);
-    cusparseDestroySolveAnalysisInfo(infoL);
+    if (!useCheating) {
+      cusparseDestroySolveAnalysisInfo(infoU);
+      cusparseDestroySolveAnalysisInfo(infoL);
+    }
     timer.stop();
     LOGGER.info("LU solver finished in " + timer.toString());
     return h_x;

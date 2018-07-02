@@ -70,3 +70,5 @@ target/
 dependency-reduced-pom.xml
 
 incidence_stack*
+
+jcuRandomWalk/data
