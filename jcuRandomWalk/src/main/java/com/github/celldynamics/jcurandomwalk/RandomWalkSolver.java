@@ -1,7 +1,15 @@
 package com.github.celldynamics.jcurandomwalk;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 import org.apache.commons.lang3.ArrayUtils;
@@ -27,6 +35,9 @@ public abstract class RandomWalkSolver implements IRandomWalkSolver {
   ImageStack stack;
   IncidenceMatrixGenerator img;
   RandomWalkOptions options;
+
+  protected File statFile = null;
+  protected Map<String, Long> times = new LinkedHashMap<>(); // helper, keep execution times in ms
 
   /**
    * Empty constructor.
@@ -194,6 +205,49 @@ public abstract class RandomWalkSolver implements IRandomWalkSolver {
    */
   public ImageStack getStack() {
     return stack;
+  }
+
+  /*
+   * (non-Javadoc)
+   * 
+   * @see com.github.celldynamics.jcurandomwalk.IRandomWalkSolver#getStats(java.nio.file.Path)
+   */
+  @Override
+  public void getStats(Path file) {
+    statFile = file.toFile();
+    times.clear();
+
+  }
+
+  /**
+   * Helper.
+   * 
+   * Read timer and add passed time to {@link #times}. Timer should be running and this method
+   * should be called after method being measured.
+   * 
+   * @param tag
+   * 
+   * @param timer
+   */
+  protected void readTimer(String tag, StopWatch timer) {
+    timer.stop();
+    times.put(tag, timer.getTime(TimeUnit.MILLISECONDS));
+    timer.reset();
+  }
+
+  protected void saveRecord() throws IOException {
+    if (statFile != null && !times.isEmpty()) {
+      BufferedWriter output = new BufferedWriter(
+              new OutputStreamWriter(new FileOutputStream(statFile, true), "UTF-8"));
+      String con = "FILE:" + "\t";
+      con = con.concat(options.stack.getFileName().toString()) + "\t";
+      for (String k : times.keySet()) {
+        Long v = times.get(k);
+        con = con.concat(k + ":\t" + v.toString() + "\t");
+      }
+      output.write(con.concat(System.lineSeparator()));
+      output.close();
+    }
   }
 
 }

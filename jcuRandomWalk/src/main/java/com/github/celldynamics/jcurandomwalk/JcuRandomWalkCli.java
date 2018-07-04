@@ -147,6 +147,8 @@ public class JcuRandomWalkCli {
     Option debugOption = Option.builder("d").desc("Debug stream").longOpt("debug").build();
     Option ddebugOption =
             Option.builder("dd").desc("Even more debug streams").longOpt("superdebug").build();
+    Option benchOption = Option.builder().desc("Save benchmark results in output folder")
+            .longOpt("bench").build();
     OptionGroup qd = new OptionGroup();
     qd.addOption(debugOption);
     qd.addOption(quietOption);
@@ -191,6 +193,7 @@ public class JcuRandomWalkCli {
     cliOptions.addOption(helpOption);
     cliOptions.addOption(outputOption);
     cliOptions.addOptionGroup(qd);
+    cliOptions.addOption(benchOption);
     cliOptions.addOption(showOption);
 
     cliOptions.addOption(maxitOption);
@@ -258,6 +261,9 @@ public class JcuRandomWalkCli {
       }
       if (cmd.hasOption("dd")) {
         rwOptions.debugLevel = Level.TRACE;
+      }
+      if (cmd.hasOption("bench")) {
+        rwOptions.bench = Paths.get("bench.txt");
       }
       if (cmd.hasOption("probmaps")) {
         rwOptions.rawProbMaps = true;
@@ -342,7 +348,12 @@ public class JcuRandomWalkCli {
       // (file name will be ignored then)
       outputFolder = rwOptions.output.getParent();
     }
-
+    if (rwOptions.bench != null) {
+      rwOptions.bench = outputFolder.resolve(rwOptions.bench); // add output folder
+      if (rwOptions.bench.toFile().exists() && rwOptions.bench.toFile().isFile()) {
+        rwOptions.bench.toFile().delete();
+      }
+    }
     for (Path stackPath : stacks) {
       RandomWalkOptions local = new RandomWalkOptions(rwOptions); // make copy
       if (stacks.size() > 1) { // more than one? we need to adapt output to each separatelly
@@ -621,6 +632,7 @@ public class JcuRandomWalkCli {
     } else {
       rwa = new RandomWalkAlgorithmOj(stack, rwOptions);
     }
+    rwa.getStats(rwOptions.bench);
     LOGGER.info("Processing file " + rwOptions.stack.toString() + " on device " + dev);
     LOGGER.info("Base class: " + rwa.getClass().getSimpleName());
     rwa.initilize(); // TODO move to construcor

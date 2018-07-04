@@ -21,16 +21,16 @@ public class JcuRandomWalkRun {
 //    String args1 = "app -h"; 
     
     String args1 =
-           "app -i /local/internal_tmp/baniuk/rw/z_stack_deconvolved_t7.tif "
-           + "-o /home/baniuk/external/rw/folder/res/solution_t7.tif "
+           "app -i /local/internal_tmp/baniuk/rw/folder/small "
+           + "-o /home/baniuk/external/rw/folder/res "
            + "-dd "
            + "--autoth 0.95 "
            + "--defaultprocessing 0.4 "
            + "--sigmaMean 0.05 "
            + "--sigmaGrad 0.1 "
            + "--probmaps "
-           + "--usecheating "
-           + "--precond CHOL";
+           + "--bench "
+           + "--precond LU";
 //
 //    String args1 =
 //            "app -i /local/internal_tmp/baniuk/rw/folder "
