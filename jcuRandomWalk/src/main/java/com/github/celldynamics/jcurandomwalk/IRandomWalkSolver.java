@@ -1,5 +1,6 @@
 package com.github.celldynamics.jcurandomwalk;
 
+import java.nio.file.Path;
 import java.util.List;
 
 import ij.ImageStack;
@@ -58,4 +59,14 @@ public interface IRandomWalkSolver {
    * @return stack hold by this object
    */
   public ImageStack getStack();
+
+  /**
+   * Turn benchmark mode on.
+   * 
+   * This method is called once and in result the {@link #solve(ImageStack, int)}
+   * should add a record under specified file name.
+   * 
+   * @param file stat file name
+   */
+  public void getStats(Path file);
 }

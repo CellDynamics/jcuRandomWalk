@@ -1314,6 +1314,7 @@ public class SparseMatrixDevice extends SparseCoordinates {
     cusparseSetMatDiagType(descrL, CUSPARSE_DIAG_TYPE_NON_UNIT);
     cusparseSetMatIndexBase(descrL, CUSPARSE_INDEX_BASE_ZERO);
 
+    // this is pernamently turned on for Chol
     if (!useCheating || !done) {
       cusparseCreateSolveAnalysisInfo(infoL);
       cusparseScsrsv_analysis(cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE,
@@ -1330,8 +1331,6 @@ public class SparseMatrixDevice extends SparseCoordinates {
       LOGGER.debug("... Step cusparseScsrsv_analysis accomplished in " + timer.toSplitString());
       timer.unsplit();
       done = true;
-    } else {
-      LOGGER.warn("Cheating is enabled. Using structure from previous analysis.");
     }
 
     Pointer d_t = ArrayTools.cudaMallocCopy(new float[0], getRowNumber());

@@ -66,6 +66,7 @@ public class RandomWalkOptions {
     this.debugLevel = src.debugLevel;
     this.useCheating = src.useCheating;
     this.preconditioner = src.preconditioner;
+    this.bench = src.bench;
   }
 
   /**
@@ -158,6 +159,11 @@ public class RandomWalkOptions {
   public Preconds preconditioner = Preconds.CHOL;
 
   /**
+   * Path to benchmark results. If null no benchmark is computed.
+   */
+  public Path bench = null;
+
+  /**
    * Set preconditioner from string.
    * 
    * @param preconditioner the preconditioner to set
@@ -240,11 +246,6 @@ public class RandomWalkOptions {
     return algOptions;
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see java.lang.Object#toString()
-   */
   @Override
   public String toString() {
     return "RandomWalkOptions [thLevel=" + thLevel + ", algOptions=" + algOptions
@@ -255,7 +256,7 @@ public class RandomWalkOptions {
             + ", ifComputeIncidence=" + ifComputeIncidence + ", ifSaveIncidence=" + ifSaveIncidence
             + ", ifApplyProcessing=" + ifApplyProcessing + ", gammaVal=" + gammaVal
             + ", debugLevel=" + debugLevel + ", useCheating=" + useCheating + ", preconditioner="
-            + preconditioner + "]";
+            + preconditioner + ", bench=" + bench + "]";
   }
 
 }
