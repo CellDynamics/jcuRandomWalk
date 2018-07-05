@@ -43,20 +43,20 @@ public class RandomWalkAlgorithmGpuChol extends RandomWalkAlgorithmGpuLU {
     StopWatch timer = new StopWatch();
     timer.start();
     computeIncidence();
-    readTimer("INCIDENCE[ms]", timer);
+    readTimer("INCIDENCE", timer);
     timer.start();
     computeLaplacian(); // here there is first matrix created, decides CPU/GPU
-    readTimer("LAPLACIAN[ms]", timer);
+    readTimer("LAPLACIAN", timer);
     Integer[] seedIndices = getSourceIndices(seed, seedVal);
     timer.start();
     computeReducedLaplacian(seedIndices, getIncidenceMatrix().getSinkBox());
-    readTimer("R-LAPLACIAN[ms]", timer);
+    readTimer("RLAPLACIAN", timer);
     SparseMatrixDevice reducedLapGpuCsr = getReducedLap();
-    Long sTmp = Long.valueOf(reducedLapGpuCsr.getRowNumber())
+    Long stmp = Long.valueOf(reducedLapGpuCsr.getRowNumber())
             * Long.valueOf(reducedLapGpuCsr.getColNumber());
-    times.put("R-SIZE[N]", sTmp);
-    times.put("R-NNZ[N]", Long.valueOf(reducedLapGpuCsr.getElementNumber()));
-    times.put("S-SIZE[N]", (long) (stack.getHeight() * stack.getWidth() * stack.getSize()));
+    times.put("RSIZE", stmp);
+    times.put("RNNZ", Long.valueOf(reducedLapGpuCsr.getElementNumber()));
+    times.put("SSIZE", (long) (stack.getHeight() * stack.getWidth() * stack.getSize()));
 
     timer.start();
     SparseMatrixDevice triangle = reducedLapGpuCsr.getLowerTriangle();
@@ -66,7 +66,7 @@ public class RandomWalkAlgorithmGpuChol extends RandomWalkAlgorithmGpuLU {
     LOGGER.info("Forward");
     float[] solvedFw = triangle.luSolveSymmetric(bvector.get(0), chol,
             options.getAlgOptions().maxit, options.getAlgOptions().tol);
-    readTimer("F-SOLVE[ms]", timer);
+    readTimer("FSOLVE", timer);
     float[] solvedSeedsFw = incorporateSeeds(solvedFw, seedIndices,
             getIncidenceMatrix().getSinkBox(), lap.getColNumber());
 
@@ -74,7 +74,7 @@ public class RandomWalkAlgorithmGpuChol extends RandomWalkAlgorithmGpuLU {
     timer.start();
     float[] solvedBw = triangle.luSolveSymmetric(bvector.get(1), chol,
             options.getAlgOptions().maxit, options.getAlgOptions().tol);
-    readTimer("B-SOLVE[ms]", timer);
+    readTimer("BSOLVE", timer);
     float[] solvedSeedsBw = incorporateSeeds(solvedBw, getIncidenceMatrix().getSinkBox(),
             seedIndices, lap.getColNumber());
 

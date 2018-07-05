@@ -222,12 +222,11 @@ public abstract class RandomWalkSolver implements IRandomWalkSolver {
   /**
    * Helper.
    * 
-   * Read timer and add passed time to {@link #times}. Timer should be running and this method
+   * <p>Read timer and add passed time to {@link #times}. Timer should be running and this method
    * should be called after method being measured.
    * 
-   * @param tag
-   * 
-   * @param timer
+   * @param tag tag
+   * @param timer timer
    */
   protected void readTimer(String tag, StopWatch timer) {
     timer.stop();
@@ -239,11 +238,11 @@ public abstract class RandomWalkSolver implements IRandomWalkSolver {
     if (statFile != null && !times.isEmpty()) {
       BufferedWriter output = new BufferedWriter(
               new OutputStreamWriter(new FileOutputStream(statFile, true), "UTF-8"));
-      String con = "FILE:" + "\t";
+      String con = "FILE" + "\t";
       con = con.concat(options.stack.getFileName().toString()) + "\t";
       for (String k : times.keySet()) {
         Long v = times.get(k);
-        con = con.concat(k + ":\t" + v.toString() + "\t");
+        con = con.concat(k + "\t" + v.toString() + "\t");
       }
       output.write(con.concat(System.lineSeparator()));
       output.close();
