@@ -1,5 +1,7 @@
 package com.github.celldynamics.jcurandomwalk;
 
+import org.apache.commons.lang3.time.StopWatch;
+
 import com.github.celldynamics.jcudarandomwalk.matrices.dense.DenseVectorDevice;
 import com.github.celldynamics.jcudarandomwalk.matrices.sparse.SparseMatrixDevice;
 
@@ -38,12 +40,25 @@ public class RandomWalkAlgorithmGpuChol extends RandomWalkAlgorithmGpuLU {
    */
   @Override
   public ImageStack solve(ImageStack seed, int seedVal) throws Exception {
+    StopWatch timer = new StopWatch();
+    timer.start();
     computeIncidence();
+    readTimer("INCIDENCE[ms]", timer);
+    timer.start();
     computeLaplacian(); // here there is first matrix created, decides CPU/GPU
+    readTimer("LAPLACIAN[ms]", timer);
     Integer[] seedIndices = getSourceIndices(seed, seedVal);
+    timer.start();
     computeReducedLaplacian(seedIndices, getIncidenceMatrix().getSinkBox());
+    readTimer("R-LAPLACIAN[ms]", timer);
     SparseMatrixDevice reducedLapGpuCsr = getReducedLap();
+    Long sTmp = Long.valueOf(reducedLapGpuCsr.getRowNumber())
+            * Long.valueOf(reducedLapGpuCsr.getColNumber());
+    times.put("R-SIZE[N]", sTmp);
+    times.put("R-NNZ[N]", Long.valueOf(reducedLapGpuCsr.getElementNumber()));
+    times.put("S-SIZE[N]", (long) (stack.getHeight() * stack.getWidth() * stack.getSize()));
 
+    timer.start();
     SparseMatrixDevice triangle = reducedLapGpuCsr.getLowerTriangle();
     DenseVectorDevice chol = triangle.getCholesky();
     triangle.setUseCheating(true); // use always
@@ -51,12 +66,15 @@ public class RandomWalkAlgorithmGpuChol extends RandomWalkAlgorithmGpuLU {
     LOGGER.info("Forward");
     float[] solvedFw = triangle.luSolveSymmetric(bvector.get(0), chol,
             options.getAlgOptions().maxit, options.getAlgOptions().tol);
+    readTimer("F-SOLVE[ms]", timer);
     float[] solvedSeedsFw = incorporateSeeds(solvedFw, seedIndices,
             getIncidenceMatrix().getSinkBox(), lap.getColNumber());
 
     LOGGER.info("Backward");
+    timer.start();
     float[] solvedBw = triangle.luSolveSymmetric(bvector.get(1), chol,
             options.getAlgOptions().maxit, options.getAlgOptions().tol);
+    readTimer("B-SOLVE[ms]", timer);
     float[] solvedSeedsBw = incorporateSeeds(solvedBw, getIncidenceMatrix().getSinkBox(),
             seedIndices, lap.getColNumber());
 
@@ -73,6 +91,7 @@ public class RandomWalkAlgorithmGpuChol extends RandomWalkAlgorithmGpuLU {
     reducedLapGpuCsr.free();
     triangle.free();
     chol.free();
+    saveRecord();// save stats
     return ret;
   }
 
