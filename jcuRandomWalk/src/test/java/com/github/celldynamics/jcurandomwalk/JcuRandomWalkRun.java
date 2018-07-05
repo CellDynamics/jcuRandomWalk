@@ -21,8 +21,8 @@ public class JcuRandomWalkRun {
 //    String args1 = "app -h"; 
     
     String args1 =
-           "app -i /local/internal_tmp/baniuk/rw/folder/small "
-           + "-o /home/baniuk/external/rw/folder/res "
+           "app -i /local/internal_tmp/baniuk/rw/folder/benchmark/scaled "
+           + "-o /home/baniuk/external/rw/folder/benchmark/res_scaledCHOL "
            + "-dd "
            + "--autoth 0.95 "
            + "--defaultprocessing 0.4 "
@@ -30,7 +30,7 @@ public class JcuRandomWalkRun {
            + "--sigmaGrad 0.1 "
            + "--probmaps "
            + "--bench "
-           + "--precond LU";
+           + "--precond CHOL";
 //
 //    String args1 =
 //            "app -i /local/internal_tmp/baniuk/rw/folder "
