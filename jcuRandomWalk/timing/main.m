@@ -40,7 +40,24 @@ xlabel('Pixels')
 ylabel('Time [s]')
 title('Incidence matrix generation (CPU)')
 hold off
-%% laplacian (CPU)
+%% incidence (CPU) Fit
+figure
+x = tf1s{:,'SSIZE'};
+t1t2 = [tf1s{:,'INCIDENCE'}, [tf2s{:,'INCIDENCE'}; tf1s{:,'INCIDENCE'}(end-1); tf1s{:,'INCIDENCE'}(end)]]';
+t1t2 = t1t2/1000;
+mm = mean(t1t2);
+fitobject = fit(x,mm','poly1');
+
+plot(x,mm,'bo','markerfacecolor','r');
+hold on
+xx = linspace(x(1),x(end),100);
+plot(xx,fitobject(xx),'-b','linewidth',2);
+grid on
+xlabel('Pixels')
+ylabel('Time [s]')
+title('Incidence matrix generation (CPU)')
+hold off
+%% laplacian (GPU)
 x = tf1s{:,'SSIZE'};
 t1t2 = [tf1s{:,'LAPLACIAN'}, [tf2s{:,'LAPLACIAN'}; tf1s{:,'LAPLACIAN'}(end-1); tf1s{:,'LAPLACIAN'}(end)]]';
 t1t2 = t1t2/1000;
@@ -53,9 +70,25 @@ plot(x,mm,'-ro', 'LineWidth',2);
 grid on
 xlabel('Pixels')
 ylabel('Time [s]')
-title('Laplacian generation (CPU)')
+title('Laplacian generation (GPU)')
 hold off
+%% laplacian (GPU) fit
+figure
+x = tf1s{:,'SSIZE'};
+t1t2 = [tf1s{:,'LAPLACIAN'}, [tf2s{:,'LAPLACIAN'}; tf1s{:,'LAPLACIAN'}(end-1); tf1s{:,'LAPLACIAN'}(end)]]';
+t1t2 = t1t2/1000;
+mm = mean(t1t2);
+fitobject = fit(x,mm','poly1');
 
+plot(x,mm,'bo','markerfacecolor','r');
+hold on
+xx = linspace(x(1),x(end),100);
+plot(xx,fitobject(xx),'-b','linewidth',2);
+grid on
+xlabel('Pixels')
+ylabel('Time [s]')
+title('Laplacian generation (GPU)')
+hold off
 %% Reducing laplacian (CPU)
 x = tf1s{:,'SSIZE'};
 t1t2 = [tf1s{:,'RLAPLACIAN'}, [tf2s{:,'RLAPLACIAN'}; tf1s{:,'RLAPLACIAN'}(end-1); tf1s{:,'RLAPLACIAN'}(end)]]';
@@ -72,11 +105,30 @@ ylabel('Time [s]')
 title('Reduced laplacian (CPU)')
 hold off
 
+%% Reducing laplacian (CPU) fit
+figure
+x = tf1s{:,'SSIZE'};
+t1t2 = [tf1s{:,'RLAPLACIAN'}, [tf2s{:,'RLAPLACIAN'}; tf1s{:,'RLAPLACIAN'}(end-1); tf1s{:,'RLAPLACIAN'}(end)]]';
+t1t2 = t1t2/1000;
+mm = mean(t1t2);
+fitobject = fit(x,mm','poly2');
+
+plot(x,mm,'bo','markerfacecolor','r');
+hold on
+xx = linspace(x(1),x(end),100);
+plot(xx,fitobject(xx),'-b','linewidth',2);
+grid on
+xlabel('Pixels')
+ylabel('Time [s]')
+title('Reduced laplacian (CPU)')
+hold off
 %% Size of R laplacian
 x = tf1s{:,'SSIZE'};
 t1t2 = tf1s{:,'RNNZ'}';
 
-plot(x,t1t2,'-ro', 'LineWidth',2);
+plot(x,t1t2,'-b', 'LineWidth',2);
+hold on
+plot(x,t1t2,'bo', 'markerfacecolor','r');
 grid on
 xlabel('Pixels')
 ylabel('NNZ')
@@ -92,7 +144,7 @@ plot(x,t1t2,'-o', 'LineWidth',2);
 grid on
 xlabel('Pixels')
 ylabel('Time [s]')
-title('Forward solver')
+title('Foreground probability')
 hold off
 legend('CHOL','LU','Location','northwest')
 
@@ -105,7 +157,7 @@ plot(x,t1t2,'-o', 'LineWidth',2);
 grid on
 xlabel('Pixels')
 ylabel('Time [s]')
-title('Backward solver')
+title('Background probability')
 hold off
 legend('CHOL','LU','Location','northwest')
 
