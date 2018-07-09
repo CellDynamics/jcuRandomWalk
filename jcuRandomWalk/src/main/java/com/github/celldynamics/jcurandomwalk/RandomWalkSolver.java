@@ -214,9 +214,10 @@ public abstract class RandomWalkSolver implements IRandomWalkSolver {
    */
   @Override
   public void getStats(Path file) {
-    statFile = file.toFile();
-    times.clear();
-
+    if (file != null) {
+      statFile = file.toFile();
+      times.clear();
+    }
   }
 
   /**
