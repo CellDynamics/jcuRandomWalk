@@ -1,11 +1,21 @@
-function [A, W] = generateAdjacency(stack, V, E)
-%UNTITLED5 Summary of this function goes here
-%   Detailed explanation goes here
+function [A, W] = generateAdjacency(stack, V, E, compWeightHandle)
+%generateAdjacency Compute adjacency matrix and weight vector.
+%   stack - 2d or 3d image as double
+%   V - number of vertices (pixels)
+%   E - number of edges
+%   compWeightHandle - handle to function for computing weights. Expected
+%                      prototype: 
+%                      compWeightHandle(stack, row, col, z, row1, col1, z1)
+%                      If empty default computeWeight is used - SEE
+%                      IMPORTANT COMMENTS THERE!!
 
 AI = zeros(E, 1);
 AJ = zeros(E, 1);
 AV = zeros(E, 1);
 W = zeros(E, 1);
+if isempty(compWeightHandle)
+    compWeightHandle = @computeWeight;
+end
 % assume linear indexing, row order, slice by slice
 % i is linear index of each pixel in array [nrows ncols nz] counted from 0
 % linear indexing (one loop) for better parallelism
@@ -79,7 +89,7 @@ for i = 0:V-1
         AJ(vi) = i; % current pixel
         AV(vi) = 1;
         vi = vi+1;
-        W(in+1) = computeWeight(stack, row, right, z, row, col, z); % +1 only for Matlab
+        W(in+1) = compWeightHandle(stack, row, right, z, row, col, z); % +1 only for Matlab
         in = in + 1; % go to next edge (next row in incidence)
     end      
     
@@ -94,7 +104,7 @@ for i = 0:V-1
         AJ(vi) = i; % current pixel
         AV(vi) = 1;
         vi = vi+1;
-        W(in+1) = computeWeight(stack, lower, col, z, row, col, z);
+        W(in+1) = compWeightHandle(stack, lower, col, z, row, col, z);
         in = in + 1; % go to next edge (next row in incidence)
     end
     
@@ -109,7 +119,7 @@ for i = 0:V-1
         AJ(vi) = i; % current pixel
         AV(vi) = 1;
         vi = vi+1;
-        W(in+1) = computeWeight(stack, row, col, bottom, row, col, z);
+        W(in+1) = compWeightHandle(stack, row, col, bottom, row, col, z);
         in = in + 1; % go to next edge (next row in incidence)
     end    
 end
