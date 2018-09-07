@@ -1,4 +1,4 @@
-function w = computeWeightSimple(stack, row, col, z, row1, col1, z1)
+function w = computeWeightSimple(stack, row, col, z, row1, col1, z1, sigmaGrad)
 % row,col,z are 0 based
 
 % Matlab related only
@@ -9,5 +9,5 @@ row1 = row1 + 1;
 col1 = col1 + 1;
 z1 = z1 + 1;
 
-w = abs(stack(row,col,z)-stack(row1,col1,z1));
+w = exp(-0.5*(stack(row,col,z) - stack(row1,col1,z1)).^2 / sigmaGrad^2);
 end
