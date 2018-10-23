@@ -75,3 +75,4 @@ jcuRandomWalk/data
 
 *.asv
 jack/
+JCudaMatrix/
